@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 const ALLOWED_ORIGINS = [
-  "https://PDFVersee.pages.dev",
+  "https://pdfverse.pages.dev",
   "http://localhost:3000",
   "http://localhost:3001",
 ];
@@ -48,7 +48,7 @@ app.use(express.json({ limit: "5mb" }));
 
 const pdfStorage = multer.diskStorage({
   destination: async function (_req, _file, callback) {
-    const uploadDir = path.join(os.tmpdir(), "PDFVersex-pdf-uploads");
+    const uploadDir = path.join(os.tmpdir(), "PDFVerse-pdf-uploads");
 
     try {
       await fsp.mkdir(uploadDir, { recursive: true });
@@ -1139,7 +1139,7 @@ function streamFile(res, filePath, cleanup) {
 
 app.get("/", (_req, res) => {
   res.json({
-    name: "PDFVerse PDF API",
+    name: "PDFVerse API",
     status: "ok",
   });
 });
