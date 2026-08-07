@@ -337,10 +337,9 @@ export default function Home() {
 
     const url = new URL(window.location.href);
 
-    if (url.searchParams.has("category")) {
+    if (url.searchParams.has("category") || url.hash) {
       url.searchParams.delete("category");
-      const nextUrl = `${url.pathname}${url.hash || ""}`;
-      window.history.replaceState(null, "", nextUrl);
+      window.history.replaceState(null, "", url.pathname || "/");
     }
   }, []);
 
