@@ -4,34 +4,40 @@ import Script from "next/script";
 import { FileText, Flag, Mail, ShieldCheck } from "lucide-react";
 import "./globals.css";
 
-const siteUrl = "https://PDFVerse.pages.dev";
+const siteUrl = "https://pdfverse.pages.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "PDFVerse - Free Online Utility Tools",
-    template: "%s | PDFVerse",
+    default: "PDF Verse - Free Online PDF Editor Tools",
+    template: "%s | PDF Verse",
   },
   description:
-    "PDFVerse is a free online utility hub for JSON formatting, QR code generation, image and PDF compression, paste sharing, file sharing, URL shortening, and image hosting.",
+    "PDF Verse is a free online PDF editor toolkit for merging, splitting, compressing, converting, signing, protecting, unlocking, repairing, and organizing PDF files.",
   keywords: [
+    "PDF Verse",
     "PDFVerse",
-    "free online tools",
-    "JSON formatter",
-    "QR code generator",
-    "image compressor",
-    "PDF compressor",
-    "paste sharing",
-    "file sharing",
-    "URL shortener",
-    "image hosting",
-    "developer tools",
-    "web utilities",
+    "free PDF editor",
+    "online PDF tools",
+    "merge PDF",
+    "split PDF",
+    "compress PDF",
+    "convert PDF",
+    "PDF to Word",
+    "PDF to JPG",
+    "JPG to PDF",
+    "protect PDF",
+    "unlock PDF",
+    "sign PDF",
+    "repair PDF",
+    "organize PDF",
+    "watermark PDF",
+    "redact PDF",
   ],
-  authors: [{ name: "PDFVerse" }],
-  creator: "PDFVerse",
-  publisher: "PDFVerse",
-  applicationName: "PDFVerse",
+  authors: [{ name: "PDF Verse" }],
+  creator: "PDF Verse",
+  publisher: "PDF Verse",
+  applicationName: "PDF Verse",
   generator: "Next.js",
   referrer: "origin-when-cross-origin",
   alternates: {
@@ -40,24 +46,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    siteName: "PDFVerse",
-    title: "PDFVerse - Free Online Utility Tools",
+    siteName: "PDF Verse",
+    title: "PDF Verse - Free Online PDF Editor Tools",
     description:
-      "Free online tools for JSON formatting, QR codes, image/PDF compression, paste sharing, file sharing, URL shortening, and image hosting.",
+      "Free online PDF tools to merge, split, compress, convert, sign, protect, unlock, repair, and organize PDF files.",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "PDFVerse",
+        alt: "PDF Verse",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PDFVerse - Free Online Utility Tools",
+    title: "PDF Verse - Free Online PDF Editor Tools",
     description:
-      "Free online tools for JSON formatting, QR codes, image/PDF compression, paste sharing, file sharing, URL shortening, and image hosting.",
+      "Free online PDF tools to merge, split, compress, convert, sign, protect, unlock, repair, and organize PDF files.",
     images: ["/logo.png"],
   },
   robots: {
@@ -73,8 +79,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
-   shortcut: "/favicon.ico",
-   apple: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
   manifest: "/manifest.webmanifest",
 };
@@ -108,17 +114,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
         <Script
-          defer
           src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon='{"token":"4fdd1b111cc042a1b8559e0c749b5a8f"}'
           strategy="afterInteractive"
+          data-cf-beacon='{"token":"97fc7009e3de4aae813f9255c729838f"}'
         />
 
         <div className="flex min-h-screen flex-col">
-
           <main className="flex-1">{children}</main>
 
           <footer className="border-t border-white/10 bg-slate-950/80">
