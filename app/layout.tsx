@@ -8,67 +8,91 @@ const siteUrl = "https://pdfverse.pages.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+
   title: {
-    default: "PDF Verse - Free Online PDF Editor Tools",
-    template: "%s | PDF Verse",
+    default: "PDFVerse — All-in-One PDF Editor",
+    template: "%s | PDFVerse",
   },
+
   description:
-    "PDF Verse is a free online PDF editor toolkit for merging, splitting, compressing, converting, signing, protecting, unlocking, repairing, and organizing PDF files.",
+    "PDFVerse is your all-in-one online PDF editor. Merge, split, compress, convert, protect, unlock, sign, rotate, organize and manage PDF files easily.",
+
   keywords: [
-    "PDF Verse",
     "PDFVerse",
+    "PDF Verse",
+    "PDF editor",
+    "online PDF editor",
     "free PDF editor",
-    "online PDF tools",
+    "PDF tools",
     "merge PDF",
     "split PDF",
     "compress PDF",
-    "convert PDF",
+    "PDF converter",
     "PDF to Word",
     "PDF to JPG",
     "JPG to PDF",
     "protect PDF",
     "unlock PDF",
     "sign PDF",
-    "repair PDF",
+    "rotate PDF",
     "organize PDF",
     "watermark PDF",
-    "redact PDF",
+    "repair PDF",
   ],
-  authors: [{ name: "PDF Verse" }],
-  creator: "PDF Verse",
-  publisher: "PDF Verse",
-  applicationName: "PDF Verse",
+
+  authors: [
+    {
+      name: "PDFVerse",
+      url: siteUrl,
+    },
+  ],
+
+  creator: "PDFVerse",
+  publisher: "PDFVerse",
+  applicationName: "PDFVerse",
   generator: "Next.js",
+
   referrer: "origin-when-cross-origin",
+
   alternates: {
     canonical: siteUrl,
   },
+
   openGraph: {
     type: "website",
     url: siteUrl,
-    siteName: "PDF Verse",
-    title: "PDF Verse - Free Online PDF Editor Tools",
+    siteName: "PDFVerse",
+
+    title: "PDFVerse — All-in-One PDF Editor",
+
     description:
-      "Free online PDF tools to merge, split, compress, convert, sign, protect, unlock, repair, and organize PDF files.",
+      "Merge, split, compress, convert, protect, sign and manage your PDF files with PDFVerse.",
+
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "PDF Verse",
+        alt: "PDFVerse — All-in-One PDF Editor",
       },
     ],
   },
+
   twitter: {
     card: "summary_large_image",
-    title: "PDF Verse - Free Online PDF Editor Tools",
+
+    title: "PDFVerse — All-in-One PDF Editor",
+
     description:
-      "Free online PDF tools to merge, split, compress, convert, sign, protect, unlock, repair, and organize PDF files.",
+      "All your PDF tools in one place. Merge, split, compress, convert, protect and manage PDFs online.",
+
     images: ["/logo.png"],
   },
+
   robots: {
     index: true,
     follow: true,
+
     googleBot: {
       index: true,
       follow: true,
@@ -77,11 +101,13 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
+
   manifest: "/manifest.webmanifest",
 };
 
@@ -102,7 +128,7 @@ const footerLinks = [
     icon: Mail,
   },
   {
-    label: "Abuse",
+    label: "Report Abuse",
     href: "/report-abuse",
     icon: Flag,
   },
@@ -128,20 +154,21 @@ export default function RootLayout({
           <footer className="border-t border-white/10 bg-slate-950/80">
             <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                
+                {/* Brand */}
                 <div>
                   <Link
                     href="/"
-                    className="inline-flex text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
+                    className="inline-flex items-center gap-2 text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
                   >
-                    PDF Verse
+                    <span>PDFVerse</span>
                   </Link>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    © {new Date().getFullYear()} PDF Verse. All rights
-                    reserved.
+                  <p className="mt-1 text-xs text-slate-600">
+                    © {new Date().getFullYear()} PDFVerse. All rights reserved.
                   </p>
                 </div>
 
+                {/* Footer Navigation */}
                 <nav
                   aria-label="Footer navigation"
                   className="flex flex-wrap items-center gap-x-6 gap-y-3"
@@ -156,6 +183,7 @@ export default function RootLayout({
                         className="group inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-violet-300"
                       >
                         <Icon className="h-4 w-4 text-slate-600 transition group-hover:text-violet-300" />
+
                         <span>{item.label}</span>
                       </Link>
                     );

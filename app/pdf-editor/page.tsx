@@ -874,8 +874,23 @@ function PdfEditorPageContent() {
   const [flattenForms, setFlattenForms] = useState(true);
   const [detectedFormFields, setDetectedFormFields] = useState<string[]>([]);
   const [output, setOutput] = useState<OutputFile | null>(null);
+  const [outputPreviewUrl, setOutputPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!output || output.kind === "text") {
+      setOutputPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(output.blob);
+    setOutputPreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [output]);
 
   const visibleModes = useMemo(() => {
     if (activeCategory === "all") return modes;
@@ -4129,11 +4144,35 @@ function PdfEditorPageContent() {
                       <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-slate-900 p-4 text-left text-sm leading-6 text-slate-200">
                         {output.previewText || "No preview output."}
                       </pre>
+                    ) : outputPreviewUrl && getFileExtension(output.name) === "PDF" ? (
+                      <div className="overflow-hidden rounded-xl border border-white/10 bg-white">
+                        <iframe
+                          title={`Preview of ${output.name}`}
+                          src={outputPreviewUrl}
+                          className="h-[650px] w-full"
+                        />
+                      </div>
+                    ) : outputPreviewUrl &&
+                      ["JPG", "JPEG", "PNG", "WEBP"].includes(
+                        getFileExtension(output.name),
+                      ) ? (
+                      <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-white/10 bg-slate-900 p-6">
+                        <img
+                          src={outputPreviewUrl}
+                          alt={`Preview of ${output.name}`}
+                          className="max-h-[600px] max-w-full rounded-lg object-contain"
+                        />
+                      </div>
                     ) : (
                       <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-center text-sm text-slate-500">
                         <div>
                           <FileText className="mx-auto mb-3 h-10 w-10 text-emerald-300" />
-                          Your output file is ready to download.
+                          <p className="font-medium text-slate-300">
+                            Preview is not available for this file type.
+                          </p>
+                          <p className="mt-1">
+                            Download the file to open it.
+                          </p>
                         </div>
                       </div>
                     )}
