@@ -130,13 +130,6 @@ const pdfTools = [
     icon: FileText,
   },
   {
-    title: "Flatten PDF",
-    description: "Flatten form fields and make PDF content non-editable.",
-    href: "/pdf-editor?tool=flatten-pdf",
-    category: "edit" as Category,
-    icon: FileText,
-  },
-  {
     title: "Header & Footer",
     description: "Add headers, footers, page numbers, dates, and filenames.",
     href: "/pdf-editor?tool=header-footer",
