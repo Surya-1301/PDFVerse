@@ -118,26 +118,21 @@ export default function ContactPage() {
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-          PDFVerse Contact Request
+PDFVerse Contact Request
 ========================================
 
-Name:
-${form.name.trim()}
+Name: ${form.name.trim()}
 
-Email:
-${form.email.trim()}
+Email: ${form.email.trim()}
 
-Request Type:
-${form.type}
+Request Type: ${form.type}
 
-Subject:
-${form.subject.trim()}
+Subject: ${form.subject.trim()}
 
-Message:
-${form.message.trim()}
+Message: ${form.message.trim()}
 
 ========================================
-    Sent from PDFVerse Contact Page
+Sent from PDFVerse Contact Page
 `;
 
     /* ----------------------------------------------------------------------

@@ -198,30 +198,25 @@ None provided.
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-          PDFVERSE ABUSE REPORT
+PDFVERSE ABUSE REPORT
 ========================================
 
-Name:
-${form.name.trim()}
+Name: ${form.name.trim()}
 
-Email:
-${form.email.trim()}
+Email: ${form.email.trim()}
 
-Report Type:
-${form.category}
+Report Type: ${form.category}
 
-Relevant URL / Link:
-${form.url.trim()}
+Relevant URL / Link: ${form.url.trim()}
 
-Subject:
-${form.subject.trim()}
+Subject: ${form.subject.trim()}
 
 ${form.description.trim()}
 
 ${evidenceSection}
 
 ========================================
- Submitted from PDFVerse Report Abuse Page
+Submitted from PDFVerse Report Abuse Page
 `;
 
     const mailtoUrl =
