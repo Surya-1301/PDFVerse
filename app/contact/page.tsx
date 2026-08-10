@@ -118,7 +118,7 @@ export default function ContactPage() {
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-PDFVerse Contact Request
+        PDFVerse Contact Request
 ========================================
 
 Name:
@@ -137,7 +137,7 @@ Message:
 ${form.message.trim()}
 
 ========================================
-Sent from PDFVerse Support Center
+    Sent from PDFVerse Contact Page
 `;
 
     /* ----------------------------------------------------------------------

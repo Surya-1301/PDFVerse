@@ -198,7 +198,7 @@ None provided.
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-PDFVERSE ABUSE REPORT
+       PDFVERSE ABUSE REPORT
 ========================================
 
 Reporter Information
@@ -244,7 +244,7 @@ The reporter acknowledged the PDFVerse Privacy Policy.
 
 
 ========================================
-Submitted from PDFVerse Report Abuse Center
+ Submitted from PDFVerse Report Abuse Page
 `;
 
     /* ----------------------------------------------------------------------
