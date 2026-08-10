@@ -21,9 +21,7 @@ export function HowToUse({
     <section className="mx-auto mt-16 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
       {/* Heading */}
       <div className="mx-auto max-w-2xl text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10 text-violet-300">
-          <span className="text-xl font-bold">?</span>
-        </div>
+       
 
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           {title}

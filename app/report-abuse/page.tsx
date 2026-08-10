@@ -24,7 +24,7 @@ import { useEffect, useState, type ReactNode, type FormEvent } from "react";
    Replace this with the Gmail address where you want to receive reports.
    ========================================================================== */
 
-const ABUSE_EMAIL = "YOUR_GMAIL@gmail.com";
+const ABUSE_EMAIL = "support.pdfverse@gmail.com";
 
 /* ==========================================================================
    FORM TYPE
