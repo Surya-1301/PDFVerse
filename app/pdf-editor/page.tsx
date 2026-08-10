@@ -2969,26 +2969,27 @@ function PdfEditorPageContent() {
             ))}
           </div>
 
-          {/* Mobile only: icon on the left, title + description on the right */}
+          {/* Mobile only: icon on the left, title + description on the right.
+              Desktop/tablet keep the original card layout above. */}
           <div className="mt-4 grid gap-3 sm:hidden">
             {visibleModes.map((item) => (
               <button
                 key={`tool-mobile-${item.id}`}
                 type="button"
                 onClick={() => switchMode(item.id)}
-                className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition active:scale-[0.99] hover:border-violet-500/50 hover:bg-white/[0.05]"
+                className="group flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition active:scale-[0.99] active:border-violet-500/60 hover:border-violet-500/50 hover:bg-white/[0.05]"
               >
-                {/* Mobile icon */}
+                {/* Mobile icon: fixed left column */}
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition group-hover:bg-violet-500">
                   {item.icon}
                 </div>
 
-                {/* Mobile right-hand description */}
+                {/* Mobile right-hand title + description */}
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold leading-5 text-white">
+                  <h2 className="truncate text-sm font-semibold leading-5 text-white">
                     {item.title}
                   </h2>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300/80">
                     {item.description}
                   </p>
                 </div>
