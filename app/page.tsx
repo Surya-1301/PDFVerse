@@ -277,13 +277,6 @@ const pdfTools = [
     icon: FileText,
   },
   {
-    title: "PDF to PDF/A",
-    description: "Convert a PDF into archival PDF/A format.",
-    href: "/pdf-editor?tool=pdf-to-pdfa",
-    category: "convertFromPdf" as Category,
-    icon: FileText,
-  },
-  {
     title: "Batch Compress",
     description: "Compress multiple PDFs and download one ZIP file.",
     href: "/pdf-editor?tool=batch-compress",

@@ -40,7 +40,8 @@ export function HowToUse({
           className="absolute left-[16.66%] right-[16.66%] top-7 hidden h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent lg:block"
         />
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Desktop / tablet: original card layout */}
+        <div className="hidden gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3">
           {steps.map((step, index) => (
             <div
               key={`${step.title}-${index}`}
@@ -68,6 +69,38 @@ export function HowToUse({
               {/* Bottom accent */}
               <div className="mt-5 h-1 w-10 overflow-hidden rounded-full bg-slate-800">
                 <div className="h-full w-full origin-left scale-x-0 rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 transition-transform duration-300 group-hover:scale-x-100" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile only: icon on the left, title + description on the right */}
+        <div className="grid gap-3 sm:hidden">
+          {steps.map((step, index) => (
+            <div
+              key={`${step.title}-mobile-${index}`}
+              className="flex items-center gap-4 rounded-2xl border border-cyan-400/10 bg-[#071522] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+            >
+              {/* Cyan icon */}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/10 bg-[#092B40] text-[#63E5F7] shadow-[0_0_18px_rgba(34,211,238,0.08)]">
+                {step.icon}
+              </div>
+
+              {/* Right-side content */}
+              <div className="min-w-0 flex-1 pr-1">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-[14px] font-semibold leading-5 text-white">
+                    {step.title}
+                  </h3>
+
+                  <span className="shrink-0 text-[11px] font-bold text-slate-600">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+
+                <p className="mt-1 text-[12px] leading-5 text-slate-400">
+                  {step.description}
+                </p>
               </div>
             </div>
           ))}

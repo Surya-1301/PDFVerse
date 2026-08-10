@@ -2946,7 +2946,8 @@ function PdfEditorPageContent() {
             <span>{visibleModes.length} PDF tools shown</span>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {/* Desktop / tablet: keep the existing PDF tool-card layout */}
+          <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleModes.map((item) => (
               <button
                 key={`tool-${item.id}`}
@@ -2964,6 +2965,33 @@ function PdfEditorPageContent() {
                 <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
                   {item.description}
                 </p>
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile only: icon on the left, title + description on the right */}
+          <div className="mt-4 grid gap-3 sm:hidden">
+            {visibleModes.map((item) => (
+              <button
+                key={`tool-mobile-${item.id}`}
+                type="button"
+                onClick={() => switchMode(item.id)}
+                className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition active:scale-[0.99] hover:border-violet-500/50 hover:bg-white/[0.05]"
+              >
+                {/* Mobile icon */}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition group-hover:bg-violet-500">
+                  {item.icon}
+                </div>
+
+                {/* Mobile right-hand description */}
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-semibold leading-5 text-white">
+                    {item.title}
+                  </h2>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
+                    {item.description}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -4205,48 +4233,52 @@ function PdfEditorPageContent() {
         </div>
       ) : null}
 
-      <HowToUse
-        title="How to use PDF Editor"
-        subtitle=""
-        steps={[
-          {
-            title: "Browse tools",
-            description:
-              "All PDF tools stay visible under the ALL view by default.",
-            icon: <FileText className="h-5 w-5" />,
-          },
-          {
-            title: "Choose a tool",
-            description:
-              "Click Merge PDF, Rotate PDF, Compress PDF, PDF to Excel, or any other tool card.",
-            icon: <Crop className="h-5 w-5" />,
-          },
-          {
-            title: "Upload file",
-            description:
-              "Upload a PDF, image set, Office file, or use HTML content depending on the selected tool.",
-            icon: <Upload className="h-5 w-5" />,
-          },
-          {
-            title: "Set options",
-            description:
-              "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
-            icon: <Scissors className="h-5 w-5" />,
-          },
-          {
-            title: "Process",
-            description:
-              "Run the action using browser tools or the PDF backend, depending on the tool.",
-            icon: <Loader2 className="h-5 w-5" />,
-          },
-          {
-            title: "Download",
-            description:
-              "Download the finished PDF, DOCX, JPG, ZIP, PPTX, XLSX, or compare report.",
-            icon: <Download className="h-5 w-5" />,
-          },
-        ]}
-      />
+
+      {showToolPanel ? (
+        <HowToUse
+          title="How to use PDF Editor"
+          subtitle=""
+          steps={[
+            {
+              title: "Browse tools",
+              description:
+                "All PDF tools stay visible under the ALL view by default.",
+              icon: <FileText className="h-5 w-5" />,
+            },
+            {
+              title: "Choose a tool",
+              description:
+                "Click Merge PDF, Rotate PDF, Compress PDF, PDF to Excel, or any other tool card.",
+              icon: <Crop className="h-5 w-5" />,
+            },
+            {
+              title: "Upload file",
+              description:
+                "Upload a PDF, image set, Office file, or use HTML content depending on the selected tool.",
+              icon: <Upload className="h-5 w-5" />,
+            },
+            {
+              title: "Set options",
+              description:
+                "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
+              icon: <Scissors className="h-5 w-5" />,
+            },
+            {
+              title: "Process",
+              description:
+                "Run the action using browser tools or the PDF backend, depending on the tool.",
+              icon: <Loader2 className="h-5 w-5" />,
+            },
+            {
+              title: "Download",
+              description:
+                "Download the finished PDF, DOCX, JPG, ZIP, PPTX, XLSX, or compare report.",
+              icon: <Download className="h-5 w-5" />,
+            },
+          ]}
+        />
+      ) : null}
+
     </Container>
   );
 }

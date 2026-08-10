@@ -119,29 +119,32 @@ export default function Footer() {
           </div>
 
           {/* Company / Support */}
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
               Support
             </h3>
 
-            <ul className="mt-5 space-y-3">
-              {footerLinks.map((item) => {
-                const Icon = item.icon;
+            {/* Mobile: one horizontal non-wrapping row.
+                Desktop/tablet: original vertical layout. */}
+            <div className="mt-5 w-full overflow-x-auto md:overflow-visible">
+              <ul className="flex w-max min-w-full flex-nowrap items-center gap-5 whitespace-nowrap md:w-auto md:min-w-0 md:flex-col md:items-start md:gap-3">
+                {footerLinks.map((item) => {
+                  const Icon = item.icon;
 
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="group inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-red-600"
-                    >
-                      <Icon className="h-4 w-4 text-slate-400 transition group-hover:text-red-500" />
-
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                  return (
+                    <li key={item.href} className="shrink-0">
+                      <Link
+                        href={item.href}
+                        className="group inline-flex items-center gap-2 whitespace-nowrap text-sm text-slate-500 transition hover:text-red-600"
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-red-500" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </div>
         </div>
 
