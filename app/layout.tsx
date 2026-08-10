@@ -140,7 +140,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+     <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"

@@ -13,14 +13,19 @@ import {
   ShieldAlert,
   ShieldCheck,
   UserCheck,
-  Loader2,
 } from "lucide-react";
 
-export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+/* ==========================================================================
+   PDFVERSE SUPPORT EMAIL
+   ========================================================================== */
 
+const CONTACT_EMAIL = "support.pdfverse@gmail.com";
+
+/* ==========================================================================
+   PAGE
+   ========================================================================== */
+
+export default function ContactPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -28,6 +33,13 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  /* ------------------------------------------------------------------------
+     FORM CHANGE
+     ------------------------------------------------------------------------ */
 
   function handleChange(
     e: React.ChangeEvent<
@@ -40,64 +52,133 @@ export default function ContactPage() {
       ...previous,
       [name]: value,
     }));
+
+    setErrorMessage("");
+    setSuccessMessage("");
   }
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  /* ------------------------------------------------------------------------
+     FORM SUBMIT
+     
+     Opens the user's configured email application using mailto.
+     No API route.
+     No Resend.
+     No server-side email service.
+     ------------------------------------------------------------------------ */
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setSuccessMessage("");
     setErrorMessage("");
-    setIsSubmitting(true);
 
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
+    /* ----------------------------------------------------------------------
+       Basic validation
+       ---------------------------------------------------------------------- */
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Unable to send your message."
-        );
-      }
-
-      setSuccessMessage(
-        "Your message has been sent successfully. We will review your request."
-      );
-
-      setForm({
-        name: "",
-        email: "",
-        type: "",
-        subject: "",
-        message: "",
-      });
-    } catch (error) {
-      console.error("Contact form error:", error);
-
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong. Please try again."
-      );
-    } finally {
-      setIsSubmitting(false);
+    if (!form.name.trim()) {
+      setErrorMessage("Please enter your name.");
+      return;
     }
+
+    if (!form.email.trim()) {
+      setErrorMessage("Please enter your email address.");
+      return;
+    }
+
+    if (!form.type) {
+      setErrorMessage("Please select a request type.");
+      return;
+    }
+
+    if (!form.subject.trim()) {
+      setErrorMessage("Please enter a subject.");
+      return;
+    }
+
+    if (!form.message.trim()) {
+      setErrorMessage("Please enter your message.");
+      return;
+    }
+
+    /* ----------------------------------------------------------------------
+       Email validation
+       ---------------------------------------------------------------------- */
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(form.email.trim())) {
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
+    /* ----------------------------------------------------------------------
+       Create email body
+       ---------------------------------------------------------------------- */
+
+    const emailBody = `
+PDFVerse Contact Request
+========================================
+
+Name:
+${form.name.trim()}
+
+Email:
+${form.email.trim()}
+
+Request Type:
+${form.type}
+
+Subject:
+${form.subject.trim()}
+
+Message:
+${form.message.trim()}
+
+========================================
+Sent from PDFVerse Support Center
+`;
+
+    /* ----------------------------------------------------------------------
+       Gmail / Mail application
+
+       mailto opens the email application configured on the user's device.
+
+       If Gmail is configured as the user's mail handler, Gmail will open.
+       ---------------------------------------------------------------------- */
+
+    const mailtoUrl =
+      `mailto:${CONTACT_EMAIL}` +
+      `?subject=${encodeURIComponent(
+        `[PDFVerse Contact] ${form.subject.trim()}`
+      )}` +
+      `&body=${encodeURIComponent(emailBody)}`;
+
+    /* ----------------------------------------------------------------------
+       Show information before opening the mail application
+       ---------------------------------------------------------------------- */
+
+    setSuccessMessage(
+      "Your email application is opening with your message prepared. Please click Send in your email application to complete delivery."
+    );
+
+    /* ----------------------------------------------------------------------
+       Open email application
+       ---------------------------------------------------------------------- */
+
+    window.location.href = mailtoUrl;
   }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
+
       {/* ================================================================ */}
       {/* HERO                                                             */}
       {/* ================================================================ */}
-
-      <section className="border-b border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
+<section className="border-b border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
         <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
+
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white"
@@ -107,7 +188,8 @@ export default function ContactPage() {
           </Link>
 
           <div className="mt-10 flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 shadow-xl shadow-red-500/20">
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 shadow-xl shadow-red-500/20">
               <MessageSquare className="h-8 w-8 text-white" />
             </div>
 
@@ -124,8 +206,11 @@ export default function ContactPage() {
               with a PDF tool? Send us a message and provide enough detail for
               us to understand your request.
             </p>
+
           </div>
+
         </div>
+
       </section>
 
       {/* ================================================================ */}
@@ -133,13 +218,17 @@ export default function ContactPage() {
       {/* ================================================================ */}
 
       <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+
         <div className="mx-auto w-full max-w-5xl">
+
           <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+
             {/* ========================================================== */}
             {/* LEFT INFORMATION                                            */}
             {/* ========================================================== */}
 
             <div className="space-y-6">
+
               <InfoPanel
                 icon={<ShieldCheck className="h-5 w-5" />}
                 title="Privacy & Data Requests"
@@ -165,12 +254,15 @@ export default function ContactPage() {
               />
 
               {/* Helpful Pages */}
+
               <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-6">
+
                 <h2 className="text-lg font-bold text-white">
                   Helpful Pages
                 </h2>
 
                 <div className="mt-5 space-y-3">
+
                   <LegalLink
                     href="/privacy"
                     icon={<ShieldCheck className="h-4 w-4" />}
@@ -188,8 +280,11 @@ export default function ContactPage() {
                     icon={<ShieldAlert className="h-4 w-4" />}
                     title="Report Abuse"
                   />
+
                 </div>
+
               </div>
+
             </div>
 
             {/* ========================================================== */}
@@ -197,13 +292,17 @@ export default function ContactPage() {
             {/* ========================================================== */}
 
             <div>
+
               <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-6 shadow-2xl shadow-black/20 sm:p-8 lg:p-10">
+
                 <div className="flex items-start gap-4">
+
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
                     <Mail className="h-5 w-5" />
                   </div>
 
                   <div>
+
                     <h2 className="text-2xl font-bold text-white">
                       Send a Message
                     </h2>
@@ -212,7 +311,9 @@ export default function ContactPage() {
                       Please provide accurate information so we can respond
                       appropriately.
                     </p>
+
                   </div>
+
                 </div>
 
                 {/* ====================================================== */}
@@ -221,19 +322,25 @@ export default function ContactPage() {
 
                 {successMessage && (
                   <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+
                     <div className="flex items-start gap-3">
+
                       <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
 
                       <div>
+
                         <p className="font-semibold text-emerald-300">
-                          Message Sent
+                          Email Ready
                         </p>
 
                         <p className="mt-1 text-sm leading-6 text-emerald-200/80">
                           {successMessage}
                         </p>
+
                       </div>
+
                     </div>
+
                   </div>
                 )}
 
@@ -243,10 +350,13 @@ export default function ContactPage() {
 
                 {errorMessage && (
                   <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4">
+
                     <div className="flex items-start gap-3">
+
                       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
 
                       <div>
+
                         <p className="font-semibold text-red-300">
                           Unable to Send
                         </p>
@@ -254,8 +364,11 @@ export default function ContactPage() {
                         <p className="mt-1 text-sm leading-6 text-red-200/80">
                           {errorMessage}
                         </p>
+
                       </div>
+
                     </div>
+
                   </div>
                 )}
 
@@ -267,8 +380,11 @@ export default function ContactPage() {
                   onSubmit={handleSubmit}
                   className="mt-8 space-y-6"
                 >
+
                   {/* Name */}
+
                   <div>
+
                     <label
                       htmlFor="name"
                       className="mb-2 block text-sm font-semibold text-slate-200"
@@ -285,13 +401,15 @@ export default function ContactPage() {
                       required
                       autoComplete="name"
                       placeholder="Enter your name"
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                     />
+
                   </div>
 
                   {/* Email */}
+
                   <div>
+
                     <label
                       htmlFor="email"
                       className="mb-2 block text-sm font-semibold text-slate-200"
@@ -308,13 +426,15 @@ export default function ContactPage() {
                       required
                       autoComplete="email"
                       placeholder="you@example.com"
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                     />
+
                   </div>
 
                   {/* Request Type */}
+
                   <div>
+
                     <label
                       htmlFor="type"
                       className="mb-2 block text-sm font-semibold text-slate-200"
@@ -328,45 +448,49 @@ export default function ContactPage() {
                       value={form.type}
                       onChange={handleChange}
                       required
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                     >
+
                       <option value="" disabled>
                         Select a request type
                       </option>
 
-                      <option value="privacy">
+                      <option value="Privacy / Personal Data Request">
                         Privacy / Personal Data Request
                       </option>
 
-                      <option value="correction">
+                      <option value="Correction of Personal Data">
                         Correction of Personal Data
                       </option>
 
-                      <option value="deletion">
+                      <option value="Data Deletion Request">
                         Data Deletion Request
                       </option>
 
-                      <option value="grievance">
+                      <option value="Privacy Grievance">
                         Privacy Grievance
                       </option>
 
-                      <option value="technical">
+                      <option value="Technical Support">
                         Technical Support
                       </option>
 
-                      <option value="security">
+                      <option value="Security Concern">
                         Security Concern
                       </option>
 
-                      <option value="general">
+                      <option value="General Question">
                         General Question
                       </option>
+
                     </select>
+
                   </div>
 
                   {/* Subject */}
+
                   <div>
+
                     <label
                       htmlFor="subject"
                       className="mb-2 block text-sm font-semibold text-slate-200"
@@ -382,13 +506,15 @@ export default function ContactPage() {
                       onChange={handleChange}
                       required
                       placeholder="What can we help you with?"
-                      disabled={isSubmitting}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                     />
+
                   </div>
 
                   {/* Message */}
+
                   <div>
+
                     <label
                       htmlFor="message"
                       className="mb-2 block text-sm font-semibold text-slate-200"
@@ -404,26 +530,30 @@ export default function ContactPage() {
                       required
                       rows={7}
                       placeholder="Describe your request or issue..."
-                      disabled={isSubmitting}
-                      className="w-full resize-y rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full resize-y rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                     />
+
                   </div>
 
                   {/* Privacy acknowledgement */}
+
                   <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+
                     <label className="flex cursor-pointer items-start gap-3">
+
                       <input
                         type="checkbox"
                         name="privacy_acknowledged"
                         required
-                        disabled={isSubmitting}
                         className="mt-1 h-4 w-4 rounded border-white/20 bg-slate-950 text-red-500 focus:ring-red-500"
                       />
 
                       <span className="text-left text-xs leading-6 text-slate-400">
+
                         I understand that the information I provide may be
                         processed for the purpose of responding to my request
                         and handled according to the{" "}
+
                         <Link
                           href="/privacy"
                           className="font-semibold text-red-400 hover:text-red-300"
@@ -431,31 +561,62 @@ export default function ContactPage() {
                           Privacy Policy
                         </Link>
                         .
+
                       </span>
+
                     </label>
+
                   </div>
 
                   {/* Submit */}
+
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:shadow-red-500/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:shadow-red-500/30 active:translate-y-0"
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Sending Message...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" />
-                        Send Message
-                      </>
-                    )}
+
+                    <Mail className="h-4 w-4" />
+
+                    Send Message
+
                   </button>
+
                 </form>
+
+                {/* ====================================================== */}
+                {/* EMAIL INFORMATION                                      */}
+                {/* ====================================================== */}
+
+                <div className="mt-6 rounded-2xl border border-blue-400/10 bg-blue-500/[0.04] p-4">
+
+                  <div className="flex items-start gap-3">
+
+                    <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+
+                    <p className="text-left text-xs leading-6 text-slate-400">
+
+                      Clicking{" "}
+                      <span className="font-semibold text-slate-300">
+                        Send Message
+                      </span>{" "}
+                      opens your configured email application with the
+                      recipient, subject, and message already filled in.
+                      You must click{" "}
+                      <span className="font-semibold text-slate-300">
+                        Send
+                      </span>{" "}
+                      in your email application to complete delivery.
+
+                    </p>
+
+                  </div>
+
+                </div>
+
               </div>
+
             </div>
+
           </div>
 
           {/* ============================================================ */}
@@ -463,10 +624,13 @@ export default function ContactPage() {
           {/* ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.025] p-6 sm:p-8 lg:p-10">
+
             <div className="flex items-start gap-4">
+
               <UserCheck className="mt-1 h-6 w-6 shrink-0 text-red-400" />
 
               <div>
+
                 <h2 className="text-2xl font-bold text-white">
                   Privacy & Data Protection Requests
                 </h2>
@@ -480,6 +644,7 @@ export default function ContactPage() {
                 </p>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
                   <RequestCard
                     title="Correction"
                     description="Tell us which personal information you believe is inaccurate or incomplete."
@@ -499,9 +664,13 @@ export default function ContactPage() {
                     title="Grievance"
                     description="Explain the privacy concern or processing issue you want us to review."
                   />
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
           {/* ============================================================ */}
@@ -509,10 +678,13 @@ export default function ContactPage() {
           {/* ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-amber-400/10 bg-amber-500/[0.04] p-6 sm:p-8">
+
             <div className="flex items-start gap-4">
+
               <Lock className="mt-1 h-6 w-6 shrink-0 text-amber-400" />
 
               <div>
+
                 <h2 className="text-lg font-bold text-white">
                   Please do not send sensitive documents unnecessarily
                 </h2>
@@ -530,8 +702,11 @@ export default function ContactPage() {
                   issue first. We may be able to help without receiving the
                   original document.
                 </p>
+
               </div>
+
             </div>
+
           </div>
 
           {/* ============================================================ */}
@@ -539,15 +714,19 @@ export default function ContactPage() {
           {/* ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-emerald-400/10 bg-emerald-500/[0.04] p-6 sm:p-8">
+
             <div className="flex items-start gap-4">
+
               <CheckCircle2 className="mt-1 h-6 w-6 shrink-0 text-emerald-400" />
 
               <div>
+
                 <h2 className="text-lg font-bold text-white">
                   What happens after you contact us?
                 </h2>
 
                 <ul className="mt-4 space-y-3">
+
                   <Bullet>
                     Your request is reviewed by the appropriate support or
                     privacy team.
@@ -567,9 +746,13 @@ export default function ContactPage() {
                     We will handle the request according to applicable law and
                     our Privacy Policy.
                   </Bullet>
+
                 </ul>
+
               </div>
+
             </div>
+
           </div>
 
           {/* ============================================================ */}
@@ -577,7 +760,9 @@ export default function ContactPage() {
           {/* ============================================================ */}
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+
             <div className="flex items-start gap-3">
+
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
 
               <p className="text-left text-xs leading-6 text-slate-500">
@@ -588,17 +773,22 @@ export default function ContactPage() {
                 provisions and commencement dates applicable at the relevant
                 time.
               </p>
+
             </div>
+
           </div>
+
         </div>
+
       </section>
+
     </main>
   );
 }
 
-/* ========================================================================== */
-/* INFORMATION PANEL                                                          */
-/* ========================================================================== */
+/* ==========================================================================
+   INFORMATION PANEL
+   ========================================================================== */
 
 function InfoPanel({
   icon,
@@ -611,6 +801,7 @@ function InfoPanel({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 text-left transition hover:border-red-400/20 hover:bg-white/[0.04]">
+
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
         {icon}
       </div>
@@ -622,13 +813,14 @@ function InfoPanel({
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {description}
       </p>
+
     </div>
   );
 }
 
-/* ========================================================================== */
-/* LEGAL LINK                                                                 */
-/* ========================================================================== */
+/* ==========================================================================
+   LEGAL LINK
+   ========================================================================== */
 
 function LegalLink({
   href,
@@ -644,15 +836,20 @@ function LegalLink({
       href={href}
       className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-red-400/20 hover:bg-red-500/[0.04] hover:text-white"
     >
-      <span className="text-red-400">{icon}</span>
-      <span>{title}</span>
+      <span className="text-red-400">
+        {icon}
+      </span>
+
+      <span>
+        {title}
+      </span>
     </Link>
   );
 }
 
-/* ========================================================================== */
-/* PRIVACY REQUEST CARD                                                       */
-/* ========================================================================== */
+/* ==========================================================================
+   PRIVACY REQUEST CARD
+   ========================================================================== */
 
 function RequestCard({
   title,
@@ -663,6 +860,7 @@ function RequestCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left">
+
       <h3 className="font-semibold text-white">
         {title}
       </h3>
@@ -670,19 +868,29 @@ function RequestCard({
       <p className="mt-2 text-sm leading-6 text-slate-400">
         {description}
       </p>
+
     </div>
   );
 }
 
-/* ========================================================================== */
-/* BULLET                                                                     */
-/* ========================================================================== */
+/* ==========================================================================
+   BULLET
+   ========================================================================== */
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function Bullet({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <li className="flex gap-3 text-left text-sm leading-7 text-slate-300">
+
       <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-400" />
-      <span>{children}</span>
+
+      <span>
+        {children}
+      </span>
+
     </li>
   );
 }

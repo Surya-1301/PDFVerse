@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,6 +16,19 @@ import {
   ShieldCheck,
   UserCheck,
 } from "lucide-react";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+
+/* ==========================================================================
+   PDFVERSE ABUSE REPORT EMAIL
+
+   Replace this with the Gmail address where you want to receive reports.
+   ========================================================================== */
+
+const ABUSE_EMAIL = "YOUR_GMAIL@gmail.com";
+
+/* ==========================================================================
+   FORM TYPE
+   ========================================================================== */
 
 type FormData = {
   name: string;
@@ -29,6 +41,10 @@ type FormData = {
   report_confirmation: boolean;
   privacy_acknowledged: boolean;
 };
+
+/* ==========================================================================
+   PAGE
+   ========================================================================== */
 
 export default function ReportAbusePage() {
   const [form, setForm] = useState<FormData>({
@@ -43,13 +59,20 @@ export default function ReportAbusePage() {
     privacy_acknowledged: false,
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  /* ------------------------------------------------------------------------
+     PAGE TITLE
+     ------------------------------------------------------------------------ */
 
   useEffect(() => {
     document.title = "Report Abuse | PDFVerse";
   }, []);
+
+  /* ------------------------------------------------------------------------
+     UPDATE FORM
+     ------------------------------------------------------------------------ */
 
   function updateField(
     field: keyof FormData,
@@ -59,17 +82,31 @@ export default function ReportAbusePage() {
       ...previous,
       [field]: value,
     }));
+
+    setErrorMessage("");
+    setSuccessMessage("");
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  /* ------------------------------------------------------------------------
+     SUBMIT REPORT
+
+     No API route.
+     No Resend.
+     No server-side email service.
+
+     The user's configured email application opens with the report
+     already prepared.
+     ------------------------------------------------------------------------ */
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setSuccessMessage("");
     setErrorMessage("");
 
-    // ------------------------------------------------------------
-    // Client-side validation
-    // ------------------------------------------------------------
+    /* ----------------------------------------------------------------------
+       BASIC VALIDATION
+       ---------------------------------------------------------------------- */
 
     if (!form.name.trim()) {
       setErrorMessage("Please enter your name.");
@@ -115,9 +152,9 @@ export default function ReportAbusePage() {
       return;
     }
 
-    // ------------------------------------------------------------
-    // Email validation
-    // ------------------------------------------------------------
+    /* ----------------------------------------------------------------------
+       EMAIL VALIDATION
+       ---------------------------------------------------------------------- */
 
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -129,9 +166,9 @@ export default function ReportAbusePage() {
       return;
     }
 
-    // ------------------------------------------------------------
-    // URL validation
-    // ------------------------------------------------------------
+    /* ----------------------------------------------------------------------
+       URL VALIDATION
+       ---------------------------------------------------------------------- */
 
     try {
       new URL(form.url.trim());
@@ -142,121 +179,112 @@ export default function ReportAbusePage() {
       return;
     }
 
-    setIsSubmitting(true);
+    /* ----------------------------------------------------------------------
+       PREPARE EVIDENCE
+       ---------------------------------------------------------------------- */
 
-    try {
-      // ----------------------------------------------------------
-      // Send JSON to API
-      //
-      // IMPORTANT:
-      // The API route expects:
-      // name
-      // email
-      // category
-      // url
-      // subject
-      // description
-      // ----------------------------------------------------------
+    const evidenceSection = form.evidence.trim()
+      ? `
+Additional Evidence:
+${form.evidence.trim()}
+`
+      : `
+Additional Evidence:
+None provided.
+`;
 
-      const response = await fetch("/api/report-abuse", {
-        method: "POST",
+    /* ----------------------------------------------------------------------
+       PREPARE EMAIL BODY
+       ---------------------------------------------------------------------- */
 
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+    const emailBody = `
+PDFVERSE ABUSE REPORT
+========================================
 
-        body: JSON.stringify({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          category: form.category,
-          url: form.url.trim(),
-          subject: form.subject.trim(),
+Reporter Information
+----------------------------------------
 
-          // Include evidence inside description so the API
-          // receives all relevant report information.
-          description: form.evidence.trim()
-            ? `${form.description.trim()}\n\nAdditional Evidence:\n${form.evidence.trim()}`
-            : form.description.trim(),
-        }),
-      });
+Name:
+${form.name.trim()}
 
-      // ----------------------------------------------------------
-      // Safely parse API response
-      // ----------------------------------------------------------
+Email:
+${form.email.trim()}
 
-      let data: {
-        success?: boolean;
-        message?: string;
-        id?: string;
-      } = {};
 
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
+Report Information
+----------------------------------------
 
-      // ----------------------------------------------------------
-      // API ERROR
-      // ----------------------------------------------------------
+Report Type:
+${form.category}
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message ||
-            `Unable to submit your report. Server returned ${response.status}.`
-        );
-      }
+Relevant URL / Link:
+${form.url.trim()}
 
-      // ----------------------------------------------------------
-      // SUCCESS
-      // ----------------------------------------------------------
+Subject:
+${form.subject.trim()}
 
-      setSuccessMessage(
-        data.message ||
-          "Your abuse report has been submitted successfully."
-      );
 
-      // Reset form after successful submission
-      setForm({
-        name: "",
-        email: "",
-        category: "",
-        url: "",
-        subject: "",
-        description: "",
-        evidence: "",
-        report_confirmation: false,
-        privacy_acknowledged: false,
-      });
+Description
+----------------------------------------
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    } catch (error) {
-      console.error(
-        "PDFVerse abuse report error:",
-        error
-      );
+${form.description.trim()}
 
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while submitting your report."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+
+${evidenceSection}
+
+Confirmation
+----------------------------------------
+
+The reporter confirmed that the information provided is accurate
+to the best of their knowledge and that the report is submitted
+in good faith.
+
+Privacy acknowledgement:
+The reporter acknowledged the PDFVerse Privacy Policy.
+
+
+========================================
+Submitted from PDFVerse Report Abuse Center
+`;
+
+    /* ----------------------------------------------------------------------
+       MAILTO URL
+
+       This opens Gmail or the user's configured mail application.
+
+       The recipient is YOUR Gmail address.
+       The sender remains the user's own email account.
+       ---------------------------------------------------------------------- */
+
+    const mailtoUrl =
+      `mailto:${ABUSE_EMAIL}` +
+      `?subject=${encodeURIComponent(
+        `[PDFVerse Abuse Report] ${form.subject.trim()}`
+      )}` +
+      `&body=${encodeURIComponent(emailBody)}`;
+
+    /* ----------------------------------------------------------------------
+       USER MESSAGE
+       ---------------------------------------------------------------------- */
+
+    setSuccessMessage(
+      "Your email application is opening with your abuse report prepared. Please review the information and click Send to complete the report."
+    );
+
+    /* ----------------------------------------------------------------------
+       OPEN MAIL APPLICATION
+       ---------------------------------------------------------------------- */
+
+    window.location.href = mailtoUrl;
   }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      {/* ============================================================
-          HERO
-      ============================================================ */}
 
-      <section className="border-b border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
+      {/* ================================================================
+          HERO
+      ================================================================ */}
+<section className="border-b border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
         <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
 
           <Link
@@ -286,20 +314,24 @@ export default function ReportAbusePage() {
               malicious files, security issues, unlawful activity,
               privacy concerns, or other misuse of our services.
             </p>
+
           </div>
+
         </div>
+
       </section>
 
-      {/* ============================================================
+      {/* ================================================================
           MAIN CONTENT
-      ============================================================ */}
+      ================================================================ */}
 
       <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+
         <div className="mx-auto w-full max-w-5xl">
 
-          {/* ========================================================
+          {/* ============================================================
               REPORT TYPES
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
@@ -341,16 +373,18 @@ export default function ReportAbusePage() {
 
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               WARNING
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-amber-400/10 bg-amber-500/[0.04] p-6 sm:p-8">
+
             <div className="flex items-start gap-4">
 
               <AlertTriangle className="mt-1 h-6 w-6 shrink-0 text-amber-400" />
 
               <div>
+
                 <h2 className="text-lg font-bold text-white">
                   Before submitting a report
                 </h2>
@@ -378,57 +412,72 @@ export default function ReportAbusePage() {
                   </Bullet>
 
                 </ul>
+
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
-              SUCCESS / ERROR
-          ======================================================== */}
+          {/* ============================================================
+              SUCCESS MESSAGE
+          ============================================================ */}
 
           {successMessage && (
             <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
+
               <div className="flex items-start gap-3">
 
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
 
                 <div>
+
                   <h3 className="font-semibold text-emerald-300">
-                    Report submitted
+                    Report Ready
                   </h3>
 
                   <p className="mt-1 text-sm leading-6 text-emerald-200/80">
                     {successMessage}
                   </p>
+
                 </div>
 
               </div>
+
             </div>
           )}
 
+          {/* ============================================================
+              ERROR MESSAGE
+          ============================================================ */}
+
           {errorMessage && (
             <div className="mt-8 rounded-2xl border border-red-400/20 bg-red-500/10 p-5">
+
               <div className="flex items-start gap-3">
 
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
 
                 <div>
+
                   <h3 className="font-semibold text-red-300">
-                    Unable to submit report
+                    Please check your report
                   </h3>
 
                   <p className="mt-1 text-sm leading-6 text-red-200/80">
                     {errorMessage}
                   </p>
+
                 </div>
 
               </div>
+
             </div>
           )}
 
-          {/* ========================================================
+          {/* ============================================================
               REPORT FORM
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8">
 
@@ -441,6 +490,7 @@ export default function ReportAbusePage() {
                 </div>
 
                 <div>
+
                   <h2 className="text-2xl font-bold text-white">
                     Submit an Abuse Report
                   </h2>
@@ -449,6 +499,7 @@ export default function ReportAbusePage() {
                     Give us enough information to understand and
                     investigate the issue.
                   </p>
+
                 </div>
 
               </div>
@@ -458,11 +509,12 @@ export default function ReportAbusePage() {
                 className="mt-8 space-y-6"
               >
 
-                {/* ==================================================
+                {/* ======================================================
                     NAME
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="name"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -486,13 +538,15 @@ export default function ReportAbusePage() {
                     placeholder="Enter your name"
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                   />
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     EMAIL
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="email"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -521,13 +575,15 @@ export default function ReportAbusePage() {
                     We may use this address to contact you
                     regarding your report.
                   </p>
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     REPORT TYPE
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="category"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -548,6 +604,7 @@ export default function ReportAbusePage() {
                     }
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                   >
+
                     <option value="" disabled>
                       Select report type
                     </option>
@@ -583,14 +640,17 @@ export default function ReportAbusePage() {
                     <option value="Other">
                       Other
                     </option>
+
                   </select>
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     URL
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="url"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -618,13 +678,15 @@ export default function ReportAbusePage() {
                     Provide the page, file, or resource related
                     to your report.
                   </p>
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     SUBJECT
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="subject"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -647,13 +709,15 @@ export default function ReportAbusePage() {
                     placeholder="Briefly describe the issue"
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                   />
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     DESCRIPTION
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="description"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -676,13 +740,15 @@ export default function ReportAbusePage() {
                     placeholder="Explain what happened, where it happened, and why you believe it violates our policies or creates a security, privacy, or safety concern."
                     className="w-full resize-y rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                   />
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     EVIDENCE
-                ================================================== */}
+                ====================================================== */}
 
                 <div>
+
                   <label
                     htmlFor="evidence"
                     className="mb-2 block text-sm font-semibold text-slate-200"
@@ -708,11 +774,12 @@ export default function ReportAbusePage() {
                     placeholder="Provide relevant identifiers, dates, links, error messages, or other non-sensitive evidence."
                     className="w-full resize-y rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-600 focus:border-red-400/50 focus:ring-2 focus:ring-red-400/10"
                   />
+
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     CONFIRMATION
-                ================================================== */}
+                ====================================================== */}
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
 
@@ -742,9 +809,9 @@ export default function ReportAbusePage() {
 
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     PRIVACY
-                ================================================== */}
+                ====================================================== */}
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
 
@@ -765,6 +832,7 @@ export default function ReportAbusePage() {
                     />
 
                     <span className="text-left text-xs leading-6 text-slate-400">
+
                       I understand that the information submitted may
                       be processed to investigate and respond to this
                       report in accordance with the{" "}
@@ -776,41 +844,68 @@ export default function ReportAbusePage() {
                         Privacy Policy
                       </Link>
                       .
+
                     </span>
 
                   </label>
 
                 </div>
 
-                {/* ==================================================
+                {/* ======================================================
                     SUBMIT
-                ================================================== */}
+                ====================================================== */}
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:shadow-red-500/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:-translate-y-0.5 hover:shadow-red-500/30 active:translate-y-0"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Submitting Report...
-                    </>
-                  ) : (
-                    <>
-                      <Flag className="h-4 w-4" />
-                      Submit Report
-                    </>
-                  )}
+
+                  <Mail className="h-4 w-4" />
+
+                  Open Email to Submit Report
+
                 </button>
 
               </form>
+
+              {/* ========================================================
+                  MAIL INFORMATION
+              ======================================================== */}
+
+              <div className="mt-6 rounded-2xl border border-blue-400/10 bg-blue-500/[0.04] p-4">
+
+                <div className="flex items-start gap-3">
+
+                  <Mail className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+
+                  <p className="text-left text-xs leading-6 text-slate-400">
+
+                    When you click{" "}
+                    <span className="font-semibold text-slate-300">
+                      Open Email to Submit Report
+                    </span>
+                    , your configured email application will open
+                    with the recipient, subject, and complete report
+                    already filled in. Review the information and
+                    click{" "}
+                    <span className="font-semibold text-slate-300">
+                      Send
+                    </span>
+                    {" "}to complete delivery.
+
+                  </p>
+
+                </div>
+
+              </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               PRIVACY REPORTS
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.025] p-6 sm:p-8 lg:p-10">
 
@@ -871,13 +966,16 @@ export default function ReportAbusePage() {
                   </Link>
 
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               SECURITY REPORTING
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-blue-400/10 bg-blue-500/[0.04] p-6 sm:p-8">
 
@@ -907,12 +1005,14 @@ export default function ReportAbusePage() {
                 </p>
 
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               MALICIOUS FILES
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-red-400/10 bg-red-500/[0.04] p-6 sm:p-8">
 
@@ -942,12 +1042,14 @@ export default function ReportAbusePage() {
                 </p>
 
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               COPYRIGHT / LEGAL
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.025] p-6 sm:p-8">
 
@@ -978,12 +1080,14 @@ export default function ReportAbusePage() {
                 </p>
 
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               WHAT HAPPENS NEXT
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-3xl border border-emerald-400/10 bg-emerald-500/[0.04] p-6 sm:p-8">
 
@@ -1025,13 +1129,16 @@ export default function ReportAbusePage() {
                   </Bullet>
 
                 </ul>
+
               </div>
+
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               DPDP NOTICE
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
 
@@ -1050,16 +1157,17 @@ export default function ReportAbusePage() {
               </p>
 
             </div>
+
           </div>
 
-          {/* ========================================================
+          {/* ============================================================
               CONTACT
-          ======================================================== */}
+          ============================================================ */}
 
           <div className="mt-8 text-center">
 
             <p className="text-sm text-slate-500">
-              Need help with something that isn't an abuse report?
+              Need help with something that isn&apos;t an abuse report?
             </p>
 
             <Link
@@ -1073,14 +1181,16 @@ export default function ReportAbusePage() {
           </div>
 
         </div>
+
       </section>
+
     </main>
   );
 }
 
-/* ========================================================================
+/* ==========================================================================
    REPORT TYPE CARD
-======================================================================== */
+   ========================================================================== */
 
 function ReportTypeCard({
   icon,
@@ -1110,9 +1220,9 @@ function ReportTypeCard({
   );
 }
 
-/* ========================================================================
+/* ==========================================================================
    PRIVACY CARD
-======================================================================== */
+   ========================================================================== */
 
 function PrivacyCard({
   icon,
@@ -1142,9 +1252,9 @@ function PrivacyCard({
   );
 }
 
-/* ========================================================================
+/* ==========================================================================
    BULLET
-======================================================================== */
+   ========================================================================== */
 
 function Bullet({
   children,
@@ -1156,7 +1266,9 @@ function Bullet({
 
       <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-400" />
 
-      <span>{children}</span>
+      <span>
+        {children}
+      </span>
 
     </li>
   );
