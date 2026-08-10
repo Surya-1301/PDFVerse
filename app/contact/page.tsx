@@ -151,7 +151,7 @@ ${form.message.trim()}
     const mailtoUrl =
       `mailto:${CONTACT_EMAIL}` +
       `?subject=${encodeURIComponent(
-        `[PDFVerse Contact] ${form.subject.trim()}`
+        `PDFVerse Contact - ${form.subject.trim()}`
       )}` +
       `&body=${encodeURIComponent(emailBody)}`;
 

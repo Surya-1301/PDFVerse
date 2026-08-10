@@ -227,7 +227,7 @@ ${evidenceSection}
     const mailtoUrl =
       `mailto:${ABUSE_EMAIL}` +
       `?subject=${encodeURIComponent(
-        `[PDFVerse Abuse Report] ${form.subject.trim()}`
+        `PDFVerse Abuse Report - ${form.subject.trim()}`
       )}` +
       `&body=${encodeURIComponent(emailBody)}`;
 
