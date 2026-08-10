@@ -1092,6 +1092,27 @@ function PdfEditorPageContent() {
   }
 
   function backToTools() {
+    const selectedTool = modes.find((item) => item.id === mode);
+    const returnCategory = selectedTool?.category ?? "all";
+
+    // Remember the category only for this Back navigation.
+    // The main page consumes and removes this value, so a normal refresh
+    // starts from ALL as requested.
+    if (typeof window !== "undefined") {
+      try {
+        if (returnCategory === "all") {
+          window.sessionStorage.removeItem("pdf-editor-return-category");
+        } else {
+          window.sessionStorage.setItem(
+            "pdf-editor-return-category",
+            returnCategory,
+          );
+        }
+      } catch {
+        // Ignore storage errors (for example, restricted browser storage).
+      }
+    }
+
     resetWorkingState();
     router.push("/#pdf-tools");
   }

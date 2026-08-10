@@ -128,7 +128,7 @@ const footerLinks = [
     icon: Mail,
   },
   {
-    label: "Report Abuse",
+    label: "Abuse",
     href: "/report-abuse",
     icon: Flag,
   },

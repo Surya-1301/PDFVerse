@@ -313,12 +313,41 @@ const pdfTools = [
   },
 ];
 
+function getInitialCategory(): Category {
+  // Default is ALWAYS ALL.
+  // Only a Back navigation from a tool may provide a one-time category.
+  if (typeof window === "undefined") return "all";
+
+  try {
+    const storedCategory = window.sessionStorage.getItem(
+      "pdf-editor-return-category",
+    );
+
+    const validCategory =
+      storedCategory === "edit" ||
+      storedCategory === "organize" ||
+      storedCategory === "convertToPdf" ||
+      storedCategory === "convertFromPdf" ||
+      storedCategory === "security";
+
+    // Consume it immediately. This makes it a one-time Back-navigation
+    // value, so refreshing the main page starts at ALL.
+    window.sessionStorage.removeItem("pdf-editor-return-category");
+
+    return validCategory ? storedCategory : "all";
+  } catch {
+    return "all";
+  }
+}
+
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const [activeCategory, setActiveCategory] =
+    useState<Category>(getInitialCategory);
 
   useEffect(() => {
-    setActiveCategory("all");
-
+    // Clean the URL without changing the selected category.
+    // We intentionally do NOT set activeCategory here: doing so could
+    // overwrite the Back-navigation category during React Strict Mode.
     if (typeof window === "undefined") return;
 
     const url = new URL(window.location.href);

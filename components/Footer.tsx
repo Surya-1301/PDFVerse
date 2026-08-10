@@ -138,7 +138,7 @@ export default function Footer() {
                         className="group inline-flex items-center gap-2 whitespace-nowrap text-sm text-slate-500 transition hover:text-red-600"
                       >
                         <Icon className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-red-500" />
-                        <span>{item.label}</span>
+                        <span>{item.label === "Report Abuse" ? "Abuse" : item.label}</span>
                       </Link>
                     </li>
                   );
