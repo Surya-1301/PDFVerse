@@ -198,21 +198,14 @@ None provided.
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-       PDFVERSE ABUSE REPORT
+          PDFVERSE ABUSE REPORT
 ========================================
-
-Reporter Information
-----------------------------------------
 
 Name:
 ${form.name.trim()}
 
 Email:
 ${form.email.trim()}
-
-
-Report Information
-----------------------------------------
 
 Report Type:
 ${form.category}
@@ -223,38 +216,13 @@ ${form.url.trim()}
 Subject:
 ${form.subject.trim()}
 
-
-Description
-----------------------------------------
-
 ${form.description.trim()}
 
-
 ${evidenceSection}
-
-Confirmation
-----------------------------------------
-
-The reporter confirmed that the information provided is accurate
-to the best of their knowledge and that the report is submitted
-in good faith.
-
-Privacy acknowledgement:
-The reporter acknowledged the PDFVerse Privacy Policy.
-
 
 ========================================
  Submitted from PDFVerse Report Abuse Page
 `;
-
-    /* ----------------------------------------------------------------------
-       MAILTO URL
-
-       This opens Gmail or the user's configured mail application.
-
-       The recipient is YOUR Gmail address.
-       The sender remains the user's own email account.
-       ---------------------------------------------------------------------- */
 
     const mailtoUrl =
       `mailto:${ABUSE_EMAIL}` +

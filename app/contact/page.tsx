@@ -118,7 +118,7 @@ export default function ContactPage() {
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-        PDFVerse Contact Request
+          PDFVerse Contact Request
 ========================================
 
 Name:
