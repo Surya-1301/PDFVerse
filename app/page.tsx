@@ -384,7 +384,8 @@ export default function Home() {
             {visibleTools.length} PDF tools shown
           </p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {/* Desktop / tablet: original card layout remains unchanged */}
+          <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
 
@@ -404,6 +405,36 @@ export default function Home() {
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
                     {tool.description}
                   </p>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Mobile only: purple icon on the left, title + description on the right */}
+          <div className="mt-6 grid gap-3 sm:hidden">
+            {visibleTools.map((tool) => {
+              const Icon = tool.icon;
+
+              return (
+                <Link
+                  key={`${tool.href}-mobile`}
+                  href={tool.href}
+                  className="group flex w-full items-center gap-4 rounded-2xl border border-violet-400/20 bg-gradient-to-r from-violet-950/80 via-violet-900/50 to-[#0b1020] p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition active:scale-[0.99] hover:border-violet-400/40"
+                >
+                  {/* Purple icon on the left */}
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.22)] transition group-hover:bg-violet-500">
+                    <Icon className="h-6 w-6" />
+                  </div>
+
+                  {/* Right-side title and description */}
+                  <div className="min-w-0 flex-1 pr-1">
+                    <h2 className="text-[15px] font-semibold leading-5 text-white">
+                      {tool.title}
+                    </h2>
+                    <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-300/80">
+                      {tool.description}
+                    </p>
+                  </div>
                 </Link>
               );
             })}

@@ -27,9 +27,11 @@ export function HowToUse({
           {title}
         </h2>
 
-        <p className="mx-auto mt-3 text-sm leading-6 text-slate-400 sm:text-base">
-          {subtitle}
-        </p>
+        {subtitle ? (
+          <p className="mx-auto mt-3 text-sm leading-6 text-slate-400 sm:text-base">
+            {subtitle}
+          </p>
+        ) : null}
       </div>
 
       {/* Steps */}
@@ -79,7 +81,7 @@ export function HowToUse({
           {steps.map((step, index) => (
             <div
               key={`${step.title}-mobile-${index}`}
-              className="flex items-center gap-4 rounded-2xl border border-cyan-400/10 bg-[#071522] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+              className="flex w-full items-center gap-4 rounded-2xl border border-cyan-400/10 bg-[#071522] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
             >
               {/* Cyan icon */}
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/10 bg-[#092B40] text-[#63E5F7] shadow-[0_0_18px_rgba(34,211,238,0.08)]">

@@ -89,7 +89,6 @@ type Mode =
   | "extract-images"
   | "pdf-to-powerpoint"
   | "pdf-to-excel"
-  | "pdf-to-pdfa"
   | "batch-compress"
   | "batch-protect"
   | "batch-unlock"
@@ -335,13 +334,6 @@ const modes: Array<{
     category: "convertFromPdf",
     title: "PDF to EXCEL",
     description: "Convert PDF tables into an Excel workbook.",
-    icon: <FileText className="h-5 w-5" />,
-  },
-  {
-    id: "pdf-to-pdfa",
-    category: "convertFromPdf",
-    title: "PDF to PDF/A",
-    description: "Convert a PDF into archival PDF/A format.",
     icon: <FileText className="h-5 w-5" />,
   },
   {
@@ -874,23 +866,8 @@ function PdfEditorPageContent() {
   const [flattenForms, setFlattenForms] = useState(true);
   const [detectedFormFields, setDetectedFormFields] = useState<string[]>([]);
   const [output, setOutput] = useState<OutputFile | null>(null);
-  const [outputPreviewUrl, setOutputPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    if (!output || output.kind === "text") {
-      setOutputPreviewUrl(null);
-      return;
-    }
-
-    const url = URL.createObjectURL(output.blob);
-    setOutputPreviewUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [output]);
 
   const visibleModes = useMemo(() => {
     if (activeCategory === "all") return modes;
@@ -2683,8 +2660,6 @@ function PdfEditorPageContent() {
       } else if (mode === "pdf-to-excel") {
         const result = await pdfToExcel();
         nextOutput = createFileOutput(result.name, result.blob);
-      } else if (mode === "pdf-to-pdfa") {
-        const result = await pdfToPdfa();
         nextOutput = createFileOutput(result.name, result.blob);
       } else if (mode === "unlock-pdf") {
         nextOutput = createFileOutput(
@@ -2946,8 +2921,7 @@ function PdfEditorPageContent() {
             <span>{visibleModes.length} PDF tools shown</span>
           </div>
 
-          {/* Desktop / tablet: keep the existing PDF tool-card layout */}
-          <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleModes.map((item) => (
               <button
                 key={`tool-${item.id}`}
@@ -2965,34 +2939,6 @@ function PdfEditorPageContent() {
                 <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
                   {item.description}
                 </p>
-              </button>
-            ))}
-          </div>
-
-          {/* Mobile only: icon on the left, title + description on the right.
-              Desktop/tablet keep the original card layout above. */}
-          <div className="mt-4 grid gap-3 sm:hidden">
-            {visibleModes.map((item) => (
-              <button
-                key={`tool-mobile-${item.id}`}
-                type="button"
-                onClick={() => switchMode(item.id)}
-                className="group flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 text-left shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition active:scale-[0.99] active:border-violet-500/60 hover:border-violet-500/50 hover:bg-white/[0.05]"
-              >
-                {/* Mobile icon: fixed left column */}
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition group-hover:bg-violet-500">
-                  {item.icon}
-                </div>
-
-                {/* Mobile right-hand title + description */}
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-sm font-semibold leading-5 text-white">
-                    {item.title}
-                  </h2>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300/80">
-                    {item.description}
-                  </p>
-                </div>
               </button>
             ))}
           </div>
@@ -4173,35 +4119,11 @@ function PdfEditorPageContent() {
                       <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-slate-900 p-4 text-left text-sm leading-6 text-slate-200">
                         {output.previewText || "No preview output."}
                       </pre>
-                    ) : outputPreviewUrl && getFileExtension(output.name) === "PDF" ? (
-                      <div className="overflow-hidden rounded-xl border border-white/10 bg-white">
-                        <iframe
-                          title={`Preview of ${output.name}`}
-                          src={outputPreviewUrl}
-                          className="h-[650px] w-full"
-                        />
-                      </div>
-                    ) : outputPreviewUrl &&
-                      ["JPG", "JPEG", "PNG", "WEBP"].includes(
-                        getFileExtension(output.name),
-                      ) ? (
-                      <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-white/10 bg-slate-900 p-6">
-                        <img
-                          src={outputPreviewUrl}
-                          alt={`Preview of ${output.name}`}
-                          className="max-h-[600px] max-w-full rounded-lg object-contain"
-                        />
-                      </div>
                     ) : (
                       <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-center text-sm text-slate-500">
                         <div>
                           <FileText className="mx-auto mb-3 h-10 w-10 text-emerald-300" />
-                          <p className="font-medium text-slate-300">
-                            Preview is not available for this file type.
-                          </p>
-                          <p className="mt-1">
-                            Download the file to open it.
-                          </p>
+                          Your output file is ready to download.
                         </div>
                       </div>
                     )}
@@ -4234,52 +4156,48 @@ function PdfEditorPageContent() {
         </div>
       ) : null}
 
-
-      {showToolPanel ? (
-        <HowToUse
-          title="How to use PDF Editor"
-          subtitle=""
-          steps={[
-            {
-              title: "Browse tools",
-              description:
-                "All PDF tools stay visible under the ALL view by default.",
-              icon: <FileText className="h-5 w-5" />,
-            },
-            {
-              title: "Choose a tool",
-              description:
-                "Click Merge PDF, Rotate PDF, Compress PDF, PDF to Excel, or any other tool card.",
-              icon: <Crop className="h-5 w-5" />,
-            },
-            {
-              title: "Upload file",
-              description:
-                "Upload a PDF, image set, Office file, or use HTML content depending on the selected tool.",
-              icon: <Upload className="h-5 w-5" />,
-            },
-            {
-              title: "Set options",
-              description:
-                "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
-              icon: <Scissors className="h-5 w-5" />,
-            },
-            {
-              title: "Process",
-              description:
-                "Run the action using browser tools or the PDF backend, depending on the tool.",
-              icon: <Loader2 className="h-5 w-5" />,
-            },
-            {
-              title: "Download",
-              description:
-                "Download the finished PDF, DOCX, JPG, ZIP, PPTX, XLSX, or compare report.",
-              icon: <Download className="h-5 w-5" />,
-            },
-          ]}
-        />
-      ) : null}
-
+      <HowToUse
+        title="How to use PDF Editor"
+        subtitle=""
+        steps={[
+          {
+            title: "Browse tools",
+            description:
+              "All PDF tools stay visible under the ALL view by default.",
+            icon: <FileText className="h-5 w-5" />,
+          },
+          {
+            title: "Choose a tool",
+            description:
+              "Click Merge PDF, Rotate PDF, Compress PDF, PDF to Excel, or any other tool card.",
+            icon: <Crop className="h-5 w-5" />,
+          },
+          {
+            title: "Upload file",
+            description:
+              "Upload a PDF, image set, Office file, or use HTML content depending on the selected tool.",
+            icon: <Upload className="h-5 w-5" />,
+          },
+          {
+            title: "Set options",
+            description:
+              "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
+            icon: <Scissors className="h-5 w-5" />,
+          },
+          {
+            title: "Process",
+            description:
+              "Run the action using browser tools or the PDF backend, depending on the tool.",
+            icon: <Loader2 className="h-5 w-5" />,
+          },
+          {
+            title: "Download",
+            description:
+              "Download the finished PDF, DOCX, JPG, ZIP, PPTX, XLSX, or compare report.",
+            icon: <Download className="h-5 w-5" />,
+          },
+        ]}
+      />
     </Container>
   );
 }
