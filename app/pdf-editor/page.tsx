@@ -60,7 +60,7 @@ import { CSS as DndCSS } from "@dnd-kit/utilities";
 type Category =
   "all" | "edit" | "organize" | "convertToPdf" | "convertFromPdf" | "security";
 
-type Mode =
+export type Mode =
   | "merge"
   | "split"
   | "extract-pages"
@@ -790,13 +790,13 @@ function SelectableThumbnailCard({
   );
 }
 
-function PdfEditorPageContent() {
+export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [activeCategory, setActiveCategory] = useState<Category>("all");
-  const [mode, setMode] = useState<Mode>("merge");
+  const [mode, setMode] = useState<Mode>(initialMode ?? "merge");
   const [showToolPanel, setShowToolPanel] = useState(false);
   const [pdfThumbnails, setPdfThumbnails] = useState<PdfThumbnail[]>([]);
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
@@ -960,6 +960,17 @@ function PdfEditorPageContent() {
   useEffect(() => {
     const tool = searchParams.get("tool");
 
+    if (initialMode) {
+      setMode(initialMode);
+      setShowToolPanel(true);
+
+      const selectedTool = modes.find((item) => item.id === initialMode);
+      if (selectedTool) {
+        setActiveCategory(selectedTool.category);
+      }
+      return;
+    }
+
     if (!isPdfMode(tool)) return;
 
     setMode(tool);
@@ -969,7 +980,7 @@ function PdfEditorPageContent() {
     if (selectedTool) {
       setActiveCategory(selectedTool.category);
     }
-  }, [searchParams]);
+  }, [searchParams, initialMode]);
 
   async function inspectPdfForms(file: File) {
     try {
@@ -1095,26 +1106,15 @@ function PdfEditorPageContent() {
     const selectedTool = modes.find((item) => item.id === mode);
     const returnCategory = selectedTool?.category ?? "all";
 
-    // Remember the category only for this Back navigation.
-    // The main page consumes and removes this value, so a normal refresh
-    // starts from ALL as requested.
-    if (typeof window !== "undefined") {
-      try {
-        if (returnCategory === "all") {
-          window.sessionStorage.removeItem("pdf-editor-return-category");
-        } else {
-          window.sessionStorage.setItem(
-            "pdf-editor-return-category",
-            returnCategory,
-          );
-        }
-      } catch {
-        // Ignore storage errors (for example, restricted browser storage).
-      }
-    }
-
     resetWorkingState();
-    router.push("/#pdf-tools");
+
+    if (returnCategory === "all") {
+      router.push("/#pdf-tools", { scroll: false });
+    } else {
+      router.push(`/?category=${encodeURIComponent(returnCategory)}#pdf-tools`, {
+        scroll: false,
+      });
+    }
   }
 
   function getSignatureCanvasPoint(
@@ -2974,7 +2974,7 @@ function PdfEditorPageContent() {
             className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to all PDF tools
+            Back to tools
           </button>
 
           <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
