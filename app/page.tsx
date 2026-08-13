@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Combine,
@@ -17,8 +17,11 @@ import {
   ShieldCheck,
   Stamp,
   Trash2,
+  Upload,
 } from "lucide-react";
+
 import { Container } from "@/components/Container";
+import { storePdfForEditor } from "@/lib/pdfEditorLaunch";
 
 type Category =
   | "all"
@@ -28,16 +31,45 @@ type Category =
   | "convertFromPdf"
   | "security";
 
-const categoryTabs: Array<{ id: Category; label: string }> = [
-  { id: "all", label: "ALL" },
-  { id: "edit", label: "EDIT PDF" },
-  { id: "organize", label: "ORGANIZE PDF" },
-  { id: "convertToPdf", label: "CONVERT TO PDF" },
-  { id: "convertFromPdf", label: "CONVERT FROM PDF" },
-  { id: "security", label: "PDF SECURITY" },
+const categoryTabs: Array<{
+  id: Category;
+  label: string;
+}> = [
+  {
+    id: "all",
+    label: "ALL",
+  },
+  {
+    id: "edit",
+    label: "EDIT PDF",
+  },
+  {
+    id: "organize",
+    label: "ORGANIZE PDF",
+  },
+  {
+    id: "convertToPdf",
+    label: "CONVERT TO PDF",
+  },
+  {
+    id: "convertFromPdf",
+    label: "CONVERT FROM PDF",
+  },
+  {
+    id: "security",
+    label: "PDF SECURITY",
+  },
 ];
 
 const pdfTools = [
+  {
+    title: "PDF Editor",
+    description:
+      "Edit existing PDF text, add text and images, annotate, sign, and download your edited PDF.",
+    href: "/pdf-editor?tool=pdf-editor",
+    category: "edit" as Category,
+    icon: FileText,
+  },
   {
     title: "Merge PDF",
     description: "Combine multiple PDFs into one file.",
@@ -97,7 +129,7 @@ const pdfTools = [
   {
     title: "Add page numbers",
     description: "Add page numbers to every page.",
-    href: "/pdf/page-numbers",
+    href: "/pdf/add-page-numbers",
     category: "organize" as Category,
     icon: Hash,
   },
@@ -145,7 +177,7 @@ const pdfTools = [
   },
   {
     title: "Sign PDF",
-    description: "Type, upload, or draw a signature on a PDF page.",
+    description: "Type, upload, or draw a signature on a PDF.",
     href: "/pdf/sign",
     category: "edit" as Category,
     icon: Stamp,
@@ -272,50 +304,61 @@ const pdfTools = [
   {
     title: "Batch Compress",
     description: "Compress multiple PDFs and download one ZIP file.",
-    href: "/pdf/batch-compress",
+    href: "/pdf-editor?tool=batch-compress",
     category: "edit" as Category,
     icon: FileText,
   },
   {
     title: "Batch Protect",
-    description: "Password-protect multiple PDFs and download one ZIP file.",
-    href: "/pdf/batch-protect",
+    description:
+      "Password-protect multiple PDFs and download one ZIP file.",
+    href: "/pdf-editor?tool=batch-protect",
     category: "security" as Category,
     icon: LockKeyhole,
   },
   {
     title: "Batch Unlock",
-    description: "Unlock multiple PDFs with one password and download a ZIP.",
-    href: "/pdf/batch-unlock",
+    description:
+      "Unlock multiple PDFs with one password and download a ZIP.",
+    href: "/pdf-editor?tool=batch-unlock",
     category: "security" as Category,
     icon: LockKeyhole,
   },
   {
     title: "Batch Watermark",
-    description: "Add the same watermark to multiple PDFs.",
-    href: "/pdf/batch-watermark",
+    description:
+      "Add the same watermark to multiple PDFs.",
+    href: "/pdf-editor?tool=batch-watermark",
     category: "edit" as Category,
     icon: Stamp,
   },
   {
     title: "Batch Header & Footer",
-    description: "Add the same header and footer to multiple PDFs.",
-    href: "/pdf/batch-header-footer",
+    description:
+      "Add the same header and footer to multiple PDFs.",
+    href: "/pdf-editor?tool=batch-header-footer",
     category: "edit" as Category,
     icon: FileText,
   },
   {
     title: "Batch Repair",
-    description: "Try to repair multiple PDFs and download one ZIP file.",
-    href: "/pdf/batch-repair",
+    description:
+      "Try to repair multiple PDFs and download one ZIP file.",
+    href: "/pdf-editor?tool=batch-repair",
     category: "edit" as Category,
     icon: FileSearch,
   },
 ];
 
-const CATEGORY_QUERY_KEY = "category";
+const PDF_EDITOR_CATEGORY_STORAGE_KEY =
+  "pdf-editor-active-category";
 
-function isValidCategory(value: string | null): value is Exclude<Category, "all"> {
+const PDF_EDITOR_RETURN_KEY =
+  "pdf-editor-return-from-tool";
+
+function isValidCategory(
+  value: string | null,
+): value is Exclude<Category, "all"> {
   return (
     value === "edit" ||
     value === "organize" ||
@@ -325,59 +368,163 @@ function isValidCategory(value: string | null): value is Exclude<Category, "all"
   );
 }
 
-function readCategoryFromUrl(): Category {
-  if (typeof window === "undefined") return "all";
-  const value = new URL(window.location.href).searchParams.get(CATEGORY_QUERY_KEY);
-  return isValidCategory(value) ? value : "all";
-}
-
 export default function Home() {
-  // Same initial render on server and client: ALL.
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+ 
+  const [activeCategory, setActiveCategory] =
+    useState<Category>("all");
 
-  useEffect(() => {
-    const sync = () => setActiveCategory(readCategoryFromUrl());
+  // Quick-start Online PDF Editor launcher state.
+  const editorFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [editorUploading, setEditorUploading] = useState(false);
 
-    sync();
+  async function handleEditorPdfSelected(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0] ?? null;
 
-    // Remove #pdf-tools after the page has loaded/refreshed, while keeping
-    // ?category=... intact.
-    if (window.location.hash === "#pdf-tools") {
-      window.history.replaceState(
-        window.history.state,
-        "",
-        `${window.location.pathname}${window.location.search}`,
-      );
+    // Allow selecting the same file again after returning to this page.
+    event.target.value = "";
+
+    if (!file) return;
+
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      window.alert("Please select a PDF file.");
+      return;
     }
 
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
-  }, []);
+    try {
+      setEditorUploading(true);
+  
+      await storePdfForEditor(file);
 
-  function selectCategory(category: Category) {
-    const url = new URL(window.location.href);
-    if (category === "all") url.searchParams.delete(CATEGORY_QUERY_KEY);
-    else url.searchParams.set(CATEGORY_QUERY_KEY, category);
-
-    window.history.pushState(
-      { category },
-      "",
-      `${url.pathname}${url.search}`,
-    );
-    setActiveCategory(category);
+      window.location.assign(
+        "/pdf-editor?tool=pdf-editor&source=homepage",
+      );
+    } catch (uploadError) {
+      console.error("Could not prepare PDF for editor:", uploadError);
+      window.alert(
+        "Could not open this PDF. Please try again.",
+      );
+    } finally {
+      setEditorUploading(false);
+    }
   }
 
+  function openEditorFilePicker() {
+    editorFileInputRef.current?.click();
+  }
+
+  function startBlankPdfEditor() {
+    window.location.assign(
+      "/pdf-editor?tool=pdf-editor&source=homepage&blank=true",
+    );
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const navigation = performance.getEntriesByType(
+        "navigation",
+      )[0] as PerformanceNavigationTiming | undefined;
+
+      const navigationType = navigation?.type;
+
+      const storedCategory =
+        window.sessionStorage.getItem(
+          PDF_EDITOR_CATEGORY_STORAGE_KEY,
+        );
+
+      const returningFromTool =
+        window.sessionStorage.getItem(
+          PDF_EDITOR_RETURN_KEY,
+        ) === "1";
+
+      /*
+       * Consume the return flag immediately.
+       */
+      window.sessionStorage.removeItem(
+        PDF_EDITOR_RETURN_KEY,
+      );
+      if (
+        navigationType === "reload" ||
+        navigationType === "back_forward" ||
+        returningFromTool
+      ) {
+        setActiveCategory(
+          isValidCategory(storedCategory)
+            ? storedCategory
+            : "all",
+        );
+      } else {
+        /*
+         * Fresh visit:
+         * Always start from ALL.
+         */
+        window.sessionStorage.removeItem(
+          PDF_EDITOR_CATEGORY_STORAGE_KEY,
+        );
+
+        setActiveCategory("all");
+      }
+    } catch {
+      setActiveCategory("all");
+    }
+
+    /*
+     * Remove old hash/category URL state.
+     *
+     * Example:
+     * /pdf-editor#pdf-tools
+     *
+     * becomes:
+     * /pdf-editor
+     */
+    try {
+      const url = new URL(window.location.href);
+
+      if (
+        url.searchParams.has("category") ||
+        url.hash
+      ) {
+        url.searchParams.delete("category");
+
+        window.history.replaceState(
+          null,
+          "",
+          url.pathname || "/pdf-editor",
+        );
+      }
+    } catch {
+      // Ignore malformed URL/storage errors.
+    }
+  }, []);
+
   const visibleTools = useMemo(() => {
-    if (activeCategory === "all") return pdfTools;
-    return pdfTools.filter((tool) => tool.category === activeCategory);
+    if (activeCategory === "all") {
+      return pdfTools;
+    }
+
+    return pdfTools.filter(
+      (tool) => tool.category === activeCategory,
+    );
   }, [activeCategory]);
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-slate-950">
-      <div className="absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/25 blur-3xl" />
-      <div className="absolute right-0 top-24 -z-0 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-3xl" />
+      {/* Background glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/25 blur-3xl" />
+
+      <div className="pointer-events-none absolute right-0 top-24 -z-0 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-3xl" />
 
       <Container className="relative py-12 sm:py-16">
+        {/* =====================================================
+            MAIN PAGE HEADER
+        ====================================================== */}
         <div className="mx-auto max-w-5xl text-center">
           <p className="mx-auto mb-6 inline-flex rounded-full border border-violet-400/30 bg-violet-500/10 px-5 py-2 text-base text-violet-100 shadow-lg shadow-violet-600/10">
             Fast, free PDF tools
@@ -388,34 +535,220 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-8 max-w-5xl text-xl leading-9 text-slate-300 sm:text-2xl sm:leading-10">
-            Merge, split, compress, sign, protect, convert, organize, and repair
-            PDF files in one clean workspace.
+            Merge, split, compress, sign, protect, convert,
+            organize, and repair PDF files in one clean
+            workspace.
           </p>
         </div>
 
-        <div id="pdf-tools" className="mx-auto mt-8 max-w-6xl scroll-mt-8">
-          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* =====================================================
+            ONLINE PDF EDITOR
+            Sejda-inspired quick-start section
+        ====================================================== */}
+        <div className="mx-auto mt-10 max-w-5xl">
+          <div
+            className="
+              overflow-hidden
+              rounded-[2rem]
+              border
+              border-white/10
+              bg-white/[0.035]
+              shadow-2xl
+              shadow-violet-950/20
+            "
+          >
+            {/* Editor heading */}
+            <div className="px-5 pt-8 text-center sm:px-8 sm:pt-10">
+              <div className="flex items-center justify-center gap-2">
+                <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  Online PDF editor
+                </h2>
+
+                <span
+                  className="
+                    rounded-full
+                    border
+                    border-violet-400/30
+                    bg-violet-500/10
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.14em]
+                    text-violet-300
+                  "
+                >
+                  BETA
+                </span>
+              </div>
+
+              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+                Edit PDF files for free. Add text, images,
+                shapes, signatures, highlights, and more.
+              </p>
+            </div>
+
+            {/* =================================================
+                EDIT PDF BUTTON
+            ================================================== */}
+            <div className="flex flex-col items-center px-5 py-8 sm:px-8 sm:py-10">
+              <div className="relative flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={openEditorFilePicker}
+                  disabled={editorUploading}
+                  className="
+                    group inline-flex min-w-[280px] items-center justify-center gap-4
+                    rounded-2xl bg-violet-600 px-7 py-4 text-lg font-bold text-white
+                    shadow-xl shadow-violet-950/30
+                    transition-all duration-200
+                    hover:-translate-y-0.5 hover:bg-violet-500
+                    hover:shadow-violet-900/40
+                    active:translate-y-0
+                    disabled:cursor-wait disabled:opacity-70
+                    sm:min-w-[360px] sm:px-9 sm:py-5 sm:text-xl
+                  "
+                >
+                  <span
+                    className="
+                      flex h-11 w-11 shrink-0 items-center justify-center
+                      rounded-xl bg-white/15
+                    "
+                  >
+                    <Upload className="h-6 w-6" />
+                  </span>
+
+                  <span>
+                    {editorUploading ? "Opening PDF..." : "Upload PDF file"}
+                  </span>
+                </button>
+
+                <input
+                  ref={editorFileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={handleEditorPdfSelected}
+                />
+              </div>
+            </div>
+
+            {/* =================================================
+                EDITOR FEATURES
+            ================================================== */}
+            <div
+              className="
+                flex
+                flex-wrap
+                items-center
+                justify-center
+                gap-x-6
+                gap-y-3
+                border-t
+                border-white/5
+                bg-black/10
+                px-5
+                py-5
+                text-xs
+                text-slate-500
+                sm:text-sm
+              "
+            >
+              <span className="transition hover:text-slate-300">
+                ✓ Edit existing text
+              </span>
+
+              <span className="transition hover:text-slate-300">
+                ✓ Add text &amp; images
+              </span>
+
+              <span className="transition hover:text-slate-300">
+                ✓ Sign &amp; annotate
+              </span>
+
+              <span className="transition hover:text-slate-300">
+                ✓ Download edited PDF
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* =====================================================
+            PDF TOOL CATEGORIES
+        ====================================================== */}
+        <div
+          id="pdf-tools"
+          className="mx-auto mt-10 max-w-6xl scroll-mt-8"
+        >
+          {/* Category tabs */}
+          <div
+            className="
+              flex
+              flex-nowrap
+              gap-3
+              overflow-x-auto
+              pb-2
+              [-ms-overflow-style:none]
+              [scrollbar-width:none]
+              [&::-webkit-scrollbar]:hidden
+            "
+          >
             {categoryTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => selectCategory(tab.id)}
-                className={`shrink-0 rounded-full border px-6 py-3 text-sm font-semibold tracking-[0.14em] transition ${
-                  activeCategory === tab.id
-                    ? "border-white bg-white text-slate-950"
-                    : "border-white/10 bg-white/[0.05] text-slate-400 hover:bg-white/[0.08] hover:text-white"
-                }`}
+                onClick={() => {
+                  setActiveCategory(tab.id);
+
+                  try {
+                    if (tab.id === "all") {
+                      /*
+                       * ALL means no category is stored.
+                       */
+                      window.sessionStorage.removeItem(
+                        PDF_EDITOR_CATEGORY_STORAGE_KEY,
+                      );
+                    } else {
+                      window.sessionStorage.setItem(
+                        PDF_EDITOR_CATEGORY_STORAGE_KEY,
+                        tab.id,
+                      );
+                    }
+                  } catch {
+                    // Ignore storage errors.
+                  }
+                }}
+                className={`
+                  shrink-0
+                  rounded-full
+                  border
+                  px-5
+                  py-3
+                  text-sm
+                  font-semibold
+                  tracking-[0.14em]
+                  transition
+                  ${
+                    activeCategory === tab.id
+                      ? "border-white bg-white text-slate-950"
+                      : "border-white/10 bg-white/[0.05] text-slate-400 hover:bg-white/[0.08] hover:text-white"
+                  }
+                `}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
+          {/* Number of tools */}
           <p className="mt-5 text-sm text-slate-500">
             {visibleTools.length} PDF tools shown
           </p>
 
-          {/* Desktop / tablet: original card layout remains unchanged */}
+          {/* ===================================================
+              DESKTOP / TABLET TOOL GRID
+          ==================================================== */}
           <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
@@ -424,15 +757,45 @@ export default function Home() {
                 <Link
                   key={tool.href}
                   href={tool.href}
-                  className="group flex min-h-[170px] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-0.5 hover:border-violet-500/50 hover:bg-white/[0.05]"
+                  className="
+                    group
+                    flex
+                    min-h-[170px]
+                    flex-col
+                    rounded-2xl
+                    border
+                    border-white/10
+                    bg-white/[0.03]
+                    p-5
+                    text-left
+                    transition
+                    hover:-translate-y-0.5
+                    hover:border-violet-500/50
+                    hover:bg-white/[0.05]
+                  "
                 >
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white transition group-hover:bg-violet-500">
+                  <div
+                    className="
+                      mb-5
+                      flex
+                      h-12
+                      w-12
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-violet-600
+                      text-white
+                      transition
+                      group-hover:bg-violet-500
+                    "
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
 
                   <h2 className="text-base font-semibold text-white">
                     {tool.title}
                   </h2>
+
                   <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
                     {tool.description}
                   </p>
@@ -441,7 +804,9 @@ export default function Home() {
             })}
           </div>
 
-          {/* Mobile only: purple icon on the left, title + description on the right */}
+          {/* ===================================================
+              MOBILE TOOL LIST
+          ==================================================== */}
           <div className="mt-6 grid gap-3 sm:hidden">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
@@ -450,18 +815,55 @@ export default function Home() {
                 <Link
                   key={`${tool.href}-mobile`}
                   href={tool.href}
-                  className="group flex w-full items-center gap-4 rounded-2xl border border-violet-400/20 bg-gradient-to-r from-violet-950/80 via-violet-900/50 to-[#0b1020] p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition active:scale-[0.99] hover:border-violet-400/40"
+                  className="
+                    group
+                    flex
+                    w-full
+                    items-center
+                    gap-4
+                    rounded-2xl
+                    border
+                    border-violet-400/20
+                    bg-gradient-to-r
+                    from-violet-950/80
+                    via-violet-900/50
+                    to-[#0b1020]
+                    p-4
+                    text-left
+                    shadow-[0_8px_24px_rgba(0,0,0,0.22)]
+                    transition
+                    active:scale-[0.99]
+                    hover:border-violet-400/40
+                  "
                 >
-                  {/* Purple icon on the left */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.22)] transition group-hover:bg-violet-500">
+                  {/* Icon */}
+                  <div
+                    className="
+                      flex
+                      h-14
+                      w-14
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-2xl
+                      border
+                      border-violet-300/20
+                      bg-violet-600
+                      text-white
+                      shadow-[0_0_20px_rgba(124,58,237,0.22)]
+                      transition
+                      group-hover:bg-violet-500
+                    "
+                  >
                     <Icon className="h-6 w-6" />
                   </div>
 
-                  {/* Right-side title and description */}
+                  {/* Content */}
                   <div className="min-w-0 flex-1 pr-1">
                     <h2 className="text-[15px] font-semibold leading-5 text-white">
                       {tool.title}
                     </h2>
+
                     <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-300/80">
                       {tool.description}
                     </p>

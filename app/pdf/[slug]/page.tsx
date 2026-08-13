@@ -35,7 +35,7 @@ const TOOLS: Record<string, {
   "pdf-to-powerpoint": { mode: "pdf-to-powerpoint", title: "PDF to POWERPOINT | PDFVerse", description: "Convert a PDF into a PowerPoint presentation.", category: "convertFromPdf" },
   "pdf-to-excel": { mode: "pdf-to-excel", title: "PDF to EXCEL | PDFVerse", description: "Convert PDF tables into an Excel workbook.", category: "convertFromPdf" },
   "compress": { mode: "compress-pdf", title: "Compress PDF | PDFVerse", description: "Reduce PDF file size.", category: "edit" },
-  "repair-pdf": { mode: "repair-pdf", title: "Repair PDF | PDFVerse", description: "Try to rebuild damaged or corrupted PDF files.", category: "edit" },
+  "repair": { mode: "repair-pdf", title: "Repair PDF | PDFVerse", description: "Try to rebuild damaged or corrupted PDF files.", category: "edit" },
   "header-footer": { mode: "header-footer", title: "Header & Footer | PDFVerse", description: "Add custom headers, footers, page numbers, dates, and filenames.", category: "edit" },
   "sign": { mode: "sign-pdf", title: "Sign PDF | PDFVerse", description: "Type, upload, or draw a signature on a PDF page.", category: "edit" },
   "metadata-editor": { mode: "metadata-editor", title: "Metadata Editor | PDFVerse", description: "Edit or remove PDF title, author, subject, and keywords.", category: "edit" },

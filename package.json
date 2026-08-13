@@ -14,7 +14,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "browser-image-compression": "^2.0.2",
-    "lucide-react": "^1.28.0",
+    "lucide-react": "^1.31.0",
+    "mupdf": "^1.28.0",
+    "mupdf-webviewer": "^0.15.0",
     "next": "16.2.12",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.2.108",
@@ -22,7 +24,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.18.1",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.2",

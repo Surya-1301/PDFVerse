@@ -38,6 +38,11 @@ import {
 } from "lucide-react";
 import { Container } from "../../components/Container";
 import { HowToUse } from "../../components/HowToUse";
+import LivePdfEditor from "../../components/LivePdfEditor";
+import {
+  clearPdfForEditor,
+  getPdfForEditor,
+} from "../../lib/pdfEditorLaunch";
 import { formatFileSize } from "../../lib/formatFileSize";
 import { fetchPdfApi } from "../../lib/apiBase";
 import { getApiErrorMessage } from "../../lib/apiError";
@@ -61,6 +66,7 @@ type Category =
   "all" | "edit" | "organize" | "convertToPdf" | "convertFromPdf" | "security";
 
 export type Mode =
+  | "pdf-editor"
   | "merge"
   | "split"
   | "extract-pages"
@@ -161,6 +167,14 @@ const modes: Array<{
   description: string;
   icon: React.ReactNode;
 }> = [
+  {
+    id: "pdf-editor",
+    category: "edit",
+    title: "PDF Editor",
+    description:
+      "Edit PDF pages visually with text, images, drawing, highlights, shapes, and whiteout.",
+    icon: <FileText className="h-5 w-5" />,
+  },
   {
     id: "merge",
     category: "organize",
@@ -677,6 +691,144 @@ function getFileExtension(fileName: string) {
   return match?.[1]?.toUpperCase() || "FILE";
 }
 
+function getToolUploadLabel(mode: Mode) {
+  switch (mode) {
+    case "merge": return "Upload PDF files";
+    case "split": return "Upload PDF to split";
+    case "extract-pages": return "Upload PDF to extract pages";
+    case "remove": return "Upload PDF to remove pages";
+    case "rotate": return "Upload PDF to rotate";
+    case "reorder": return "Upload PDF to organize";
+    case "add-pages": return "Upload PDF to add pages";
+    case "compare-pdf": return "Upload first PDF";
+    case "compress-pdf": return "Upload PDF to compress";
+    case "protect-pdf": return "Upload PDF to protect";
+    case "unlock-pdf": return "Upload protected PDF";
+    case "redact-pdf": return "Upload PDF to redact";
+    case "pdf-forms": return "Upload PDF form";
+    case "sign-pdf": return "Upload PDF to sign";
+    case "metadata-editor": return "Upload PDF metadata file";
+    case "header-footer": return "Upload PDF for header & footer";
+    case "watermark": return "Upload PDF for watermarking";
+    case "image-watermark": return "Upload PDF for image watermarking";
+    case "crop-pdf": return "Upload PDF to crop";
+    case "repair-pdf": return "Upload PDF to repair";
+    case "page-numbers": return "Upload PDF for page numbers";
+    case "images-to-pdf": return "Upload images";
+    case "scan-to-pdf": return "Upload scanned images";
+    case "word-to-pdf": return "Upload Word document";
+    case "powerpoint-to-pdf": return "Upload PowerPoint presentation";
+    case "excel-to-pdf": return "Upload Excel workbook";
+    case "html-to-pdf": return "Add HTML content";
+    case "pdf-to-jpg": return "Upload PDF to convert";
+    case "pdf-to-word": return "Upload PDF to convert";
+    case "pdf-to-text": return "Upload PDF to extract text";
+    case "extract-images": return "Upload PDF to extract images";
+    case "pdf-to-powerpoint": return "Upload PDF to convert";
+    case "pdf-to-excel": return "Upload PDF to convert";
+    case "batch-compress": return "Upload PDFs to compress";
+    case "batch-protect": return "Upload PDFs to protect";
+    case "batch-unlock": return "Upload PDFs to unlock";
+    case "batch-watermark": return "Upload PDFs to watermark";
+    case "batch-header-footer": return "Upload PDFs for header & footer";
+    case "batch-repair": return "Upload PDFs to repair";
+    default: return "Upload PDF file";
+  }
+}
+
+function getToolChooseLabel(mode: Mode) {
+  switch (mode) {
+    case "merge": return "Click to choose PDF files";
+    case "images-to-pdf":
+    case "scan-to-pdf": return "Click to choose images";
+    case "word-to-pdf": return "Click to choose Word file";
+    case "powerpoint-to-pdf": return "Click to choose PowerPoint file";
+    case "excel-to-pdf": return "Click to choose Excel file";
+    case "compare-pdf": return "Click to choose first PDF";
+    case "batch-compress":
+    case "batch-protect":
+    case "batch-unlock":
+    case "batch-watermark":
+    case "batch-header-footer":
+    case "batch-repair": return "Click to choose PDF files";
+    default: return "Click to choose PDF file";
+  }
+}
+
+function getToolUploadHint(mode: Mode) {
+  switch (mode) {
+    case "merge": return "Select two or more PDFs";
+    case "images-to-pdf":
+    case "scan-to-pdf": return "Select JPG, PNG, or WebP images";
+    case "word-to-pdf": return "Select one DOC or DOCX file";
+    case "powerpoint-to-pdf": return "Select one PPT or PPTX file";
+    case "excel-to-pdf": return "Select one XLS or XLSX file";
+    case "batch-compress":
+    case "batch-protect":
+    case "batch-unlock":
+    case "batch-watermark":
+    case "batch-header-footer":
+    case "batch-repair": return "Select multiple PDF files";
+    case "compare-pdf": return "Select the first PDF, then choose the second PDF below";
+    default: return "Select one PDF file";
+  }
+}
+
+function getToolOutputTitle(mode: Mode) {
+  const title = modes.find((item) => item.id === mode)?.title || "PDF Tool";
+  return `${title} Output`;
+}
+
+function getToolOutputDescription(mode: Mode) {
+  const title = modes.find((item) => item.id === mode)?.title || "PDF tool";
+  return `Your ${title.toLowerCase()} result will appear here.`;
+}
+
+function getToolActionLabel(mode: Mode) {
+  switch (mode) {
+    case "merge": return "Merge PDFs";
+    case "split": return "Split PDF";
+    case "extract-pages": return "Extract Pages";
+    case "remove": return "Remove Pages";
+    case "rotate": return "Rotate PDF";
+    case "reorder": return "Organize PDF";
+    case "add-pages": return "Add Pages";
+    case "compare-pdf": return "Compare PDFs";
+    case "compress-pdf": return "Compress PDF";
+    case "protect-pdf": return "Protect PDF";
+    case "unlock-pdf": return "Unlock PDF";
+    case "redact-pdf": return "Redact PDF";
+    case "sign-pdf": return "Sign PDF";
+    case "pdf-forms": return "Fill PDF Form";
+    case "metadata-editor": return "Update Metadata";
+    case "header-footer": return "Apply Header & Footer";
+    case "watermark": return "Add Watermark";
+    case "image-watermark": return "Add Image Watermark";
+    case "crop-pdf": return "Crop PDF";
+    case "page-numbers": return "Add Page Numbers";
+    case "images-to-pdf": return "Create PDF";
+    case "scan-to-pdf": return "Create Scan PDF";
+    case "word-to-pdf": return "Convert to PDF";
+    case "powerpoint-to-pdf": return "Convert to PDF";
+    case "excel-to-pdf": return "Convert to PDF";
+    case "html-to-pdf": return "Create PDF";
+    case "pdf-to-jpg": return "Convert to JPG";
+    case "pdf-to-word": return "Convert to Word";
+    case "pdf-to-text": return "Extract Text";
+    case "extract-images": return "Extract Images";
+    case "pdf-to-powerpoint": return "Convert to PowerPoint";
+    case "pdf-to-excel": return "Convert to Excel";
+    case "repair-pdf": return "Repair PDF";
+    case "batch-compress": return "Compress PDFs";
+    case "batch-protect": return "Protect PDFs";
+    case "batch-unlock": return "Unlock PDFs";
+    case "batch-watermark": return "Watermark PDFs";
+    case "batch-header-footer": return "Apply Header & Footer";
+    case "batch-repair": return "Repair PDFs";
+    default: return modes.find((item) => item.id === mode)?.title || "Process PDF";
+  }
+}
+
 function getOutputTypeLabel(output: OutputFile) {
   if (output.kind === "text") return "TEXT";
 
@@ -798,6 +950,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
   const [activeCategory, setActiveCategory] = useState<Category>("all");
   const [mode, setMode] = useState<Mode>(initialMode ?? "merge");
   const [showToolPanel, setShowToolPanel] = useState(false);
+  const [homepageEditorFile, setHomepageEditorFile] = useState<File | null>(null);
   const [pdfThumbnails, setPdfThumbnails] = useState<PdfThumbnail[]>([]);
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [thumbnailError, setThumbnailError] = useState("");
@@ -869,6 +1022,38 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
+  useEffect(() => {
+    const source = searchParams.get("source");
+
+    // The homepage quick-start stores the selected PDF in IndexedDB and
+    // navigates here with source=homepage. Read it once and hand it to the
+    // visual editor through initialFile.
+    if (source !== "homepage") return;
+
+    let cancelled = false;
+
+    async function loadHomepagePdf() {
+      try {
+        const pendingFile = await getPdfForEditor();
+
+        if (cancelled) return;
+
+        if (pendingFile) {
+          setHomepageEditorFile(pendingFile);
+          await clearPdfForEditor();
+        }
+      } catch (loadError) {
+        console.error("Could not load homepage PDF:", loadError);
+      }
+    }
+
+    void loadHomepagePdf();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
   const visibleModes = useMemo(() => {
     if (activeCategory === "all") return modes;
     return modes.filter((item) => item.category === activeCategory);
@@ -890,6 +1075,10 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
   const isCompareMode = mode === "compare-pdf";
   const isCropMode = mode === "crop-pdf";
   const isPdfFormsMode = mode === "pdf-forms";
+  const isVisualEditorMode = mode === "pdf-editor";
+  const editorBlank =
+    searchParams.get("blank") === "true" ||
+    searchParams.get("blank") === "1";
   const isBatchMode = [
     "batch-compress",
     "batch-protect",
@@ -908,6 +1097,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
     !isWordMode &&
     !isPowerPointMode &&
     !isExcelMode &&
+    !isVisualEditorMode &&
     [
       "split",
       "extract-pages",
@@ -959,6 +1149,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
 
   useEffect(() => {
     const tool = searchParams.get("tool");
+    const source = searchParams.get("source");
 
     if (initialMode) {
       setMode(initialMode);
@@ -968,6 +1159,19 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
       if (selectedTool) {
         setActiveCategory(selectedTool.category);
       }
+      return;
+    }
+
+    // Homepage quick-start always opens the dedicated visual PDF editor.
+    // Keep this explicit so /pdf-editor?source=homepage also works even if
+    // the tool query parameter is omitted.
+    const homepageEditor =
+      source === "homepage" && !tool;
+
+    if (homepageEditor) {
+      setMode("pdf-editor");
+      setShowToolPanel(true);
+      setActiveCategory("edit");
       return;
     }
 
@@ -2908,16 +3112,15 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
 
   return (
     <Container className="py-12 sm:py-16">
-      <div className="mx-auto max-w-3xl text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
-          PDF Editor
-        </h1>
+      <div className="mx-auto max-w-4xl text-center">
+  <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
+    {selectedMode.title}
+  </h1>
 
-        <p className="mt-4 text-base leading-7 text-slate-400">
-          Merge, split, extract, remove, scan, edit, convert, compress, and
-          secure PDFs in one place.
-        </p>
-      </div>
+  <p className="mx-auto mt-4 max-w-3xl text-base leading-7 text-slate-400 sm:text-lg">
+    {selectedMode.description}
+  </p>
+</div>
 
       {!showToolPanel ? (
         <div className="mx-auto mt-8 max-w-6xl">
@@ -2968,10 +3171,29 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
 
       {showToolPanel ? (
         <div className="mx-auto mt-8 max-w-6xl">
+       {isVisualEditorMode ? (
+  <>
+    {/* Same Back to tools position as every other PDF tool */}
+    <button
+      type="button"
+      onClick={backToTools}
+      className="mb-2 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white active:scale-[0.98]"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Back to tools
+    </button>
+
+    <LivePdfEditor
+      onBack={backToTools}
+      initialFile={homepageEditorFile}
+    />
+  </>
+) : (
+            <>
           <button
             type="button"
             onClick={backToTools}
-            className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
+            className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to tools
@@ -3022,50 +3244,18 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
               ) : (
                 <>
                   <label className="mb-2 block text-sm font-medium text-slate-300">
-                    Upload{" "}
-                    {isImageMode
-                      ? "images"
-                      : isWordMode
-                        ? "Word file"
-                        : isPowerPointMode
-                          ? "PowerPoint file"
-                          : isExcelMode
-                            ? "Excel file"
-                            : isCompareMode
-                              ? "first PDF"
-                              : `PDF ${mode === "merge" || isBatchMode ? "files" : "file"}`}
+                    {getToolUploadLabel(mode)}
                   </label>
 
                   <label className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-slate-950 p-6 text-center transition hover:border-violet-500/60 hover:bg-white/[0.03]">
                     <Upload className="mb-3 h-8 w-8 text-violet-300" />
 
                     <span className="font-medium text-white">
-                      Click to choose{" "}
-                      {isImageMode
-                        ? "images"
-                        : isWordMode
-                          ? "Word file"
-                          : isPowerPointMode
-                            ? "PowerPoint file"
-                            : isExcelMode
-                              ? "Excel file"
-                              : isCompareMode
-                                ? "first PDF"
-                                : `PDF ${mode === "merge" || isBatchMode ? "files" : "file"}`}
+                      {getToolChooseLabel(mode)}
                     </span>
 
                     <span className="mt-2 text-sm text-slate-500">
-                      {isImageMode
-                        ? "Select JPG, PNG, or WebP images"
-                        : isWordMode
-                          ? "Select one DOC or DOCX file"
-                          : isPowerPointMode
-                            ? "Select one PPT or PPTX file"
-                            : isExcelMode
-                              ? "Select one XLS or XLSX file"
-                              : mode === "merge" || isBatchMode
-                                ? "Select two or more PDFs"
-                                : "Select one PDF file"}
+                      {getToolUploadHint(mode)}
                     </span>
 
                     <input
@@ -4018,7 +4208,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
                   ) : (
                     <FileText className="h-4 w-4" />
                   )}
-                  {isProcessing ? "Processing..." : selectedMode.title}
+                  {isProcessing ? "Processing..." : getToolActionLabel(mode)}
                 </button>
 
                 <button
@@ -4041,9 +4231,11 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold text-white">Output</h2>
+                  <h2 className="font-semibold text-white">
+                    {getToolOutputTitle(mode)}
+                  </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Your processed file will appear here.
+                    {getToolOutputDescription(mode)}
                   </p>
                 </div>
 
@@ -4174,6 +4366,8 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       ) : null}
 
