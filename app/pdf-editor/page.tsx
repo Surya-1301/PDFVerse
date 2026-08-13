@@ -3172,22 +3172,10 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
       {showToolPanel ? (
         <div className="mx-auto mt-8 max-w-6xl">
        {isVisualEditorMode ? (
-  <>
-    {/* Same Back to tools position as every other PDF tool */}
-    <button
-      type="button"
-      onClick={backToTools}
-      className="mb-2 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white active:scale-[0.98]"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      Back to tools
-    </button>
-
-    <LivePdfEditor
-      onBack={backToTools}
-      initialFile={homepageEditorFile}
-    />
-  </>
+  <LivePdfEditor
+    onBack={backToTools}
+    initialFile={homepageEditorFile}
+  />
 ) : (
             <>
           <button

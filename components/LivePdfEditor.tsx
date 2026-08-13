@@ -407,7 +407,7 @@ function inferTextObjectsFromPdfPage(
   return pdfPage
     .getTextContent({
       normalizeWhitespace: true,
-      disableCombineTextItems: false,
+      disableCombineTextItems: true,
     })
     .then((content: any) => {
       const items = Array.isArray(content?.items)
@@ -465,6 +465,7 @@ export default function LivePdfEditor({
 
   const [objects, setObjects] = useState<EditorObject[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   objectsRef.current = objects;
 
@@ -692,6 +693,7 @@ export default function LivePdfEditor({
         setHistoryIndex(0);
 
         setSelected(null);
+        setEditingTextId(null);
 
         setName(
           selectedFile.name.replace(
@@ -1249,6 +1251,19 @@ export default function LivePdfEditor({
 
     setSelected(object.id);
 
+    if (tool === "select") {
+      setEditingTextId(null);
+    }
+
+    if (
+      tool === "text" &&
+      object.type === "text"
+    ) {
+      setEditingTextId(object.id);
+      setSelected(object.id);
+      return;
+    }
+
     if (tool !== "select") {
       return;
     }
@@ -1541,6 +1556,53 @@ export default function LivePdfEditor({
    * ---------------------------------------------------------
    */
 
+  async function exportWithPdfEditorServer(): Promise<boolean> {
+    const serverUrl =
+      process.env.NEXT_PUBLIC_PDF_EDITOR_SERVER_URL?.trim();
+
+    if (!serverUrl || !file || !bytes) {
+      return false;
+    }
+
+    const form = new FormData();
+
+    form.append(
+      "file",
+      file,
+      file.name,
+    );
+
+    form.append(
+      "objects",
+      JSON.stringify(objects),
+    );
+
+    const response =
+      await fetch(
+        `${serverUrl.replace(/\/$/, "")}/api/pdf/edit`,
+        {
+          method: "POST",
+          body: form,
+        },
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        `PDF editor server returned ${response.status}`,
+      );
+    }
+
+    const output =
+      await response.blob();
+
+    downloadBlob(
+      output,
+      `${name || "document"}-edited.pdf`,
+    );
+
+    return true;
+  }
+
   async function exportPdf() {
     if (!bytes) {
       setError("Open a PDF first.");
@@ -1550,6 +1612,18 @@ export default function LivePdfEditor({
     try {
       setExporting(true);
       setError("");
+
+      if (
+        process.env.NEXT_PUBLIC_PDF_EDITOR_SERVER_URL
+      ) {
+        const serverExported =
+          await exportWithPdfEditorServer();
+
+        if (serverExported) {
+          setStatus("saved");
+          return;
+        }
+      }
 
       const pdf =
         await PDFDocument.load(
@@ -2126,8 +2200,16 @@ export default function LivePdfEditor({
     return (
       <section className="w-full px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
         <div className="mx-auto w-full max-w-[1400px]">
-         
- 
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to tools
+            </button>
+          )}
           {/* Professional editor landing card */}
           <div className="relative overflow-hidden rounded-[28px] border border-white/[0.10] bg-[#101014] shadow-[0_30px_100px_rgba(0,0,0,0.38)]">
             {/* Ambient background */}
@@ -2599,6 +2681,7 @@ export default function LivePdfEditor({
                   );
 
                   setSelected(null);
+                  setEditingTextId(null);
                 }}
               />
             ),
@@ -2663,14 +2746,15 @@ export default function LivePdfEditor({
                             object
                           }
                           zoom={zoom}
-                          visible={
-                            object.source !==
-                              "existing" ||
-                            object.id ===
-                              selected ||
-                            isExistingTextEdited(
-                              object,
-                            )
+                         visible={
+  object.source !== "existing" ||
+  tool === "text" ||
+  object.id === selected ||
+  isExistingTextEdited(object)
+}
+                          startEditing={
+                            editingTextId ===
+                            object.id
                           }
                           onChange={(
                             text,
@@ -2682,13 +2766,14 @@ export default function LivePdfEditor({
                               },
                             )
                           }
-                          onCommit={() =>
+                          onCommit={() => {
+                            setEditingTextId(null);
                             update(
                               object.id,
                               {},
                               true,
-                            )
-                          }
+                            );
+                          }}
                         />
                       )}
 
@@ -2899,9 +2984,9 @@ export default function LivePdfEditor({
             {selectedObject?.source ===
               "existing" && (
               <p className="mt-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-2.5 py-2 text-[10px] leading-4 text-violet-300">
-                Double-click the text on the page
-                to edit it. Download PDF to write
-                the change into the exported file.
+                Select the Text tool, then click existing text
+                to edit its actual content. Download PDF
+                to write the change into the original text stream.
               </p>
             )}
           </div>
@@ -3412,12 +3497,14 @@ function EditableText({
   object,
   zoom,
   visible = true,
+  startEditing = false,
   onChange,
   onCommit,
 }: {
   object: EditorObject;
   zoom: number;
   visible?: boolean;
+  startEditing?: boolean;
   onChange: (
     text: string,
   ) => void;
@@ -3427,6 +3514,12 @@ function EditableText({
     editing,
     setEditing,
   ] = useState(false);
+
+  useEffect(() => {
+    if (startEditing) {
+      setEditing(true);
+    }
+  }, [startEditing]);
 
   const style: CSSProperties = {
     fontFamily:
@@ -3522,10 +3615,16 @@ function EditableText({
 
   return (
     <div
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        setEditing(true);
-      }}
+  onPointerDown={(event) => {
+    event.stopPropagation();
+
+    if (
+      object.source === "existing" ||
+      object.source === "ocr"
+    ) {
+      setEditing(true);
+    }
+  }}
       className="h-full w-full overflow-hidden whitespace-pre-wrap"
       style={{
         ...style,
@@ -3545,7 +3644,7 @@ function EditableText({
       }}
       title={
         (object.source === "existing" || object.source === "ocr")
-          ? "Double-click to edit PDF text / OCR text"
+          ? "Click to edit existing PDF text"
           : undefined
       }
     >
