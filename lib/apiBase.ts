@@ -77,7 +77,7 @@ export function getPdfApiBaseCandidates() {
     normalizeConfiguredUrl(process.env.NEXT_PUBLIC_PDF_API_BASE_URL),
 
     // Main PDF backend.
-    "https://pdf-verse-api.onrender.com",
+    "https://pdf-verse-api-uu40.onrender.com",
   ]);
 }
 
