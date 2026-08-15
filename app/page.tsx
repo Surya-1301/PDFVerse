@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 
 import { Container } from "@/components/Container";
-import { storePdfForEditor } from "@/lib/pdfEditorLaunch";
 
 type Category =
   | "all"
@@ -373,57 +372,8 @@ export default function Home() {
   const [activeCategory, setActiveCategory] =
     useState<Category>("all");
 
-  // Quick-start Online PDF Editor launcher state.
-  const editorFileInputRef = useRef<HTMLInputElement | null>(null);
-  const [editorUploading, setEditorUploading] = useState(false);
-
-  async function handleEditorPdfSelected(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0] ?? null;
-
-    // Allow selecting the same file again after returning to this page.
-    event.target.value = "";
-
-    if (!file) return;
-
-    const isPdf =
-      file.type === "application/pdf" ||
-      file.name.toLowerCase().endsWith(".pdf");
-
-    if (!isPdf) {
-      window.alert("Please select a PDF file.");
-      return;
-    }
-
-    try {
-      setEditorUploading(true);
-  
-      await storePdfForEditor(file);
-
-      window.location.assign(
-        "/pdf-editor?tool=pdf-editor&source=homepage",
-      );
-    } catch (uploadError) {
-      console.error("Could not prepare PDF for editor:", uploadError);
-      window.alert(
-        "Could not open this PDF. Please try again.",
-      );
-    } finally {
-      setEditorUploading(false);
-    }
-  }
-
-  function openEditorFilePicker() {
-    editorFileInputRef.current?.click();
-  }
-
-  function startBlankPdfEditor() {
-    window.location.assign(
-      "/pdf-editor?tool=pdf-editor&source=homepage&blank=true",
-    );
-  }
-
+  // The Online PDF Editor is temporarily unavailable.
+  // Keep the UI visible, but prevent all interaction with the editor.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -543,133 +493,87 @@ export default function Home() {
 
         {/* =====================================================
             ONLINE PDF EDITOR
-            Sejda-inspired quick-start section
+            Temporarily disabled / Coming Soon
         ====================================================== */}
         <div className="mx-auto mt-10 max-w-5xl">
-          <div
-            className="
-              overflow-hidden
-              rounded-[2rem]
-              border
-              border-white/10
-              bg-white/[0.035]
-              shadow-2xl
-              shadow-violet-950/20
-            "
-          >
-            {/* Editor heading */}
-            <div className="px-5 pt-8 text-center sm:px-8 sm:pt-10">
-              <div className="flex items-center justify-center gap-2">
-                <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-                  Online PDF editor
-                </h2>
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl shadow-violet-950/20">
+            {/* Original editor UI remains visible underneath the overlay */}
+            <div aria-hidden="true">
+              {/* Editor heading */}
+              <div className="px-5 pt-8 text-center sm:px-8 sm:pt-10">
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                    Online PDF editor
+                  </h2>
 
-                <span
-                  className="
-                    rounded-full
-                    border
-                    border-violet-400/30
-                    bg-violet-500/10
-                    px-2.5
-                    py-1
-                    text-[10px]
-                    font-bold
-                    uppercase
-                    tracking-[0.14em]
-                    text-violet-300
-                  "
-                >
-                  BETA
-                </span>
+                  <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-violet-300">
+                    BETA
+                  </span>
+                </div>
+
+                <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+                  Edit PDF files for free. Add text, images, shapes, signatures,
+                  highlights, and more.
+                </p>
               </div>
 
-              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
-                Edit PDF files for free. Add text, images,
-                shapes, signatures, highlights, and more.
-              </p>
-            </div>
-
-            {/* =================================================
-                EDIT PDF BUTTON
-            ================================================== */}
-            <div className="flex flex-col items-center px-5 py-8 sm:px-8 sm:py-10">
-              <div className="relative flex flex-col items-center">
-                <button
-                  type="button"
-                  onClick={openEditorFilePicker}
-                  disabled={editorUploading}
-                  className="
-                    group inline-flex min-w-[280px] items-center justify-center gap-4
-                    rounded-2xl bg-violet-600 px-7 py-4 text-lg font-bold text-white
-                    shadow-xl shadow-violet-950/30
-                    transition-all duration-200
-                    hover:-translate-y-0.5 hover:bg-violet-500
-                    hover:shadow-violet-900/40
-                    active:translate-y-0
-                    disabled:cursor-wait disabled:opacity-70
-                    sm:min-w-[360px] sm:px-9 sm:py-5 sm:text-xl
-                  "
-                >
-                  <span
-                    className="
-                      flex h-11 w-11 shrink-0 items-center justify-center
-                      rounded-xl bg-white/15
-                    "
+              {/* Disabled editor button */}
+              <div className="flex flex-col items-center px-5 py-8 sm:px-8 sm:py-10">
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="inline-flex min-w-[280px] cursor-not-allowed items-center justify-center gap-4 rounded-2xl bg-violet-600 px-7 py-4 text-lg font-bold text-white opacity-80 shadow-xl shadow-violet-950/30 sm:min-w-[360px] sm:px-9 sm:py-5 sm:text-xl"
                   >
-                    <Upload className="h-6 w-6" />
-                  </span>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                      <Upload className="h-6 w-6" />
+                    </span>
+                    <span>Upload PDF file</span>
+                  </button>
+                </div>
+              </div>
 
-                  <span>
-                    {editorUploading ? "Opening PDF..." : "Upload PDF file"}
-                  </span>
-                </button>
-
-                <input
-                  ref={editorFileInputRef}
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="hidden"
-                  onChange={handleEditorPdfSelected}
-                />
+              {/* Editor features */}
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-white/5 bg-black/10 px-5 py-5 text-xs text-slate-500 sm:text-sm">
+                <span>✓ Edit existing text</span>
+                <span>✓ Add text &amp; images</span>
+                <span>✓ Sign &amp; annotate</span>
+                <span>✓ Download edited PDF</span>
               </div>
             </div>
 
-            {/* =================================================
-                EDITOR FEATURES
-            ================================================== */}
+            {/* Full-area Coming Soon overlay */}
             <div
-              className="
-                flex
-                flex-wrap
-                items-center
-                justify-center
-                gap-x-6
-                gap-y-3
-                border-t
-                border-white/5
-                bg-black/10
-                px-5
-                py-5
-                text-xs
-                text-slate-500
-                sm:text-sm
-              "
+              className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-[1.5px]"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Online PDF Editor coming soon"
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
             >
-              <span className="transition hover:text-slate-300">
-                ✓ Edit existing text
-              </span>
+              <div className="w-full max-w-xl p-5 text-center sm:p-8">
+                {/* Lock */}
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-950/85 text-violet-400 shadow-[0_0_45px_rgba(124,58,237,0.22)] ring-1 ring-white/10 sm:h-24 sm:w-24">
+                  <LockKeyhole className="h-10 w-10 stroke-[1.8] sm:h-12 sm:w-12" />
+                </div>
 
-              <span className="transition hover:text-slate-300">
-                ✓ Add text &amp; images
-              </span>
+                {/* Heading */}
+                <h3 className="mt-5 text-4xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl">
+                  Coming Soon
+                </h3>
+                {/* Info card — translucent so the original background remains visible */}
+                <div className="mx-auto mt-6 flex max-w-sm items-center gap-3 rounded-xl border border-white/10 bg-slate-950/45 p-4 text-left backdrop-blur-[2px]">
+                  <span className="text-2xl text-violet-400" aria-hidden="true">
+                    ◷
+                  </span>
+                  <p className="text-sm leading-5 text-slate-200">
+                    Stay tuned! We&apos;re working on something amazing for you.
+                  </p>
+                </div>
 
-              <span className="transition hover:text-slate-300">
-                ✓ Sign &amp; annotate
-              </span>
-
-              <span className="transition hover:text-slate-300">
-                ✓ Download edited PDF
-              </span>
+               
+              </div>
             </div>
           </div>
         </div>
@@ -752,6 +656,48 @@ export default function Home() {
           <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
+              const isPdfEditor = tool.title === "PDF Editor";
+
+              if (isPdfEditor) {
+                return (
+                  <div
+                    key={tool.href}
+                    className="relative min-h-[170px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+                    aria-disabled="true"
+                  >
+                    <div className="flex h-full min-h-[170px] flex-col p-5 text-left opacity-80" aria-hidden="true">
+                      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white">
+                        <Icon className="h-5 w-5" />
+                      </div>
+
+                      <h2 className="text-base font-semibold text-white">
+                        {tool.title}
+                      </h2>
+
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
+                        {tool.description}
+                      </p>
+                    </div>
+
+                    <div
+                      className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-[1px]"
+                      aria-label="PDF Editor coming soon"
+                    >
+                      <div className="w-full p-2 text-center">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-950/85 text-violet-400 shadow-[0_0_30px_rgba(124,58,237,0.2)] ring-1 ring-white/10">
+                          <LockKeyhole className="h-7 w-7 stroke-[1.8]" />
+                        </div>
+                        <h3 className="mt-3 text-xl font-black text-white drop-shadow-lg">
+                          Coming Soon
+                        </h3>
+                        <p className="mt-1 text-xs leading-5 text-slate-200 drop-shadow-md">
+                          PDF Editor is currently unavailable.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <Link
@@ -810,6 +756,46 @@ export default function Home() {
           <div className="mt-6 grid gap-3 sm:hidden">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
+              const isPdfEditor = tool.title === "PDF Editor";
+
+              if (isPdfEditor) {
+                return (
+                  <div
+                    key={`${tool.href}-mobile`}
+                    className="relative w-full overflow-hidden rounded-2xl border border-violet-400/20 bg-gradient-to-r from-violet-950/80 via-violet-900/50 to-[#0b1020]"
+                    aria-disabled="true"
+                  >
+                    <div className="flex w-full items-center gap-4 p-4 text-left opacity-80" aria-hidden="true">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-600 text-white shadow-[0_0_20px_rgba(124,58,237,0.22)]">
+                        <Icon className="h-6 w-6" />
+                      </div>
+
+                      <div className="min-w-0 flex-1 pr-1">
+                        <h2 className="text-[15px] font-semibold leading-5 text-white">
+                          {tool.title}
+                        </h2>
+                        <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-300/80">
+                          {tool.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-[1px]">
+                      <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/45 px-4 py-3 backdrop-blur-[2px]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-950/85 text-violet-400 ring-1 ring-white/10">
+                          <LockKeyhole className="h-5 w-5 stroke-[1.8]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-white drop-shadow-md">
+                            Coming Soon
+                          </p>
+                          
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <Link
