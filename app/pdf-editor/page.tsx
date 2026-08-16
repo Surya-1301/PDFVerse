@@ -758,8 +758,8 @@ function getToolChooseLabel(mode: Mode) {
 function getToolUploadHint(mode: Mode) {
   switch (mode) {
     case "merge": return "Select two or more PDFs";
-    case "images-to-pdf":
-    case "scan-to-pdf": return "Select JPG, PNG, or WebP images";
+    case "images-to-pdf": return "Select JPG, PNG, or WebP images";
+    case "scan-to-pdf": return "Take photos with your camera or select scanned images";
     case "word-to-pdf": return "Select one DOC or DOCX file";
     case "powerpoint-to-pdf": return "Select one PPT or PPTX file";
     case "excel-to-pdf": return "Select one XLS or XLSX file";
@@ -2137,19 +2137,131 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
     return pdfBytesToBlob(await pdf.save());
   }
 
+  /**
+   * Convert an image into PNG bytes using the browser when pdf-lib cannot
+   * embed the original format directly. This makes JPG/PNG/WebP work on
+   * desktop and mobile, including camera/gallery files with inconsistent
+   * MIME types.
+   */
+  async function decodeImageToPng(file: File): Promise<{
+    bytes: Uint8Array;
+    width: number;
+    height: number;
+  }> {
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image();
+
+        element.onload = () => resolve(element);
+        element.onerror = () =>
+          reject(
+            new Error(
+              `Could not read "${file.name}". Please select a valid JPG, PNG, or WebP image.`,
+            ),
+          );
+
+        element.decoding = "async";
+        element.src = objectUrl;
+      });
+
+      if (!image.naturalWidth || !image.naturalHeight) {
+        throw new Error(`Could not read "${file.name}".`);
+      }
+
+      // Camera photos can be extremely large on phones. Limit the longest
+      // edge so the conversion does not exhaust mobile browser memory.
+      const MAX_DIMENSION = 5000;
+      const scale = Math.min(
+        1,
+        MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight),
+      );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+      const context = canvas.getContext("2d", { alpha: false });
+
+      if (!context) {
+        throw new Error("Your browser could not create an image canvas.");
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        image,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const commaIndex = dataUrl.indexOf(",");
+
+      if (commaIndex === -1) {
+        throw new Error(`Could not convert "${file.name}" to PNG.`);
+      }
+
+      const binary = atob(dataUrl.slice(commaIndex + 1));
+      const bytes = new Uint8Array(binary.length);
+
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      return {
+        bytes,
+        width: canvas.width,
+        height: canvas.height,
+      };
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
   async function imagesToPdf() {
-    if (!files.length) throw new Error("Upload one or more images first.");
+    if (!files.length) {
+      throw new Error("Upload one or more JPG, PNG, or WebP images first.");
+    }
 
     const pdf = await PDFDocument.create();
 
     for (const file of files) {
-      const imageBytes = await file.arrayBuffer();
-      const embeddedImage =
-        file.type === "image/png" || file.name.toLowerCase().endsWith(".png")
-          ? await pdf.embedPng(imageBytes)
-          : await pdf.embedJpg(imageBytes);
+      const lowerName = file.name.toLowerCase();
+      const mimeType = file.type.toLowerCase();
 
-      const page = pdf.addPage([embeddedImage.width, embeddedImage.height]);
+      const isPng =
+        mimeType === "image/png" || lowerName.endsWith(".png");
+
+      const isJpeg =
+        mimeType === "image/jpeg" ||
+        mimeType === "image/jpg" ||
+        lowerName.endsWith(".jpg") ||
+        lowerName.endsWith(".jpeg");
+
+      let embeddedImage;
+
+      if (isPng) {
+        embeddedImage = await pdf.embedPng(await file.arrayBuffer());
+      } else if (isJpeg) {
+        embeddedImage = await pdf.embedJpg(await file.arrayBuffer());
+      } else {
+        // WebP and other browser-decodable image formats are normalized
+        // through canvas because pdf-lib does not embed WebP directly.
+        const converted = await decodeImageToPng(file);
+        embeddedImage = await pdf.embedPng(converted.bytes);
+      }
+
+      const page = pdf.addPage([
+        embeddedImage.width,
+        embeddedImage.height,
+      ]);
+
       page.drawImage(embeddedImage, {
         x: 0,
         y: 0,
@@ -2981,17 +3093,73 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
     }
   }
 
-  function downloadOutput() {
+  async function downloadOutput() {
     if (!output) return;
 
-    const url = URL.createObjectURL(output.blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = output.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const blobUrl = URL.createObjectURL(output.blob);
+
+    try {
+      const isMobile =
+        typeof navigator !== "undefined" &&
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      // On mobile, use the native share sheet when the browser supports
+      // sharing files. This gives iOS/Android users a reliable Save/Share
+      // path instead of relying only on <a download>.
+      if (
+        isMobile &&
+        typeof navigator !== "undefined" &&
+        "share" in navigator &&
+        typeof navigator.share === "function" &&
+        typeof File !== "undefined"
+      ) {
+        try {
+          const outputFile = new File([output.blob], output.name, {
+            type: output.blob.type || "application/pdf",
+          });
+
+          if (
+            "canShare" in navigator &&
+            typeof navigator.canShare === "function" &&
+            navigator.canShare({ files: [outputFile] })
+          ) {
+            await navigator.share({
+              files: [outputFile],
+              title: output.name,
+            });
+            return;
+          }
+        } catch (shareError) {
+          // User cancellation is not an application error. If sharing is
+          // unavailable, continue to the browser fallback below.
+          if (
+            shareError instanceof DOMException &&
+            shareError.name === "AbortError"
+          ) {
+            return;
+          }
+        }
+      }
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = output.name;
+      link.rel = "noopener";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // iOS can need the object URL to remain alive briefly after click.
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) {
+      console.error("Could not download output:", error);
+
+      // Final fallback: open the generated PDF/blob in the browser.
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    }
   }
 
   function processAnotherFile() {
@@ -3259,7 +3427,16 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
                                 ? ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                 : "application/pdf,.pdf"
                       }
-                      multiple={mode === "merge" || isImageMode || isBatchMode}
+                      capture={
+                        mode === "scan-to-pdf"
+                          ? "environment"
+                          : undefined
+                      }
+                      multiple={
+                        mode === "merge" ||
+                        isImageMode ||
+                        isBatchMode
+                      }
                       onChange={handleFilesChange}
                       className="hidden"
                     />
