@@ -1019,6 +1019,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
   const [flattenForms, setFlattenForms] = useState(true);
   const [detectedFormFields, setDetectedFormFields] = useState<string[]>([]);
   const [output, setOutput] = useState<OutputFile | null>(null);
+  const [downloadFileName, setDownloadFileName] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -1276,6 +1277,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
     setFlattenForms(true);
     setDetectedFormFields([]);
     setOutput(null);
+    setDownloadFileName("");
     setError("");
     setIsProcessing(false);
   }
@@ -1519,6 +1521,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
 
     setError("");
     setOutput(null);
+    setDownloadFileName("");
     setDetectedFormFields([]);
 
     if (!selectedFiles.length) return;
@@ -3081,6 +3084,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
       }
 
       setOutput(nextOutput);
+      setDownloadFileName(nextOutput.name);
     } catch (caughtError) {
       console.error(caughtError);
       setError(
@@ -3093,9 +3097,21 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
     }
   }
 
+  function getEditableDownloadName() {
+    const fallback = output?.name || "document";
+    const requested = downloadFileName.trim();
+    if (!requested) return fallback;
+    const cleaned = requested.replace(/[\/:*?"<>|]/g, "-").replace(/[\u0000-\u001F]/g, "").trim();
+    if (!cleaned) return fallback;
+    const match = fallback.match(/(\.[a-z0-9]+)$/i);
+    const ext = match?.[1] || "";
+    return ext && !/\.[a-z0-9]+$/i.test(cleaned) ? `${cleaned}${ext}` : cleaned;
+  }
+
   async function downloadOutput() {
     if (!output) return;
 
+    const finalFileName = getEditableDownloadName();
     const blobUrl = URL.createObjectURL(output.blob);
 
     try {
@@ -3114,7 +3130,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
         typeof File !== "undefined"
       ) {
         try {
-          const outputFile = new File([output.blob], output.name, {
+          const outputFile = new File([output.blob], finalFileName, {
             type: output.blob.type || "application/pdf",
           });
 
@@ -3125,7 +3141,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
           ) {
             await navigator.share({
               files: [outputFile],
-              title: output.name,
+              title: finalFileName,
             });
             return;
           }
@@ -3143,7 +3159,7 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
 
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = output.name;
+      link.download = finalFileName;
       link.rel = "noopener";
 
       document.body.appendChild(link);
@@ -4427,24 +4443,18 @@ export function PdfEditorPageContent({ initialMode }: { initialMode?: Mode } = {
                             </span>
                           </div>
 
-                          <p className="break-all text-sm font-semibold text-white">
-                            {output.name}
-                          </p>
-
-                          <p className="mt-1 text-xs text-slate-500">
-                            Ready to download.
-                          </p>
+                          <div className="mt-3">
+                            <label htmlFor="pdfverse-output-filename" className="mb-1.5 block text-xs font-medium text-slate-400">File name</label>
+                            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+                              <input id="pdfverse-output-filename" type="text" value={downloadFileName} onChange={(event) => setDownloadFileName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void downloadOutput(); } }} aria-label="Output file name" spellCheck={false} autoComplete="off" className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20" />
+                              <button type="button" onClick={() => void downloadOutput()} disabled={!output} className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto">
+                                <Download className="h-4 w-4" />
+                                Download
+                              </button>
+                            </div>
+                            <p className="mt-1.5 text-xs text-slate-500">Rename the file before downloading. The original extension is kept automatically.</p>
+                          </div>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={downloadOutput}
-                          disabled={!output}
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:hover:bg-slate-700"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download
-                        </button>
                       </div>
 
                       {output.compressionStats ? (
