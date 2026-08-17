@@ -13,16 +13,14 @@ import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSString;
-import org.apache.pdfbox.cos.COSStream;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.contentstream.PDContentStream;
 import org.apache.pdfbox.contentstream.operator.Operator;
 import org.apache.pdfbox.pdfparser.PDFStreamParser;
 import org.apache.pdfbox.pdfwriter.ContentStreamWriter;
+import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
@@ -57,10 +55,16 @@ public final class PdfEditorServer {
 
     private static final int PORT = Integer.getInteger("pdfverse.port", 8080);
 
-    private static final String ALLOWED_ORIGIN =
-        System.getProperty(
-            "pdfverse.allowedOrigin",
-            "http://localhost:3000"
+    private static final String ALLOWED_ORIGINS =
+        firstNonBlank(
+            System.getenv("PDFVERSE_ALLOWED_ORIGINS"),
+            System.getProperty(
+                "pdfverse.allowedOrigins",
+                System.getProperty(
+                    "pdfverse.allowedOrigin",
+                    "http://localhost:3000"
+                )
+            )
         );
 
     private static final long MAX_FILE_SIZE =
@@ -188,7 +192,7 @@ public final class PdfEditorServer {
             HttpServletResponse response
         ) throws IOException {
 
-            setCors(response);
+            setCors(request, response);
 
             response.setStatus(
                 HttpServletResponse.SC_OK
@@ -211,7 +215,7 @@ public final class PdfEditorServer {
             HttpServletResponse response
         ) {
 
-            setCors(response);
+            setCors(request, response);
 
             response.setStatus(
                 HttpServletResponse.SC_NO_CONTENT
@@ -231,7 +235,7 @@ public final class PdfEditorServer {
             HttpServletResponse response
         ) {
 
-            setCors(response);
+            setCors(request, response);
 
             response.setStatus(
                 HttpServletResponse.SC_NO_CONTENT
@@ -244,7 +248,7 @@ public final class PdfEditorServer {
             HttpServletResponse response
         ) throws IOException, ServletException {
 
-            setCors(response);
+            setCors(request, response);
 
             response.setCharacterEncoding(
                 StandardCharsets.UTF_8.name()
@@ -647,18 +651,22 @@ public final class PdfEditorServer {
          * and CID fonts whenever the original font can encode the new text.
          */
         /**
-         * Replace native PDF text in the original content stream.
+         * Replace existing native PDF text in the page content stream.
          *
-         * The browser receives text items from PDF.js, while a PDF can split
-         * one visible word/line over several Tj/TJ operators. We therefore
-         * support three cases:
+         * The browser sends the text as it appears to the user. PDF content
+         * streams can store that same text in many different ways:
          *
-         *  1. exact text in one Tj/TJ operand
-         *  2. a substring inside one operand
-         *  3. text spanning consecutive text-showing operators
+         *   (Surya) Tj
+         *   [ (Sur) 20 (ya) ] TJ
+         *   (Surya) '
+         *   (Surya) "
          *
-         * The replacement is written back as PDF text, using the active
-         * embedded font whenever that font can encode the replacement.
+         * We therefore decode every text-showing operand with the currently
+         * active PDF font and match against the complete original text.
+         *
+         * When a match is found, only the text operand is replaced. We do not
+         * paint a white rectangle over native text, so the original page
+         * graphics remain untouched.
          */
         private boolean replaceNativeText(
             PDDocument document,
@@ -674,69 +682,8 @@ public final class PdfEditorServer {
                 return false;
             }
 
-            /*
-             * PDFBox 3 parses a page through PDContentStream. A page may
-             * contain several underlying streams, so we parse the page as
-             * one logical content stream and write the changed tokens to a
-             * fresh PDStream.
-             */
-            PDStream updatedPageStream =
-                new PDStream(document);
-
-            boolean replaced =
-                replaceNativeTextInStream(
-                    document,
-                    page,
-                    updatedPageStream.getCOSObject(),
-                    page.getResources(),
-                    originalText,
-                    replacementText,
-                    new java.util.HashSet<Object>()
-                );
-
-            if (replaced) {
-                page.setContents(
-                    updatedPageStream
-                );
-
-                return true;
-            }
-
-            /*
-             * If the page itself did not contain the text, inspect Form
-             * XObjects referenced by the page. This avoids replacing the
-             * page's contents with an empty stream when the match lives in
-             * a form.
-             */
-            return replaceInFormResources(
-                document,
-                page.getResources(),
-                originalText,
-                replacementText,
-                new java.util.HashSet<Object>()
-            );
-        }
-
-        private boolean replaceNativeTextInStream(
-            PDDocument document,
-            PDContentStream contentStream,
-            COSStream targetStream,
-            org.apache.pdfbox.pdmodel.PDResources resources,
-            String originalText,
-            String replacementText,
-            java.util.Set<Object> visited
-        ) throws IOException {
-
-            if (contentStream == null || targetStream == null) {
-                return false;
-            }
-
-            if (!visited.add(targetStream.getCOSObject())) {
-                return false;
-            }
-
             PDFStreamParser parser =
-                new PDFStreamParser(contentStream);
+                new PDFStreamParser(page);
 
             java.util.List<Object> tokens =
                 parser.parse();
@@ -748,7 +695,8 @@ public final class PdfEditorServer {
                 index < tokens.size();
                 index += 1
             ) {
-                Object token = tokens.get(index);
+                Object token =
+                    tokens.get(index);
 
                 if (!(token instanceof Operator)) {
                     continue;
@@ -760,66 +708,30 @@ public final class PdfEditorServer {
                 String operation =
                     operator.getName();
 
-                /* /FontName size Tf */
+                /*
+                 * Track:
+                 *
+                 *   /FontName fontSize Tf
+                 *
+                 * The resource is read from the page's current resource
+                 * dictionary, so embedded/CID fonts can be used to encode
+                 * the replacement text.
+                 */
                 if (
                     "Tf".equals(operation) &&
-                    index >= 2 &&
-                    resources != null
+                    index >= 2
                 ) {
                     Object fontToken =
                         tokens.get(index - 2);
 
                     if (fontToken instanceof COSName) {
-                        currentFont =
-                            resources.getFont(
-                                (COSName) fontToken
-                            );
-                    }
+                        COSName fontName =
+                            (COSName) fontToken;
 
-                    continue;
-                }
-
-                /*
-                 * Recurse into Form XObjects. A surprising number of PDFs
-                 * place visible text inside a form instead of directly in
-                 * the page content stream.
-                 */
-                if (
-                    "Do".equals(operation) &&
-                    !(contentStream instanceof PDPage) &&
-                    index >= 1 &&
-                    resources != null
-                ) {
-                    Object xObjectName =
-                        tokens.get(index - 1);
-
-                    if (xObjectName instanceof COSName) {
-                        org.apache.pdfbox.pdmodel.graphics.PDXObject xObject =
-                            resources.getXObject(
-                                (COSName) xObjectName
-                            );
-
-                        if (
-                            xObject instanceof org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
-                        ) {
-                            org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject form =
-                                (org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject) xObject;
-
-                            if (
-                                replaceNativeTextInStream(
-                                    document,
-                                    form,
-                                    form.getCOSObject(),
-                                    form.getResources() != null
-                                        ? form.getResources()
-                                        : resources,
-                                    originalText,
-                                    replacementText,
-                                    visited
-                                )
-                            ) {
-                                return true;
-                            }
+                        if (page.getResources() != null) {
+                            currentFont =
+                                page.getResources()
+                                    .getFont(fontName);
                         }
                     }
 
@@ -827,196 +739,250 @@ public final class PdfEditorServer {
                 }
 
                 if (
-                    !isTextShowingOperator(operation)
+                    !(
+                        "Tj".equals(operation) ||
+                        "TJ".equals(operation) ||
+                        "'".equals(operation) ||
+                        "\"".equals(operation)
+                    )
                 ) {
                     continue;
                 }
 
-                if (index < 1) {
+                if (index == 0) {
                     continue;
                 }
 
                 Object operand =
                     tokens.get(index - 1);
 
-                String decoded =
-                    decodeOperandText(
-                        operand,
-                        currentFont
-                    );
+                /*
+                 * Simple text-showing operator:
+                 *
+                 *   (text) Tj
+                 *   (text) '
+                 *   (text) "
+                 *
+                 * Replace the operand itself instead of mutating COSString
+                 * with the deprecated setValue(byte[]) API.
+                 */
+                if (operand instanceof COSString) {
+                    COSString string =
+                        (COSString) operand;
 
-                /* Exact match or substring inside one operand. */
-                int matchStart =
-                    decoded.indexOf(originalText);
-
-                if (matchStart >= 0) {
-                    String replacement =
-                        decoded.substring(
-                            0,
-                            matchStart
-                        ) +
-                        (replacementText == null
-                            ? ""
-                            : replacementText) +
-                        decoded.substring(
-                            matchStart +
-                            originalText.length()
+                    String decoded =
+                        decodeText(
+                            string,
+                            currentFont
                         );
 
-                    tokens.set(
-                        index - 1,
-                        makeTextOperand(
-                            currentFont,
-                            replacement
+                    if (
+                        textMatches(
+                            decoded,
+                            originalText
                         )
-                    );
+                    ) {
+                        byte[] encoded =
+                            encodeReplacement(
+                                currentFont,
+                                replacementText
+                            );
 
-                    writeTokensToStream(
-                        document,
-                        targetStream,
-                        tokens
-                    );
+                        tokens.set(
+                            index - 1,
+                            new COSString(encoded)
+                        );
 
-                    return true;
+                        writeTokensToPage(
+                            document,
+                            page,
+                            tokens
+                        );
+
+                        return true;
+                    }
+
+                    /*
+                     * Some producers put several logical pieces into one
+                     * COSString. If the browser's text is contained inside
+                     * that decoded string, replacing the whole text-showing
+                     * operand is safer than painting over the page.
+                     *
+                     * This is intentionally restricted to an exact decoded
+                     * text object or a unique substring.
+                     */
+                    int position =
+                        decoded.indexOf(originalText);
+
+                    if (
+                        position >= 0 &&
+                        currentFont != null
+                    ) {
+                        String updated =
+                            decoded.substring(
+                                0,
+                                position
+                            ) +
+                            (
+                                replacementText == null
+                                    ? ""
+                                    : replacementText
+                            ) +
+                            decoded.substring(
+                                position +
+                                originalText.length()
+                            );
+
+                        /*
+                         * PDF font encodings are not guaranteed to have a
+                         * reversible Unicode -> byte mapping for arbitrary
+                         * substrings. Only perform this path when the entire
+                         * updated string can be encoded successfully.
+                         */
+                        try {
+                            byte[] encoded =
+                                currentFont.encode(updated);
+
+                            tokens.set(
+                                index - 1,
+                                new COSString(encoded)
+                            );
+
+                            writeTokensToPage(
+                                document,
+                                page,
+                                tokens
+                            );
+
+                            return true;
+                        } catch (IOException ignored) {
+                            // Continue searching/fallback rendering.
+                        }
+                    }
                 }
 
                 /*
-                 * The visible PDF.js item can span several adjacent Tj/TJ
-                 * operators. Collect a contiguous run of text-showing
-                 * operators and search the decoded run as one string.
+                 * TJ arrays are commonly used by PDF generators:
+                 *
+                 *   [ (Sur) 20 (ya Pratap) 10 (Singh) ] TJ
+                 *
+                 * Decode the complete textual portion of the array. If it
+                 * matches the browser's original text, replace the complete
+                 * text portion with one encoded COSString while preserving
+                 * the TJ operator itself.
                  */
-                StringBuilder combined =
-                    new StringBuilder();
+                if (operand instanceof COSArray) {
+                    COSArray array =
+                        (COSArray) operand;
 
-                java.util.List<Integer> operandIndexes =
-                    new java.util.ArrayList<>();
+                    StringBuilder decoded =
+                        new StringBuilder();
 
-                java.util.List<PDFont> fonts =
-                    new java.util.ArrayList<>();
-
-                int cursor = index;
-                PDFont runFont = currentFont;
-
-                while (
-                    cursor < tokens.size()
-                ) {
-                    Object runToken =
-                        tokens.get(cursor);
-
-                    if (!(runToken instanceof Operator)) {
-                        break;
-                    }
-
-                    String runOperation =
-                        ((Operator) runToken).getName();
-
-                    int stateArity =
-                        textStateOrPositionArity(
-                            runOperation
-                        );
-
-                    if (stateArity >= 0) {
-                        cursor += stateArity + 1;
-                        continue;
-                    }
-
-                    if (!isTextShowingOperator(runOperation)) {
-                        break;
-                    }
-
-                    if (cursor < 1) {
-                        break;
-                    }
-
-                    Object runOperand =
-                        tokens.get(cursor - 1);
-
-                    String part =
-                        decodeOperandText(
-                            runOperand,
-                            runFont
-                        );
-
-                    combined.append(part);
-                    operandIndexes.add(cursor - 1);
-                    fonts.add(runFont);
-
-                    cursor += 2;
-                }
-
-                if (operandIndexes.size() > 1) {
-                    int runMatch =
-                        combined
-                            .toString()
-                            .indexOf(originalText);
-
-                    if (runMatch >= 0) {
-                        String runReplacement =
-                            combined
-                                .toString()
-                                .substring(
-                                    0,
-                                    runMatch
-                                ) +
-                            (replacementText == null
-                                ? ""
-                                : replacementText) +
-                            combined
-                                .toString()
-                                .substring(
-                                    runMatch +
-                                    originalText.length()
-                                );
-
-                        /*
-                         * Put the entire resulting text in the first
-                         * operand and blank the remaining operands. This
-                         * keeps the PDF text editable/selectable after
-                         * export, while avoiding stale original glyphs.
-                         */
-                        int firstOperandIndex =
-                            operandIndexes.get(0);
-
-                        PDFont firstFont =
-                            fonts.get(0);
-
-                        tokens.set(
-                            firstOperandIndex,
-                            makeTextOperand(
-                                firstFont,
-                                runReplacement
-                            )
-                        );
-
-                        for (
-                            int operandPosition = 1;
-                            operandPosition <
-                                operandIndexes.size();
-                            operandPosition += 1
-                        ) {
-                            int operandIndex =
-                                operandIndexes.get(
-                                    operandPosition
-                                );
-
-                            tokens.set(
-                                operandIndex,
-                                makeTextOperand(
-                                    fonts.get(
-                                        operandPosition
-                                    ),
-                                    ""
+                    for (
+                        COSBase item :
+                        array
+                    ) {
+                        if (item instanceof COSString) {
+                            decoded.append(
+                                decodeText(
+                                    (COSString) item,
+                                    currentFont
                                 )
                             );
                         }
+                    }
 
-                        writeTokensToStream(
-    document,
-    targetStream,
-    tokens
-);
+                    String decodedText =
+                        decoded.toString();
+
+                    if (
+                        textMatches(
+                            decodedText,
+                            originalText
+                        )
+                    ) {
+                        COSArray replacementArray =
+                            new COSArray();
+
+                        byte[] encoded =
+                            encodeReplacement(
+                                currentFont,
+                                replacementText
+                            );
+
+                        replacementArray.add(
+                            new COSString(encoded)
+                        );
+
+                        tokens.set(
+                            index - 1,
+                            replacementArray
+                        );
+
+                        writeTokensToPage(
+                            document,
+                            page,
+                            tokens
+                        );
 
                         return true;
+                    }
+
+                    /*
+                     * Handle the common case where the requested text is a
+                     * substring of a TJ sequence. Reconstruct the text in a
+                     * single COSString. This deliberately drops the original
+                     * kerning numbers for the matched text, which is preferable
+                     * to leaving the old glyphs visible.
+                     */
+                    int position =
+                        decodedText.indexOf(originalText);
+
+                    if (
+                        position >= 0 &&
+                        currentFont != null
+                    ) {
+                        String updated =
+                            decodedText.substring(
+                                0,
+                                position
+                            ) +
+                            (
+                                replacementText == null
+                                    ? ""
+                                    : replacementText
+                            ) +
+                            decodedText.substring(
+                                position +
+                                originalText.length()
+                            );
+
+                        try {
+                            byte[] encoded =
+                                currentFont.encode(updated);
+
+                            COSArray replacementArray =
+                                new COSArray();
+
+                            replacementArray.add(
+                                new COSString(encoded)
+                            );
+
+                            tokens.set(
+                                index - 1,
+                                replacementArray
+                            );
+
+                            writeTokensToPage(
+                                document,
+                                page,
+                                tokens
+                            );
+
+                            return true;
+                        } catch (IOException ignored) {
+                            // Continue searching/fallback rendering.
+                        }
                     }
                 }
             }
@@ -1024,160 +990,92 @@ public final class PdfEditorServer {
             return false;
         }
 
-        private boolean replaceInFormResources(
-            PDDocument document,
-            org.apache.pdfbox.pdmodel.PDResources resources,
-            String originalText,
-            String replacementText,
-            java.util.Set<Object> visited
-        ) throws IOException {
-
-            if (resources == null) {
+        private static boolean textMatches(
+            String actual,
+            String expected
+        ) {
+            if (
+                actual == null ||
+                expected == null
+            ) {
                 return false;
             }
 
-            for (COSName name : resources.getXObjectNames()) {
-                org.apache.pdfbox.pdmodel.graphics.PDXObject xObject =
-                    resources.getXObject(name);
-
-                if (
-                    xObject instanceof
-                        org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
-                ) {
-                    org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject form =
-                        (org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject) xObject;
-
-                    if (
-                        replaceNativeTextInStream(
-                            document,
-                            form,
-                            form.getCOSObject(),
-                            form.getResources() != null
-                                ? form.getResources()
-                                : resources,
-                            originalText,
-                            replacementText,
-                            visited
-                        )
-                    ) {
-                        return true;
-                    }
-                }
+            if (actual.equals(expected)) {
+                return true;
             }
 
-            return false;
-        }
-
-        private static boolean isTextShowingOperator(
-            String operation
-        ) {
-            return
-                "Tj".equals(operation) ||
-                "TJ".equals(operation) ||
-                "'".equals(operation) ||
-                "\"".equals(operation);
-        }
-
-
-        private static int textStateOrPositionArity(
-            String operation
-        ) {
-            if (
-                "Tc".equals(operation) ||
-                "Tw".equals(operation) ||
-                "Tz".equals(operation) ||
-                "TL".equals(operation) ||
-                "Ts".equals(operation) ||
-                "Td".equals(operation) ||
-                "TD".equals(operation)
-            ) {
-                return 1;
-            }
-
-            if ("Tm".equals(operation)) {
-                return 6;
-            }
-
-            if ("T*".equals(operation)) {
-                return 0;
-            }
-
-            return -1;
-        }
-
-        private String decodeOperandText(
-            Object operand,
-            PDFont font
-        ) throws IOException {
-
-            if (operand instanceof COSString) {
-                return decodeText(
-                    (COSString) operand,
-                    font
+            /*
+             * PDF text extraction can contain different whitespace around
+             * line boundaries. Normalize only whitespace for comparison;
+             * never alter the actual replacement text.
+             */
+            return normalizePdfText(actual)
+                .equals(
+                    normalizePdfText(expected)
                 );
-            }
-
-            if (operand instanceof COSArray) {
-                StringBuilder decoded =
-                    new StringBuilder();
-
-                for (
-                    COSBase item :
-                    (COSArray) operand
-                ) {
-                    if (item instanceof COSString) {
-                        decoded.append(
-                            decodeText(
-                                (COSString) item,
-                                font
-                            )
-                        );
-                    }
-                }
-
-                return decoded.toString();
-            }
-
-            return "";
         }
 
-        private COSBase makeTextOperand(
+        private static String normalizePdfText(
+            String value
+        ) {
+            return value
+                .replace('\u00a0', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+        }
+
+        private byte[] encodeReplacement(
             PDFont font,
-            String text
+            String replacementText
         ) throws IOException {
 
-            byte[] encoded;
+            String safe =
+                replacementText == null
+                    ? ""
+                    : replacementText;
 
-            if (
-                text == null ||
-                text.isEmpty()
-            ) {
-                encoded = new byte[0];
-            } else if (font != null) {
-                encoded = font.encode(text);
-            } else {
-                encoded = text.getBytes(
-                    StandardCharsets.ISO_8859_1
-                );
+            if (safe.isEmpty()) {
+                return new byte[0];
             }
 
-            return new COSString(encoded);
+            if (font != null) {
+                return font.encode(safe);
+            }
+
+            /*
+             * If the PDF does not expose a font before the text operator,
+             * native replacement is unsafe. Returning an empty byte array
+             * would silently delete the text, so fail and let the caller use
+             * its fallback path instead.
+             */
+            throw new IOException(
+                "Unable to encode replacement text: no active PDF font."
+            );
         }
 
-        private void writeTokensToStream(
+        private void writeTokensToPage(
             PDDocument document,
-            COSStream stream,
+            PDPage page,
             java.util.List<Object> tokens
         ) throws IOException {
 
+            PDStream updatedStream =
+                new PDStream(document);
+
             try (
                 OutputStream output =
-                    stream.createOutputStream()
+                    updatedStream.createOutputStream()
             ) {
                 ContentStreamWriter writer =
-                    new ContentStreamWriter(output);
+                    new ContentStreamWriter(
+                        output
+                    );
+
                 writer.writeTokens(tokens);
             }
+
+            page.setContents(updatedStream);
         }
 
         private String decodeText(
@@ -1620,13 +1518,27 @@ public final class PdfEditorServer {
     }
 
     private static void setCors(
+        HttpServletRequest request,
         HttpServletResponse response
     ) {
+        String origin =
+            request.getHeader("Origin");
 
-        response.setHeader(
-            "Access-Control-Allow-Origin",
-            ALLOWED_ORIGIN
-        );
+        if (isAllowedOrigin(origin)) {
+            response.setHeader(
+                "Access-Control-Allow-Origin",
+                origin
+            );
+            response.setHeader(
+                "Vary",
+                "Origin"
+            );
+        } else {
+            response.setHeader(
+                "Access-Control-Allow-Origin",
+                firstAllowedOrigin()
+            );
+        }
 
         response.setHeader(
             "Access-Control-Allow-Methods",
@@ -1642,5 +1554,55 @@ public final class PdfEditorServer {
             "Access-Control-Expose-Headers",
             "Content-Disposition"
         );
+    }
+
+    private static boolean isAllowedOrigin(
+        String origin
+    ) {
+        if (
+            origin == null ||
+            origin.isBlank()
+        ) {
+            return false;
+        }
+
+        for (
+            String allowed :
+            ALLOWED_ORIGINS.split(",")
+        ) {
+            if (
+                origin.trim().equals(
+                    allowed.trim()
+                )
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static String firstAllowedOrigin() {
+        String[] origins =
+            ALLOWED_ORIGINS.split(",");
+
+        return origins.length > 0
+            ? origins[0].trim()
+            : "http://localhost:3000";
+    }
+
+    private static String firstNonBlank(
+        String... values
+    ) {
+        for (String value : values) {
+            if (
+                value != null &&
+                !value.isBlank()
+            ) {
+                return value;
+            }
+        }
+
+        return "http://localhost:3000";
     }
 }

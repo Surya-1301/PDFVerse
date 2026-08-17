@@ -1,152 +1,34 @@
-const DB_NAME = "pdfverse-editor";
-const STORE_NAME = "files";
-const FILE_KEY = "pending-pdf";
+// Hands a picked PDF from the landing page to the editor route without a reload.
+let pending: File | null = null;
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+export function storePdfForEditor(file: File) {
+  pending = file;
+}
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
+/** Read the pending file WITHOUT consuming it (does not reset). */
+export function getPdfForEditor(): File | null {
+  return pending;
+}
 
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
+/** Read and clear the pending file in one call (resets state). */
+export function takePdfForEditor(): File | null {
+  const f = pending;
+  pending = null;
+  return f;
+}
 
-    request.onsuccess = () => {
-      resolve(request.result);
-    };
+/** Clear the pending file without returning it. */
+export function clearPdfForEditor(): void {
+  pending = null;
+}
 
-    request.onerror = () => {
-      reject(
-        request.error ||
-          new Error("Could not open PDF editor storage."),
-      );
-    };
+// Creates an empty single-page A4 PDF so users can start from a blank document.
+export async function createBlankPdfFile(name = "blank-document.pdf") {
+  const { PDFDocument } = await import("pdf-lib");
+  const doc = await PDFDocument.create();
+  doc.addPage([595.28, 841.89]);
+  const bytes = await doc.save();
+  return new File([bytes as unknown as BlobPart], name, {
+    type: "application/pdf",
   });
 }
-
-export async function storePdfForEditor(
-  file: File,
-): Promise<void> {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const db = await openDatabase();
-
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(
-      STORE_NAME,
-      "readwrite",
-    );
-
-    const store = transaction.objectStore(STORE_NAME);
-
-    store.put(
-      {
-        name: file.name,
-        type: file.type || "application/pdf",
-        lastModified: file.lastModified,
-        blob: file,
-      },
-      FILE_KEY,
-    );
-
-    transaction.oncomplete = () => {
-      resolve();
-    };
-
-    transaction.onerror = () => {
-      reject(
-        transaction.error ||
-          new Error("Could not save PDF."),
-      );
-    };
-  });
-
-  db.close();
-}
-
-export async function getPdfForEditor(): Promise<File | null> {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const db = await openDatabase();
-
-  const stored = await new Promise<any>(
-    (resolve, reject) => {
-      const transaction = db.transaction(
-        STORE_NAME,
-        "readonly",
-      );
-
-      const request = transaction
-        .objectStore(STORE_NAME)
-        .get(FILE_KEY);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-
-      request.onerror = () => {
-        reject(
-          request.error ||
-            new Error("Could not read stored PDF."),
-        );
-      };
-    },
-  );
-
-  db.close();
-
-  if (!stored?.blob) {
-    return null;
-  }
-
-  return new File(
-    [stored.blob],
-    stored.name || "document.pdf",
-    {
-      type: stored.type || "application/pdf",
-      lastModified:
-        stored.lastModified || Date.now(),
-    },
-  );
-}
-
-export async function clearPdfForEditor(): Promise<void> {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const db = await openDatabase();
-
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(
-      STORE_NAME,
-      "readwrite",
-    );
-
-    transaction.objectStore(STORE_NAME).delete(FILE_KEY);
-
-    transaction.oncomplete = () => {
-      resolve();
-    };
-
-    transaction.onerror = () => {
-      reject(
-        transaction.error ||
-          new Error("Could not clear stored PDF."),
-      );
-    };
-  });
-
-  db.close();
-}
-
-// Backward-compatible aliases used by the PDF editor route.
-export const getPendingPdfForEditor = getPdfForEditor;
-export const clearPendingPdfForEditor = clearPdfForEditor;
