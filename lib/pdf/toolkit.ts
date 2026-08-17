@@ -1,5 +1,8 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "@cantoo/pdf-lib";
-import * as pdfjs from "pdfjs-dist";
+import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
+import type {
+  PDFDocumentProxy,
+  RenderTask,
+} from "pdfjs-dist";
 import type { PDFPageProxy } from "pdfjs-dist";
 
 let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
@@ -8,13 +11,12 @@ async function getPdfJs() {
   if (typeof window === "undefined") {
     throw new Error("PDF processing is only available in the browser.");
   }
+
   pdfJsPromise ??= import("pdfjs-dist").then((pdfjs) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/build/pdf.worker.min.mjs",
-      import.meta.url,
-    ).toString();
+    pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
     return pdfjs;
   });
+
   return pdfJsPromise;
 }
 
@@ -260,4 +262,4 @@ export async function zipFiles(files: ToolFile[], name: string): Promise<ToolFil
   return { name, blob };
 }
 
-export { PDFDocument, StandardFonts, rgb, degrees, pdfjs };
+export { PDFDocument, StandardFonts, rgb, degrees };

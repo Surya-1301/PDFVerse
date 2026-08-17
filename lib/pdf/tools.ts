@@ -266,10 +266,17 @@ async function repairOne(file: File): Promise<ToolFile> {
   return savePdf(doc, `${baseName(file.name)}-repaired.pdf`);
 }
 
-async function protectOne(file: File, userPassword: string, ownerPassword: string) {
-  const doc = await loadPdf(file);
-  doc.encrypt({ userPassword, ownerPassword: ownerPassword || userPassword });
-  return savePdf(doc, `${baseName(file.name)}-protected.pdf`);
+async function protectOne(
+  file: File,
+  userPassword: string,
+  ownerPassword: string,
+): Promise<ToolFile> {
+  if (!userPassword) {
+    throw new Error("A user password is required.");
+  }
+  throw new Error(
+    "PDF password protection is not supported by the current PDF library configuration.",
+  );
 }
 
 async function unlockOne(file: File, password: string) {

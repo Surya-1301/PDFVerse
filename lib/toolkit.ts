@@ -1,5 +1,8 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
-import * as pdfjs from "pdfjs-dist";
+import type {
+  PDFDocumentProxy,
+  RenderTask,
+} from "pdfjs-dist";
 import type { PDFPageProxy } from "pdfjs-dist";
 
 let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
@@ -259,4 +262,4 @@ export async function zipFiles(files: ToolFile[], name: string): Promise<ToolFil
   return { name, blob };
 }
 
-export { PDFDocument, StandardFonts, rgb, degrees, pdfjs };
+export { PDFDocument, StandardFonts, rgb, degrees };

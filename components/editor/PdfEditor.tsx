@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as pdfjs from "pdfjs-dist";
+import type {
+  PDFDocumentProxy,
+  RenderTask,
+} from "pdfjs-dist";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -47,8 +50,26 @@ import {
 import { SignaturePad } from "./SignaturePad";
 import { takePdfForEditor } from "@/lib/pdfEditorLaunch";
 
+type PdfJsModule = typeof import("pdfjs-dist");
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+let pdfjsPromise: Promise<PdfJsModule> | null = null;
+
+async function getPdfJs(): Promise<PdfJsModule> {
+  if (typeof window === "undefined") {
+    throw new Error("PDF.js can only be loaded in the browser.");
+  }
+
+  if (!pdfjsPromise) {
+    pdfjsPromise = import("pdfjs-dist").then((module) => {
+      module.GlobalWorkerOptions.workerSrc =
+        `https://unpkg.com/pdfjs-dist@${module.version}/build/pdf.worker.min.mjs`;
+
+      return module;
+    });
+  }
+
+  return pdfjsPromise;
+}
 
 type PageMeta = { base: { w: number; h: number }; intrinsic: number };
 
@@ -105,7 +126,7 @@ export default function PdfEditor() {
   const [docKey, setDocKey] = useState<string | null>(null);
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
 
-  const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
+  const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [meta, setMeta] = useState<PageMeta[]>([]);
   const [state, setState] = useState<DocState>({ pages: [], items: [] });
   const [tool, setTool] = useState<ToolId>("edittext");
@@ -188,6 +209,7 @@ export default function PdfEditor() {
     setLoading(true);
     try {
       const buf = await file.arrayBuffer();
+      const pdfjs = await getPdfJs();
       const task = pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)) });
       const pdf = await task.promise;
       const metas: PageMeta[] = [];
@@ -1042,7 +1064,7 @@ function ItemProps({
 /* ---------------- page ---------------- */
 
 interface PageViewProps {
-  doc: pdfjs.PDFDocumentProxy;
+  doc: PDFDocumentProxy;
   pageState: { index: number; rotation: number };
   display: { w: number; h: number; rot: number };
   blank?: { width: number; height: number } | undefined;
@@ -1152,7 +1174,7 @@ function PageView(props: PageViewProps) {
   useEffect(() => {
     if (blank) return;
     let cancelled = false;
-    let task: pdfjs.RenderTask | null = null;
+    let task: RenderTask | null = null;
     (async () => {
       const page = await doc.getPage(pageState.index + 1);
       if (cancelled) return;
@@ -1735,7 +1757,7 @@ function Thumb({
   rot,
   width,
 }: {
-  doc: pdfjs.PDFDocumentProxy;
+  doc: PDFDocumentProxy;
   index: number;
   rot: number;
   width: number;
@@ -1743,7 +1765,7 @@ function Thumb({
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     let cancelled = false;
-    let task: pdfjs.RenderTask | null = null;
+    let task: RenderTask | null = null;
     (async () => {
       const page = await doc.getPage(index + 1);
       if (cancelled) return;
