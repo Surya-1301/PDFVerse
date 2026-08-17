@@ -1,7 +1,6 @@
-import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 
-const PdfEditor = lazy(() => import("@/components/editor/PdfEditor"));
+import PdfEditor from "@/components/editor/PdfEditor";
 
 export const Route = createFileRoute("/pdf-editor")({
   head: () => ({
@@ -35,12 +34,7 @@ function Loading() {
 function EditorPage() {
   return (
     <div className="min-h-screen bg-slate-950">
-      <ClientOnly fallback={<Loading />}>
-        <Suspense fallback={<Loading />}>
-          <PdfEditor />
-        </Suspense>
-      </ClientOnly>
+      <PdfEditor />
     </div>
   );
 }
-

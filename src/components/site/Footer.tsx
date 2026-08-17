@@ -17,8 +17,9 @@ export default function Footer() {
           <div>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
+              className="inline-flex items-center gap-3 text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
             >
+              
               <span>PDFVerse</span>
             </Link>
             <p className="mt-1 text-xs text-slate-600">

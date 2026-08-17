@@ -728,15 +728,9 @@ export default function PdfEditor() {
                 onDelete={() => removeItem(selectedItem.id)}
               />
             </div>
-          ) : (
-            <div className="p-4 text-xs leading-5 text-slate-500">
-              Pick a tool from the toolbar, then click or drag on the page to add
-              an element. Click any element to edit its properties here.
-            </div>
-          )}
+          ) : null}
         </aside>
       </div>
-
 
       <input
         ref={imageInput}
