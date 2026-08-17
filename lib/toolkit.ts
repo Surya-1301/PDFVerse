@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, degrees } from "@cantoo/pdf-lib";
 import type {
   PDFDocumentProxy,
   RenderTask,

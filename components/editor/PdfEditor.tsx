@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  PDFDocumentProxy,
-  RenderTask,
-} from "pdfjs-dist";
+import * as pdfjs from "pdfjs-dist";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -50,25 +47,9 @@ import {
 import { SignaturePad } from "./SignaturePad";
 import { takePdfForEditor } from "@/lib/pdfEditorLaunch";
 
-type PdfJsModule = typeof import("pdfjs-dist");
 
-let pdfjsPromise: Promise<PdfJsModule> | null = null;
-
-async function getPdfJs(): Promise<PdfJsModule> {
-  if (typeof window === "undefined") {
-    throw new Error("PDF.js can only be loaded in the browser.");
-  }
-
-  if (!pdfjsPromise) {
-    pdfjsPromise = import("pdfjs-dist").then((module) => {
-      module.GlobalWorkerOptions.workerSrc =
-        `https://unpkg.com/pdfjs-dist@${module.version}/build/pdf.worker.min.mjs`;
-
-      return module;
-    });
-  }
-
-  return pdfjsPromise;
+if (typeof window !== "undefined") {
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 }
 
 type PageMeta = { base: { w: number; h: number }; intrinsic: number };
@@ -126,7 +107,7 @@ export default function PdfEditor() {
   const [docKey, setDocKey] = useState<string | null>(null);
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
 
-  const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
+  const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [meta, setMeta] = useState<PageMeta[]>([]);
   const [state, setState] = useState<DocState>({ pages: [], items: [] });
   const [tool, setTool] = useState<ToolId>("edittext");
@@ -209,7 +190,6 @@ export default function PdfEditor() {
     setLoading(true);
     try {
       const buf = await file.arrayBuffer();
-      const pdfjs = await getPdfJs();
       const task = pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)) });
       const pdf = await task.promise;
       const metas: PageMeta[] = [];
@@ -739,21 +719,26 @@ export default function PdfEditor() {
         </main>
 
         {/* PROPERTIES */}
-<aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] xl:block">
-  <div className="border-b border-white/10 p-4">
-    <h2 className="text-sm font-semibold">Properties</h2>
-  </div>
+        <aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] xl:block">
+          <div className="border-b border-white/10 p-4">
+            <h2 className="text-sm font-semibold">Properties</h2>
+          </div>
 
-  {selectedItem && (
-    <div className="flex flex-col gap-3 p-4 text-xs text-slate-300 [&_select]:w-full [&_input[type=number]]:w-full">
-      <ItemProps
-        item={selectedItem}
-        onChange={(patch) => updateItem(selectedItem.id, patch)}
-        onDelete={() => removeItem(selectedItem.id)}
-      />
-    </div>
-  )}
-</aside>
+          {selectedItem ? (
+            <div className="flex flex-col gap-3 p-4 text-xs text-slate-300 [&_select]:w-full [&_input[type=number]]:w-full">
+              <ItemProps
+                item={selectedItem}
+                onChange={(patch) => updateItem(selectedItem.id, patch)}
+                onDelete={() => removeItem(selectedItem.id)}
+              />
+            </div>
+          ) : (
+            <div className="p-4 text-xs leading-5 text-slate-500">
+              Pick a tool from the toolbar, then click or drag on the page to add
+              an element. Click any element to edit its properties here.
+            </div>
+          )}
+        </aside>
       </div>
 
 
@@ -1064,7 +1049,7 @@ function ItemProps({
 /* ---------------- page ---------------- */
 
 interface PageViewProps {
-  doc: PDFDocumentProxy;
+  doc: pdfjs.PDFDocumentProxy;
   pageState: { index: number; rotation: number };
   display: { w: number; h: number; rot: number };
   blank?: { width: number; height: number } | undefined;
@@ -1174,7 +1159,7 @@ function PageView(props: PageViewProps) {
   useEffect(() => {
     if (blank) return;
     let cancelled = false;
-    let task: RenderTask | null = null;
+    let task: pdfjs.RenderTask | null = null;
     (async () => {
       const page = await doc.getPage(pageState.index + 1);
       if (cancelled) return;
@@ -1397,7 +1382,7 @@ function PageView(props: PageViewProps) {
   return (
     <div>
       <div
-        className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+        className="relative bg-white shadow-page"
         style={{ width, height }}
         onPointerDown={(e) => {
           if (tool === "select" && !(e.target as HTMLElement).dataset["item"]) {
@@ -1465,7 +1450,7 @@ function PageView(props: PageViewProps) {
           ))}
 
           {tool === "edittext" && !hasSeed && !blank && (
-            <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded bg-[#1c1c20] px-2 py-1 text-[11px] text-white">
+            <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded bg-toolbar px-2 py-1 text-[11px] text-toolbar-foreground">
               Scanning text…
             </div>
           )}
@@ -1570,12 +1555,12 @@ function ItemView({
     height: item.h * scale,
     outline:
       quickEdit && item.type === "text" && !editing && hovered
-        ? "2px solid #7c3aed"
+        ? "2px solid var(--primary)"
         : undefined,
     outlineOffset: quickEdit && item.type === "text" ? "2px" : undefined,
     background:
       quickEdit && item.type === "text" && !editing && hovered
-        ? "rgba(124,58,237,0.12)"
+        ? "color-mix(in oklab, var(--primary) 10%, transparent)"
         : undefined,
   };
 
@@ -1690,7 +1675,7 @@ function ItemView({
     );
   } else if (item.type === "link") {
     inner = (
-      <div className="h-full w-full border-2 border-dashed border-violet-500 bg-violet-500/10" />
+      <div className="h-full w-full border-2 border-dashed border-primary bg-primary/5" />
     );
   }
 
@@ -1702,7 +1687,7 @@ function ItemView({
       data-item="1"
       style={box}
       className={[
-        selected ? "outline outline-2 outline-violet-500" : "",
+        selected ? "outline outline-2 outline-ring" : "",
         eraseMode ? "cursor-pointer hover:outline hover:outline-2 hover:outline-red-500" : "",
         !eraseMode && textQuick && !editing
           ? "cursor-text rounded-[2px]"
@@ -1757,7 +1742,7 @@ function Thumb({
   rot,
   width,
 }: {
-  doc: PDFDocumentProxy;
+  doc: pdfjs.PDFDocumentProxy;
   index: number;
   rot: number;
   width: number;
@@ -1765,7 +1750,7 @@ function Thumb({
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     let cancelled = false;
-    let task: RenderTask | null = null;
+    let task: pdfjs.RenderTask | null = null;
     (async () => {
       const page = await doc.getPage(index + 1);
       if (cancelled) return;

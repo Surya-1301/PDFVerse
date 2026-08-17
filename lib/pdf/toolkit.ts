@@ -1,24 +1,8 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
-import type {
-  PDFDocumentProxy,
-  RenderTask,
-} from "pdfjs-dist";
-import type { PDFPageProxy } from "pdfjs-dist";
+import { PDFDocument, StandardFonts, rgb, degrees } from "@cantoo/pdf-lib";
+import * as pdfjs from "pdfjs-dist";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
-
-async function getPdfJs() {
-  if (typeof window === "undefined") {
-    throw new Error("PDF processing is only available in the browser.");
-  }
-
-  pdfJsPromise ??= import("pdfjs-dist").then((pdfjs) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-    return pdfjs;
-  });
-
-  return pdfJsPromise;
-}
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export type ToolFile = { name: string; blob: Blob };
 
@@ -83,12 +67,11 @@ export function hexToRgb(hex: string) {
 
 export async function getPdfJsDoc(file: File | Blob, password?: string) {
   const data = await bytesOf(file);
-  const pdfjs = await getPdfJs();
   return pdfjs.getDocument({ data, password }).promise;
 }
 
 export async function renderPageToCanvas(
-  page: PDFPageProxy,
+  page: pdfjs.PDFPageProxy,
   scale: number,
 ): Promise<HTMLCanvasElement> {
   const viewport = page.getViewport({ scale });
@@ -262,4 +245,4 @@ export async function zipFiles(files: ToolFile[], name: string): Promise<ToolFil
   return { name, blob };
 }
 
-export { PDFDocument, StandardFonts, rgb, degrees };
+export { PDFDocument, StandardFonts, rgb, degrees, pdfjs };
