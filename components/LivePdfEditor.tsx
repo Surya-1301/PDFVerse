@@ -213,10 +213,9 @@ function hexToRgb(hex: string) {
  * Convert a PDF.js text item into editor coordinates.
  *
  * PDF.js keeps text item coordinates in the PDF coordinate system
- * (origin at the bottom-left). PDF.js viewport conversion is handled
- * through `convertToViewportPoint()` with a transform fallback so the
- * editor works across PDF.js versions. This keeps the editor aligned
- * with the rendered canvas.
+ * (origin at the bottom-left). `convertToViewportRectangle()` converts
+ * that rectangle into the same top-left coordinate system used by the
+ * rendered canvas. This keeps the editor aligned when the PDF is zoomed.
  */
 function textItemToEditorObject(
   pdfjs: any,
@@ -269,86 +268,28 @@ function textItemToEditorObject(
     8,
   );
 
-  /*
-   * PDF.js has changed the viewport helper API across versions.
-   * Some installed versions do not expose
-   * `convertToViewportRectangle()`, which previously caused the whole
-   * editor to fail while extracting page text.
-   *
-   * Use convertToViewportPoint() when available and fall back to the
-   * viewport transform. This works across the PDF.js versions used by
-   * PDFVerse and keeps the existing text coordinates aligned with the
-   * rendered page.
-   */
-  const convertPdfPointToViewport = (
-    pdfX: number,
-    pdfY: number,
-  ): [number, number] => {
-    if (
-      typeof viewport?.convertToViewportPoint ===
-      "function"
-    ) {
-      const point =
-        viewport.convertToViewportPoint(
-          pdfX,
-          pdfY,
-        );
-
-      return [
-        Number(point?.[0]) || 0,
-        Number(point?.[1]) || 0,
-      ];
-    }
-
-    const transform = Array.isArray(
-      viewport?.transform,
-    )
-      ? viewport.transform
-      : null;
-
-    if (transform?.length >= 6) {
-      const a = Number(transform[0]) || 0;
-      const b = Number(transform[1]) || 0;
-      const c = Number(transform[2]) || 0;
-      const d = Number(transform[3]) || 0;
-      const e = Number(transform[4]) || 0;
-      const f = Number(transform[5]) || 0;
-
-      return [
-        a * pdfX + c * pdfY + e,
-        b * pdfX + d * pdfY + f,
-      ];
-    }
-
-    // Final fallback for an unexpected viewport implementation.
-    return [pdfX, pdfY];
-  };
-
-  const topLeft = convertPdfPointToViewport(
+  const viewportRect = viewport.convertToViewportRectangle([
     x,
-    y + pdfHeight,
-  );
-
-  const bottomRight = convertPdfPointToViewport(
-    x + width,
     y,
-  );
+    x + width,
+    y + pdfHeight,
+  ]);
 
   const left = Math.min(
-    topLeft[0],
-    bottomRight[0],
+    viewportRect[0],
+    viewportRect[2],
   );
   const top = Math.min(
-    topLeft[1],
-    bottomRight[1],
+    viewportRect[1],
+    viewportRect[3],
   );
   const right = Math.max(
-    topLeft[0],
-    bottomRight[0],
+    viewportRect[0],
+    viewportRect[2],
   );
   const bottom = Math.max(
-    topLeft[1],
-    bottomRight[1],
+    viewportRect[1],
+    viewportRect[3],
   );
 
   const editorWidth = Math.max(
@@ -443,7 +384,7 @@ function isExistingTextEdited(
   }
 
   return (
-    Boolean(object.deleted) ||
+    object.deleted === true ||
     object.text !== object.originalText ||
     Math.abs(
       (object.x || 0) -
@@ -553,6 +494,10 @@ export default function LivePdfEditor({
   const [editingTextId, setEditingTextId] =
     useState<string | null>(null);
 
+  // Sejda-style hover affordance for existing PDF text.
+  const [hoveredTextId, setHoveredTextId] =
+    useState<string | null>(null);
+
   const [name, setName] = useState("Untitled PDF");
 
   const [status, setStatus] = useState<
@@ -609,6 +554,7 @@ export default function LivePdfEditor({
 
   useEffect(() => {
     setEditingTextId(null);
+    setHoveredTextId(null);
   }, [page]);
 
   const selectedObject = useMemo(
@@ -920,7 +866,7 @@ export default function LivePdfEditor({
         canvas,
         canvasContext: context,
         viewport,
-      } as never).promise;
+      }).promise;
     } catch (renderError) {
       console.error(renderError);
 
@@ -1120,7 +1066,6 @@ export default function LivePdfEditor({
 
     setSelected(null);
     setEditingTextId(null);
-    setStatus("unsaved");
   }
 
   /*
@@ -1625,121 +1570,6 @@ export default function LivePdfEditor({
    * ---------------------------------------------------------
    */
 
-  /**
-   * Convert an existing PDF text object's editor/source rectangle into
-   * pdf-lib page coordinates.
-   *
-   * Existing text is detected from PDF.js at scale 1. The actual PDF page
-   * can have a slightly different effective size because of rotation/crop
-   * boxes, so use the loaded page dimensions as a scale guard. This is
-   * especially important for DELETE: the whiteout must land exactly over
-   * the original PDF text or the original glyphs remain visible.
-   */
-  function getExistingTextPdfRect(
-    object: EditorObject,
-    pdfPage: any,
-    pageInfo?: PageInfo,
-  ) {
-    const { width: pdfWidth, height: pdfHeight } =
-      pdfPage.getSize();
-
-    const viewportWidth =
-      Number(pageInfo?.width) || pdfWidth;
-    const viewportHeight =
-      Number(pageInfo?.height) || pdfHeight;
-
-    const scaleX =
-      viewportWidth > 0
-        ? pdfWidth / viewportWidth
-        : 1;
-
-    const scaleY =
-      viewportHeight > 0
-        ? pdfHeight / viewportHeight
-        : 1;
-
-    const sourceX =
-      Number(object.sourceX ?? object.x) || 0;
-    const sourceY =
-      Number(object.sourceY ?? object.y) || 0;
-    const sourceWidth =
-      Number(object.sourceWidth ?? object.width) || 0;
-    const sourceHeight =
-      Number(object.sourceHeight ?? object.height) || 0;
-
-    // PDF.js editor coordinates are top-left based; pdf-lib coordinates
-    // are bottom-left based.
-    const x =
-      sourceX * scaleX;
-    const y =
-      pdfHeight -
-      (sourceY + sourceHeight) * scaleY;
-    const width =
-      sourceWidth * scaleX;
-    const height =
-      sourceHeight * scaleY;
-
-    return {
-      x,
-      y,
-      width: Math.max(width, 1),
-      height: Math.max(height, 1),
-    };
-  }
-
-  function whiteoutExistingText(
-    pdfPage: any,
-    object: EditorObject,
-    pageInfo?: PageInfo,
-  ) {
-    const rect =
-      getExistingTextPdfRect(
-        object,
-        pdfPage,
-        pageInfo,
-      );
-
-    // A small padding catches glyphs that extend outside PDF.js's nominal
-    // text-item rectangle (common with descenders and embedded fonts).
-    const paddingX = Math.max(
-      1.5,
-      Math.min(5, rect.height * 0.12),
-    );
-    const paddingY = Math.max(
-      1.5,
-      Math.min(5, rect.height * 0.12),
-    );
-
-    pdfPage.drawRectangle({
-      x: Math.max(
-        0,
-        rect.x - paddingX,
-      ),
-      y: Math.max(
-        0,
-        rect.y - paddingY,
-      ),
-      width: Math.min(
-        rect.width + paddingX * 2,
-        pdfPage.getSize().width -
-          Math.max(
-            0,
-            rect.x - paddingX,
-          ),
-      ),
-      height: Math.min(
-        rect.height + paddingY * 2,
-        pdfPage.getSize().height -
-          Math.max(
-            0,
-            rect.y - paddingY,
-          ),
-      ),
-      color: rgb(1, 1, 1),
-      borderWidth: 0,
-    });
-  }
-
   async function exportPdf() {
     if (!bytes) {
       setError("Open a PDF first.");
@@ -1861,11 +1691,27 @@ export default function LivePdfEditor({
             object.sourceHeight ??
             object.height;
 
-          whiteoutExistingText(
-            pdfPage,
-            object,
-            pages[index],
-          );
+          pdfPage.drawRectangle({
+            x: sourceX,
+            y:
+              height -
+              sourceY -
+              sourceHeight,
+            width: Math.max(
+              sourceWidth,
+              1,
+            ),
+            height: Math.max(
+              sourceHeight,
+              1,
+            ),
+            color: rgb(
+              1,
+              1,
+              1,
+            ),
+            borderWidth: 0,
+          });
         }
 
         /*
@@ -1967,22 +1813,9 @@ export default function LivePdfEditor({
             if (
               object.source ===
                 "existing" &&
-              (
-                Boolean(object.deleted) ||
-                !isExistingTextEdited(
-                  object,
-                )
+              !isExistingTextEdited(
+                object,
               )
-            ) {
-              continue;
-            }
-
-            // If the user erased every character from an existing PDF text
-            // item, the source glyphs have already been whiteouted above.
-            // Do not draw an empty replacement text object.
-            if (
-              object.source === "existing" &&
-              !(object.text ?? "").trim()
             ) {
               continue;
             }
@@ -2917,17 +2750,37 @@ export default function LivePdfEditor({
                       key={
                         object.id
                       }
+                      className="group relative"
                       style={objectStyle(
                         object,
                       )}
+                      onMouseEnter={() => {
+                        if (
+                          object.type === "text" &&
+                          object.source === "existing"
+                        ) {
+                          setHoveredTextId(object.id);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (hoveredTextId === object.id) {
+                          setHoveredTextId(null);
+                        }
+                      }}
                       onPointerDown={(
                         event,
                       ) => {
                         if (object.type === "text") {
                           event.stopPropagation();
                           setSelected(object.id);
-                          setEditingTextId(object.id);
                           setTool("select");
+
+                          // Existing PDF text uses the hover Edit text
+                          // affordance. Keep single-click as selection;
+                          // double-click still enters the inline editor.
+                          if (object.source !== "existing") {
+                            setEditingTextId(object.id);
+                          }
                           return;
                         }
 
@@ -2937,6 +2790,34 @@ export default function LivePdfEditor({
                         );
                       }}
                     >
+                      {object.type === "text" &&
+                        object.source === "existing" &&
+                        editingTextId !== object.id && (
+                          <button
+                            type="button"
+                            onPointerDown={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setSelected(object.id);
+                              setEditingTextId(object.id);
+                              setTool("select");
+                            }}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setSelected(object.id);
+                              setEditingTextId(object.id);
+                              setTool("select");
+                            }}
+                            className="pointer-events-none absolute left-0 top-0 z-[1000] inline-flex h-8 -translate-y-[calc(100%+8px)] items-center gap-1.5 whitespace-nowrap rounded-lg border border-violet-300/40 bg-[#17131f] px-3 text-xs font-semibold text-white opacity-0 shadow-[0_8px_30px_rgba(0,0,0,.45)] ring-1 ring-violet-400/10 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 hover:border-violet-300/70 hover:bg-[#211a2d]"
+                            title="Edit this PDF text"
+                            aria-label="Edit this PDF text"
+                          >
+                            <Type className="h-3.5 w-3.5 text-violet-300" />
+                            Edit text
+                          </button>
+                        )}
+
                       {object.type ===
                         "text" && (
                         <EditableText
@@ -3738,6 +3619,16 @@ function EditableText({
     transformOrigin: "left top",
   };
 
+  /*
+   * IMPORTANT:
+   *
+   * The PDF canvas already paints the original PDF text.
+   * We MUST NOT paint the same existing text again as an HTML overlay.
+   *
+   * The non-editing element below is therefore only a transparent
+   * hit-area. This removes the duplicate/giant text visible in the
+   * editor screenshot.
+   */
   if (!editing) {
     return (
       <div
@@ -3748,7 +3639,12 @@ function EditableText({
           event.stopPropagation();
 
           onActivate?.();
-          setEditing(true);
+
+          // Existing PDF text is edited through the hover "Edit text"
+          // affordance (or double-click), matching the Sejda interaction.
+          if (object.source !== "existing") {
+            setEditing(true);
+          }
         }}
         onDoubleClick={(event) => {
           event.stopPropagation();
@@ -3921,7 +3817,7 @@ function Thumbnail({
           canvas,
           canvasContext: context,
           viewport,
-        } as never).promise;
+        }).promise;
 
         if (!dead) {
           setSrc(

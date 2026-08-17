@@ -1,7 +1,7 @@
 "use client";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
-const workerUrl = "/pdf.worker.min.mjs";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -48,7 +48,7 @@ import { SignaturePad } from "./SignaturePad";
 import { takePdfForEditor } from "@/lib/pdfEditorLaunch";
 
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 type PageMeta = { base: { w: number; h: number }; intrinsic: number };
 
@@ -717,35 +717,21 @@ export default function PdfEditor() {
         </main>
 
         {/* PROPERTIES */}
-        <aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] xl:block">
-          <div className="border-b border-white/10 p-4">
-            <h2 className="text-sm font-semibold">Properties</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              {selectedItem ? "Selected element" : "Select an element"}
-            </p>
-            {tool === "edittext" && !selectedItem && (
-              <p className="mt-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-2.5 py-2 text-[10px] leading-4 text-violet-300">
-                Hover a line of the original PDF text and click it to edit it in
-                place. Download PDF to write the change into the document.
-              </p>
-            )}
-          </div>
+<aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] xl:block">
+  <div className="border-b border-white/10 p-4">
+    <h2 className="text-sm font-semibold">Properties</h2>
+  </div>
 
-          {selectedItem ? (
-            <div className="flex flex-col gap-3 p-4 text-xs text-slate-300 [&_select]:w-full [&_input[type=number]]:w-full">
-              <ItemProps
-                item={selectedItem}
-                onChange={(patch) => updateItem(selectedItem.id, patch)}
-                onDelete={() => removeItem(selectedItem.id)}
-              />
-            </div>
-          ) : (
-            <div className="p-4 text-xs leading-5 text-slate-500">
-              Pick a tool from the toolbar, then click or drag on the page to add
-              an element. Click any element to edit its properties here.
-            </div>
-          )}
-        </aside>
+  {selectedItem && (
+    <div className="flex flex-col gap-3 p-4 text-xs text-slate-300 [&_select]:w-full [&_input[type=number]]:w-full">
+      <ItemProps
+        item={selectedItem}
+        onChange={(patch) => updateItem(selectedItem.id, patch)}
+        onDelete={() => removeItem(selectedItem.id)}
+      />
+    </div>
+  )}
+</aside>
       </div>
 
 
@@ -1389,7 +1375,7 @@ function PageView(props: PageViewProps) {
   return (
     <div>
       <div
-        className="relative bg-white shadow-page"
+        className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
         style={{ width, height }}
         onPointerDown={(e) => {
           if (tool === "select" && !(e.target as HTMLElement).dataset["item"]) {
@@ -1457,7 +1443,7 @@ function PageView(props: PageViewProps) {
           ))}
 
           {tool === "edittext" && !hasSeed && !blank && (
-            <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded bg-toolbar px-2 py-1 text-[11px] text-toolbar-foreground">
+            <div className="absolute left-1/2 top-2 -translate-x-1/2 rounded bg-[#1c1c20] px-2 py-1 text-[11px] text-white">
               Scanning text…
             </div>
           )}
@@ -1552,6 +1538,7 @@ function ItemView({
   onChange: (p: Partial<Item>, record?: boolean) => void;
   onDragStart: (e: React.PointerEvent, item: Item, mode: "move" | "resize") => void;
 }) {
+  const [hovered, setHovered] = useState(false);
 
   const box: React.CSSProperties = {
     position: "absolute",
@@ -1559,6 +1546,15 @@ function ItemView({
     top: item.y * scale,
     width: item.w * scale,
     height: item.h * scale,
+    outline:
+      quickEdit && item.type === "text" && !editing && hovered
+        ? "2px solid #7c3aed"
+        : undefined,
+    outlineOffset: quickEdit && item.type === "text" ? "2px" : undefined,
+    background:
+      quickEdit && item.type === "text" && !editing && hovered
+        ? "rgba(124,58,237,0.12)"
+        : undefined,
   };
 
   // an original PDF run that has not been touched: the page canvas already
@@ -1672,7 +1668,7 @@ function ItemView({
     );
   } else if (item.type === "link") {
     inner = (
-      <div className="h-full w-full border-2 border-dashed border-primary bg-primary/5" />
+      <div className="h-full w-full border-2 border-dashed border-violet-500 bg-violet-500/10" />
     );
   }
 
@@ -1684,12 +1680,14 @@ function ItemView({
       data-item="1"
       style={box}
       className={[
-        selected ? "outline outline-2 outline-ring" : "",
+        selected ? "outline outline-2 outline-violet-500" : "",
         eraseMode ? "cursor-pointer hover:outline hover:outline-2 hover:outline-red-500" : "",
         !eraseMode && textQuick && !editing
-          ? "cursor-text rounded-[2px] hover:outline hover:outline-1 hover:outline-primary"
+          ? "cursor-text rounded-[2px]"
           : "",
       ].join(" ")}
+      onPointerEnter={() => textQuick && setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
       onPointerDown={(e) => {
         if (editing) return;
         if (eraseMode) {

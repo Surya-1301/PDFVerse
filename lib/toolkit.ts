@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, degrees } from "@cantoo/pdf-lib";
+import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
+import * as pdfjs from "pdfjs-dist";
 import type { PDFPageProxy } from "pdfjs-dist";
 
 let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;

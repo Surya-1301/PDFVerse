@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Download,
   Eraser,
+  Eye,
   FileText,
   Loader2,
   Upload,
@@ -45,6 +46,12 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const [error, setError] = useState("");
   const [results, setResults] = useState<Array<ToolFile & { url: string }>>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<{
+    name: string;
+    url: string;
+    mime: string;
+    revokeOnClose: boolean;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
 
@@ -62,7 +69,35 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const setValue = (name: string, value: string | number | boolean) =>
     setValues((prev) => ({ ...prev, [name]: value }));
 
+  const closePreview = () => {
+    if (preview?.revokeOnClose) {
+      URL.revokeObjectURL(preview.url);
+    }
+    setPreview(null);
+  };
+
+  const openFilePreview = (file: File) => {
+    closePreview();
+    const url = URL.createObjectURL(file);
+    setPreview({
+      name: file.name,
+      url,
+      mime: file.type || "",
+      revokeOnClose: true,
+    });
+  };
+
+  const openResultPreview = (file: ToolFile & { url: string }) => {
+    closePreview();
+    setPreview({
+      name: file.name,
+      url: file.url,
+      mime: file.blob.type || "", revokeOnClose: false,
+    });
+  };
+
   const clearResults = () => {
+    closePreview();
     results.forEach((r) => URL.revokeObjectURL(r.url));
     setResults([]);
     setNames({});
@@ -161,8 +196,16 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                 className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm"
               >
                 <span className="truncate text-slate-200">{file.name}</span>
-                <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
+                <span className="flex shrink-0 items-center gap-2 text-xs text-slate-500">
                   {formatFileSize(file.size)}
+                  <button
+                    type="button"
+                    onClick={() => openFilePreview(file)}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-violet-200 transition hover:bg-violet-500/20"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Preview
+                  </button>
                   <button
                     type="button"
                     aria-label={`Remove ${file.name}`}
@@ -373,6 +416,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                           className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
                         />
 
+                        <button
+                          type="button"
+                          onClick={() => openResultPreview(file)}
+                          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2.5 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20 sm:w-auto"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Preview
+                        </button>
+
                         <a
                           href={file.url}
                           download={`${current || base}${ext}`}
@@ -382,11 +434,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                           Download
                         </a>
                       </div>
-
-                      <p className="mt-1.5 text-xs text-slate-500">
-                        Rename the file before downloading. The original extension is kept
-                        automatically.
-                      </p>
                     </li>
                   );
                 })}
@@ -417,6 +464,75 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           )}
         </div>
       </div>
+
+      {preview ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview ${preview.name}`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closePreview();
+          }}
+        >
+          <div className="flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b10] shadow-2xl">
+            <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/10 px-4 sm:px-5">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{preview.name}</p>
+                <p className="text-[11px] text-slate-500">Preview</p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close preview"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-auto bg-slate-950 p-2 sm:p-4">
+              {preview.mime === "application/pdf" ||
+              preview.name.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={preview.url}
+                  title={`Preview ${preview.name}`}
+                  className="h-full min-h-[70vh] w-full rounded-xl border border-white/10 bg-white"
+                />
+              ) : preview.mime.startsWith("image/") ||
+                /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(preview.name) ? (
+                <div className="flex min-h-full items-center justify-center">
+                  <img
+                    src={preview.url}
+                    alt={`Preview ${preview.name}`}
+                    className="max-h-full max-w-full rounded-xl object-contain"
+                  />
+                </div>
+              ) : preview.mime.startsWith("text/") ||
+                /\.(txt|csv|json|html|xml)$/i.test(preview.name) ? (
+                <iframe
+                  src={preview.url}
+                  title={`Preview ${preview.name}`}
+                  className="h-full min-h-[70vh] w-full rounded-xl border border-white/10 bg-white"
+                />
+              ) : (
+                <div className="flex min-h-full items-center justify-center p-6 text-center">
+                  <div className="max-w-md">
+                    <FileText className="mx-auto h-12 w-12 text-violet-300" />
+                    <h3 className="mt-4 text-lg font-semibold text-white">
+                      Preview unavailable for this file type
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      The file has been selected/processed successfully. Use Download to open it
+                      in the appropriate application.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

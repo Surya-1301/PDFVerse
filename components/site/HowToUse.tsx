@@ -10,7 +10,6 @@ type HowToUseProps = {
   title?: string;
   subtitle?: string;
   steps: HowToUseStep[];
-  /** Optional expanded step list shown only on desktop (lg and up). */
   desktopSteps?: HowToUseStep[];
 };
 

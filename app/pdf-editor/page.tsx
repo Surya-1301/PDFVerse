@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 
-// Edit-text hover + blank-doc + takePdf flow live inside the editor component.
-import { takePdfForEditor, clearPdfForEditor, createBlankPdfFile } from "@/lib/pdfEditorLaunch";
-
+// The editor itself handles takePdfForEditor(), the blank-document flow
+// and the edit-text hover outlines, so this page only mounts it client-side.
 const PdfEditor = dynamic(() => import("@/components/editor/PdfEditor"), {
   ssr: false,
 });
