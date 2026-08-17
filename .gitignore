@@ -32,3 +32,9 @@ data/*.json
 dist/
 node_modules/
 pdf-editor-server/target/
+
+.output/
+dist/
+node_modules/
+node_modules/.nitro/
+pdf-editor-server/target/

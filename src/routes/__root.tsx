@@ -4,12 +4,9 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 
-import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import Footer from "@/components/site/Footer";
 
@@ -40,6 +37,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -76,60 +74,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
-  {
-    head: () => ({
-      meta: [
-        { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: "PDFVerse — All-in-One PDF Editor" },
-        {
-          name: "description",
-          content:
-            "PDFVerse is your all-in-one online PDF editor. Merge, split, compress, convert, protect, unlock, sign, rotate and organize PDF files.",
-        },
-        { name: "author", content: "PDFVerse" },
-        { property: "og:site_name", content: "PDFVerse" },
-        { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-      links: [
-        {
-          rel: "stylesheet",
-          href: appCss,
-        },
-        { rel: "manifest", href: "/manifest.webmanifest" },
-        { rel: "preconnect", href: "https://fonts.googleapis.com" },
-        {
-          rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap",
-        },
-        { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-        { rel: "icon", href: "/logo.png", type: "image/png" },
-        { rel: "apple-touch-icon", href: "/logo.png" },
-      ],
-    }),
-
-    shellComponent: RootShell,
-    component: RootComponent,
-    notFoundComponent: NotFoundComponent,
-    errorComponent: ErrorComponent,
-  },
-);
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
