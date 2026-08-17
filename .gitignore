@@ -26,3 +26,9 @@ data/*.json
 !app/favicon.ico
 !public/logo.png
 .output/
+
+# Build outputs
+.output/
+dist/
+node_modules/
+pdf-editor-server/target/
