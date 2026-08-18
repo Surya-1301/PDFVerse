@@ -133,7 +133,7 @@ function Home() {
 
         {/* PDF TOOL CATEGORIES */}
         <div id="pdf-tools" className="mx-auto mt-10 max-w-6xl scroll-mt-8">
-          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-nowrap gap-6 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categoryTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -155,7 +155,7 @@ function Home() {
           </p>
 
           {/* DESKTOP / TABLET TOOL GRID */}
-          <div className="mt-6 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-6 hidden gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
 

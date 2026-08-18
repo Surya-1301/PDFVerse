@@ -19,9 +19,9 @@ export default function Footer() {
               to="/"
               className="inline-flex items-center gap-3 text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
             >
-              
               <span>PDFVerse</span>
             </Link>
+
             <p className="mt-1 text-xs text-slate-600">
               © {new Date().getFullYear()} PDFVerse. All rights reserved.
             </p>
@@ -30,7 +30,7 @@ export default function Footer() {
           {/* Footer Navigation */}
           <nav
             aria-label="Footer navigation"
-            className="flex flex-wrap items-center gap-x-6 gap-y-3"
+            className="flex w-full items-center justify-between gap-1 sm:w-auto sm:gap-x-6"
           >
             {footerLinks.map((item) => {
               const Icon = item.icon;
@@ -39,9 +39,9 @@ export default function Footer() {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className="group inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-violet-300"
+                  className="group inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-violet-300 sm:gap-2 sm:text-sm"
                 >
-                  <Icon className="h-4 w-4 text-slate-600 transition group-hover:text-violet-300" />
+                  <Icon className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-violet-300 sm:h-4 sm:w-4" />
                   <span>{item.label}</span>
                 </Link>
               );
