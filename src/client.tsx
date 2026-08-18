@@ -1,14 +1,10 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { RouterProvider } from "@tanstack/react-router";
+import { StartClient } from "@tanstack/react-start/client";
+import { StrictMode } from "react";
+import { hydrateRoot } from "react-dom/client";
 
-import { getRouter } from "./router";
-import "./styles.css";
-
-const router = getRouter();
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>,
+hydrateRoot(
+  document,
+  <StrictMode>
+    <StartClient />
+  </StrictMode>,
 );

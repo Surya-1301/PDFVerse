@@ -1,28 +1,41 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+/// <reference types="vite/client" />
+
+import appCss from "../styles.css?url";
+
 import {
-  Outlet,
+  HeadContent,
   Link,
+  Outlet,
+  Scripts,
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
+
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+
 import { useEffect } from "react";
 
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h1 className="text-7xl font-bold text-foreground">
+          404
+        </h1>
 
         <h2 className="mt-4 text-xl font-semibold text-foreground">
           Page not found
         </h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you're looking for doesn't exist or has
+          been moved.
         </p>
 
         <div className="mt-6">
@@ -46,12 +59,11 @@ function ErrorComponent({
   reset: () => void;
 }) {
   console.error(error);
+
   const router = useRouter();
 
   useEffect(() => {
-    reportLovableError(error, {
-      boundary: "tanstack_root_error_component",
-    });
+    // Error is already logged above.
   }, [error]);
 
   return (
@@ -62,12 +74,13 @@ function ErrorComponent({
         </h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back
-          home.
+          Something went wrong on our end. You can try
+          refreshing or head back home.
         </p>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
+            type="button"
             onClick={() => {
               router.invalidate();
               reset();
@@ -90,26 +103,89 @@ function ErrorComponent({
 }
 
 export const Route =
-  createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  createRootRouteWithContext<{
+    queryClient: QueryClient;
+  }>()({
+    head: () => ({
+      meta: [
+        {
+          charSet: "utf-8",
+        },
+        {
+          name: "viewport",
+          content:
+            "width=device-width, initial-scale=1",
+        },
+        {
+          title: "PDFVerse — Free Online PDF Tools",
+        },
+        {
+          name: "description",
+          content:
+            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+        },
+      ],
+
+      links: [
+  {
+    rel: "icon",
+    href: "/favicon-32x32.png?v=2",
+    type: "image/png",
+    sizes: "32x32",
+  },
+  {
+    rel: "icon",
+    href: "/favicon-16x16.png?v=2",
+    type: "image/png",
+    sizes: "16x16",
+  },
+  {
+    rel: "shortcut icon",
+    href: "/favicon.ico?v=2",
+    type: "image/x-icon",
+  },
+  {
+    rel: "apple-touch-icon",
+    href: "/apple-touch-icon.png?v=2",
+    sizes: "180x180",
+  },
+  {
+    rel: "stylesheet",
+    href: appCss,
+  },
+],
+    }),
+
     component: RootComponent,
+
     notFoundComponent: NotFoundComponent,
+
     errorComponent: ErrorComponent,
   });
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient } =
+    Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
-        <Header />
+    <>
+      {/* Required by TanStack Start to render route head() */}
+      <HeadContent />
 
-        <main className="flex-1">
-          <Outlet />
-        </main>
+      <QueryClientProvider client={queryClient}>
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <Header />
 
-        <Footer />
-      </div>
-    </QueryClientProvider>
+          <main className="flex-1">
+            <Outlet />
+          </main>
+
+          <Footer />
+        </div>
+      </QueryClientProvider>
+
+      {/* Required for TanStack Start client scripts */}
+      <Scripts />
+    </>
   );
 }
