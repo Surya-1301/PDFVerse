@@ -15,9 +15,6 @@ export default function Header() {
             className="h-20 w-20 rounded-lg object-contain"
           />
         </Link>
-
-
-        
         {/* Try Toolverse */}
         <a
           href="https://toolversee.pages.dev/"

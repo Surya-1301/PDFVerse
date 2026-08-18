@@ -16,6 +16,8 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReportAbuseRouteImport } from './routes/report-abuse'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PdfSlugRouteImport } from './routes/pdf.$slug'
+import { Route as ApiChatPdfAskRouteImport } from './routes/api.chat-pdf.ask'
+import { Route as ApiChatPdfUploadRouteImport } from './routes/api.chat-pdf.upload'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +54,16 @@ const PdfSlugRoute = PdfSlugRouteImport.update({
   path: '/pdf/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatPdfAskRoute = ApiChatPdfAskRouteImport.update({
+  id: '/api/chat-pdf/ask',
+  path: '/api/chat-pdf/ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatPdfUploadRoute = ApiChatPdfUploadRouteImport.update({
+  id: '/api/chat-pdf/upload',
+  path: '/api/chat-pdf/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +73,8 @@ export interface FileRoutesByFullPath {
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
+  '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +84,8 @@ export interface FileRoutesByTo {
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
+  '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +96,8 @@ export interface FileRoutesById {
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
+  '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +109,8 @@ export interface FileRouteTypes {
     | '/report-abuse'
     | '/terms'
     | '/pdf/$slug'
+    | '/api/chat-pdf/ask'
+    | '/api/chat-pdf/upload'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +120,8 @@ export interface FileRouteTypes {
     | '/report-abuse'
     | '/terms'
     | '/pdf/$slug'
+    | '/api/chat-pdf/ask'
+    | '/api/chat-pdf/upload'
   id:
     | '__root__'
     | '/'
@@ -109,6 +131,8 @@ export interface FileRouteTypes {
     | '/report-abuse'
     | '/terms'
     | '/pdf/$slug'
+    | '/api/chat-pdf/ask'
+    | '/api/chat-pdf/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +143,8 @@ export interface RootRouteChildren {
   ReportAbuseRoute: typeof ReportAbuseRoute
   TermsRoute: typeof TermsRoute
   PdfSlugRoute: typeof PdfSlugRoute
+  ApiChatPdfAskRoute: typeof ApiChatPdfAskRoute
+  ApiChatPdfUploadRoute: typeof ApiChatPdfUploadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +198,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat-pdf/ask': {
+      id: '/api/chat-pdf/ask'
+      path: '/api/chat-pdf/ask'
+      fullPath: '/api/chat-pdf/ask'
+      preLoaderRoute: typeof ApiChatPdfAskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat-pdf/upload': {
+      id: '/api/chat-pdf/upload'
+      path: '/api/chat-pdf/upload'
+      fullPath: '/api/chat-pdf/upload'
+      preLoaderRoute: typeof ApiChatPdfUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +223,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReportAbuseRoute: ReportAbuseRoute,
   TermsRoute: TermsRoute,
   PdfSlugRoute: PdfSlugRoute,
+  ApiChatPdfAskRoute: ApiChatPdfAskRoute,
+  ApiChatPdfUploadRoute: ApiChatPdfUploadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

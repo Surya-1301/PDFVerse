@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { ArrowLeft, Crop, Download, FilePlus2, FileText, Upload } from "lucide-react";
 
 import { ToolRunner } from "@/components/tools/ToolRunner";
+import { ChatWithPdf } from "@/components/tools/ChatWithPdf";
 import { HowToUse } from "@/components/site/HowToUse";
 import { Container } from "@/components/site/Container";
 import { findTool, slugAliases } from "@/lib/pdfTools";
@@ -48,6 +49,7 @@ function PdfToolPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const isEditor = slug === "pdf-editor";
+  const isChatWithPdf = slug === "chat-with-pdf";
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-slate-950">
@@ -70,7 +72,9 @@ function PdfToolPage() {
             Back to tools
           </Link>
 
-          {isEditor ? (
+          {isChatWithPdf ? (
+            <ChatWithPdf />
+          ) : isEditor ? (
             <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl shadow-violet-950/20">
               <div className="flex flex-col items-center px-5 py-10 sm:px-8">
                 <input
@@ -129,65 +133,205 @@ function PdfToolPage() {
         <HowToUse
           title={`How to use ${title}`}
           subtitle=""
-          steps={[
-            {
-              title: "Upload file",
-              description: `Select or drop your file into the ${title} panel. Files never leave your browser.`,
-              icon: <Upload className="h-5 w-5" />,
-            },
-            {
-              title: "Choose settings",
-              description:
-                "Adjust the available options such as page ranges, text, quality, or passwords.",
-              icon: <Crop className="h-5 w-5" />,
-            },
-            {
-              title: "Process",
-              description:
-                "Run the tool and wait a moment while everything is processed on your device.",
-              icon: <FileText className="h-5 w-5" />,
-            },
-            {
-              title: "Download",
-              description: "Rename the output if you like, then download your finished file.",
-              icon: <Download className="h-5 w-5" />,
-            },
-          ]}
-          desktopSteps={[
-            {
-              title: "Browse tools",
-              description: "All PDF tools stay visible under the ALL view by default.",
-              icon: <FileText className="h-5 w-5" />,
-            },
-            {
-              title: "Choose a tool",
-              description:
-                "Click Merge PDF, Rotate PDF, Compress PDF, PDF to Excel, or any other tool card.",
-              icon: <Crop className="h-5 w-5" />,
-            },
-            {
-              title: "Upload file",
-              description:
-                "Upload a PDF, image set, Office file, or use HTML content depending on the selected tool.",
-              icon: <Upload className="h-5 w-5" />,
-            },
-            {
-              title: "Set options",
-              description:
-                "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
-              icon: <Crop className="h-5 w-5" />,
-            },
-            {
-              title: "Process",
-              description: "Run the action using browser tools or the PDF backend, depending on the tool.",
-              icon: <FileText className="h-5 w-5" />,
-            },
-            {
-              title: "Download",
-              description: "Download the finished PDF, DOCX, JPG, ZIP, PPTX, XLSX, or compare report.",
-              icon: <Download className="h-5 w-5" />,
-            },
-          ]}
+          steps={
+            isChatWithPdf
+              ? [
+                  {
+                    title: "Upload your PDF",
+                    description:
+                      "Choose the PDF you want to ask questions about.",
+                    icon: <Upload className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Ask a question",
+                    description:
+                      "Ask about the document's contents, dates, amounts, findings, or conclusions.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Get an answer",
+                    description:
+                      "PDFVerse analyzes the uploaded document and returns an answer based on its contents.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Continue chatting",
+                    description:
+                      "Ask follow-up questions without uploading the same document again.",
+                    icon: <Download className="h-5 w-5" />,
+                  },
+                ]
+              : slug === "ocr"
+                ? [
+                    {
+                      title: "Upload scanned PDF",
+                      description:
+                        "Choose a scanned or image-only PDF to begin OCR processing.",
+                      icon: <Upload className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Choose language",
+                      description:
+                        "Select the main language used in your document and choose the recognition quality.",
+                      icon: <Crop className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Run OCR",
+                      description:
+                        "PDFVerse renders each page and recognizes the text directly in your browser.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Download results",
+                      description:
+                        "Get a searchable PDF plus TXT and DOCX versions of the extracted text.",
+                      icon: <Download className="h-5 w-5" />,
+                    },
+                  ]
+                : [
+                    {
+                      title: "Upload file",
+                      description: `Select or drop your file into the ${title} panel.`,
+                      icon: <Upload className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Choose settings",
+                      description:
+                        "Adjust the available options such as page ranges, text, quality, or passwords.",
+                      icon: <Crop className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Process",
+                      description:
+                        "Run the tool and wait a moment while everything is processed in your browser.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Download",
+                      description:
+                        "Rename the output if you like, then download your finished file.",
+                      icon: <Download className="h-5 w-5" />,
+                    },
+                  ]
+          }
+          desktopSteps={
+            isChatWithPdf
+              ? [
+                  {
+                    title: "Upload your PDF",
+                    description:
+                      "Select the document you want PDFVerse to understand and chat about.",
+                    icon: <Upload className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Start the document chat",
+                    description:
+                      "After the PDF is uploaded, PDFVerse prepares it for document-based questions.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Ask anything about it",
+                    description:
+                      "Ask for summaries, key findings, dates, names, amounts, conclusions, or specific details.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Ask follow-up questions",
+                    description:
+                      "Continue the conversation to explore the same document without re-uploading it.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Verify important information",
+                    description:
+                      "For contracts, invoices, legal documents, or other important material, verify answers against the original PDF.",
+                    icon: <FileText className="h-5 w-5" />,
+                  },
+                  {
+                    title: "Start another document",
+                    description:
+                      "Upload a different PDF when you want to begin a new document conversation.",
+                    icon: <Download className="h-5 w-5" />,
+                  },
+                ]
+              : slug === "ocr"
+                ? [
+                    {
+                      title: "Upload scanned PDF",
+                      description:
+                        "Select the scanned PDF you want to make searchable. Your document is processed in the browser.",
+                      icon: <Upload className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Select OCR language",
+                      description:
+                        "Choose the language used in your scanned document and the recognition quality.",
+                      icon: <Crop className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Recognize pages",
+                      description:
+                        "PDFVerse renders each page and extracts text with OCR while reporting progress.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Create searchable PDF",
+                      description:
+                        "OCR text is placed invisibly over the original scanned pages so the document can be searched and copied.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Export extracted text",
+                      description:
+                        "TXT and DOCX files are generated alongside the searchable PDF for easier reuse.",
+                      icon: <Download className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Download",
+                      description:
+                        "Download the searchable PDF, OCR TXT, or OCR DOCX output from the result panel.",
+                      icon: <Download className="h-5 w-5" />,
+                    },
+                  ]
+                : [
+                    {
+                      title: "Browse tools",
+                      description:
+                        "All PDF tools stay visible under the ALL view by default.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Choose a tool",
+                      description:
+                        "Select the PDF operation you want to perform.",
+                      icon: <Crop className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Upload file",
+                      description:
+                        "Upload a PDF, image set, Office file, or use the input supported by the selected tool.",
+                      icon: <Upload className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Set options",
+                      description:
+                        "Adjust page ranges, crop margins, passwords, form values, watermark settings, or conversion options.",
+                      icon: <Crop className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Process",
+                      description:
+                        "Run the selected PDF operation.",
+                      icon: <FileText className="h-5 w-5" />,
+                    },
+                    {
+                      title: "Download",
+                      description:
+                        "Download the finished file from the result panel.",
+                      icon: <Download className="h-5 w-5" />,
+                    },
+                  ]
+          }
         />
       </Container>
     </section>

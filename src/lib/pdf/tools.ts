@@ -1,3 +1,5 @@
+import fontkit from "@pdf-lib/fontkit";
+
 import {
   applyGrayscale,
   baseName,
@@ -68,6 +70,197 @@ const first = (ctx: ToolContext) => {
 
 const PDF = "application/pdf";
 const IMAGES = "image/png,image/jpeg,image/webp";
+
+const OCR_LANGUAGES: Array<{ value: string; label: string; font: string }> = [
+  { value: "eng", label: "English", font: "/NotoSans-Regular.ttf" },
+  { value: "hin", label: "Hindi", font: "/NotoSansDevanagari-Regular.ttf" },
+  { value: "spa", label: "Spanish", font: "/NotoSans-Regular.ttf" },
+  { value: "fra", label: "French", font: "/NotoSans-Regular.ttf" },
+  { value: "deu", label: "German", font: "/NotoSans-Regular.ttf" },
+  { value: "ita", label: "Italian", font: "/NotoSans-Regular.ttf" },
+  { value: "por", label: "Portuguese", font: "/NotoSans-Regular.ttf" },
+  { value: "rus", label: "Russian", font: "/NotoSans-Regular.ttf" },
+];
+
+const OCR_FIELDS: Field[] = [
+  {
+    name: "language",
+    label: "OCR language",
+    type: "select",
+    default: "eng",
+    options: OCR_LANGUAGES.map(({ value, label }) => ({ value, label })),
+  },
+  {
+    name: "quality",
+    label: "Recognition quality",
+    type: "select",
+    default: "2",
+    options: [
+      { value: "1.5", label: "Fast" },
+      { value: "2", label: "Balanced" },
+      { value: "2.5", label: "High accuracy" },
+    ],
+  },
+];
+
+async function runOcr(ctx: ToolContext): Promise<ToolFile[]> {
+  const file = first(ctx);
+  const language = str(ctx, "language", "eng");
+  const renderScale = Math.max(1, num(ctx, "quality", 2));
+  const languageInfo = OCR_LANGUAGES.find((item) => item.value === language) ?? OCR_LANGUAGES[0]!;
+
+  ctx.progress("Loading OCR engine…");
+
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker(language, 1, {
+    logger: (message: { status?: string; progress?: number }) => {
+      if (message.status === "recognizing text" && typeof message.progress === "number") {
+        ctx.progress(`Recognizing text… ${Math.round(message.progress * 100)}%`);
+      }
+    },
+  });
+
+  try {
+    const source = await getPdfJsDoc(file);
+    const output = await loadPdf(file);
+    const pages = output.getPages();
+    const pageTexts: string[] = [];
+
+    ctx.progress(`Preparing ${source.numPages} page${source.numPages === 1 ? "" : "s"}…`);
+
+    // Custom TTF fonts require fontkit before PDFDocument.embedFont().
+    // This is required for both Latin and Devanagari OCR output.
+    output.registerFontkit(fontkit);
+
+    const fontBytes = new Uint8Array(
+      await (await fetch(languageInfo.font)).arrayBuffer(),
+    );
+    const font = await output.embedFont(fontBytes, { subset: false });
+
+    for (let index = 0; index < source.numPages; index += 1) {
+      const pageNumber = index + 1;
+      ctx.progress(`OCR page ${pageNumber} of ${source.numPages}…`);
+
+      const sourcePage = await source.getPage(pageNumber);
+      const canvas = await renderPageToCanvas(sourcePage, renderScale);
+      const result = await worker.recognize(
+        canvas,
+        {},
+        { blocks: true },
+      );
+      const data = result.data as {
+        text?: string;
+        blocks?: Array<{
+          paragraphs?: Array<{
+            lines?: Array<{
+              words?: Array<{
+                text?: string;
+                confidence?: number;
+                bbox?: { x0: number; y0: number; x1: number; y1: number };
+              }>;
+            }>;
+          }>;
+        }>;
+      };
+
+      const text = (data.text ?? "").trim();
+      pageTexts.push(text);
+
+      const pdfPage = pages[index];
+      if (!pdfPage) continue;
+
+      const { width, height } = pdfPage.getSize();
+      const scaleX = width / canvas.width;
+      const scaleY = height / canvas.height;
+      const words = (data.blocks ?? [])
+        .flatMap((block) => block.paragraphs ?? [])
+        .flatMap((paragraph) => paragraph.lines ?? [])
+        .flatMap((line) => line.words ?? []);
+
+      for (const word of words) {
+        const value = (word.text ?? "").trim();
+        const bbox = word.bbox;
+        const confidence = Number(word.confidence ?? 0);
+
+        if (!value || !bbox || confidence < 20) continue;
+
+        const x = Math.max(0, bbox.x0 * scaleX);
+        const wordHeight = Math.max(4, (bbox.y1 - bbox.y0) * scaleY);
+        const size = Math.max(4, Math.min(72, wordHeight * 0.95));
+        const y = Math.max(
+          0,
+          height - bbox.y1 * scaleY + size * 0.12,
+        );
+
+        try {
+          pdfPage.drawText(value, {
+            x,
+            y,
+            size,
+            font,
+            color: rgb(0, 0, 0),
+            opacity: 0.001,
+            maxWidth: Math.max(4, width - x),
+          });
+        } catch {
+          // A single unsupported glyph should not abort the whole OCR job.
+        }
+      }
+    }
+
+    const text = pageTexts
+      .map((value, index) => `--- Page ${index + 1} ---\n${value}`)
+      .join("\n\n");
+
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const children = pageTexts.flatMap((value, index) => {
+      const lines = value.split(/\r?\n/u);
+      return [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Page ${index + 1}`,
+              bold: true,
+              size: 26,
+            }),
+          ],
+        }),
+        ...lines.map(
+          (line) =>
+            new Paragraph({
+              children: [new TextRun({ text: line })],
+            }),
+        ),
+      ];
+    });
+
+    const docx = new Document({
+      sections: [{ children }],
+    });
+    const docxBlob = await Packer.toBlob(docx);
+
+    const searchablePdf = await savePdf(
+      output,
+      `${baseName(file.name)}-searchable.pdf`,
+    );
+
+    return [
+      searchablePdf,
+      {
+        name: `${baseName(file.name)}-ocr.txt`,
+        blob: new Blob([text], {
+          type: "text/plain;charset=utf-8",
+        }),
+      },
+      {
+        name: `${baseName(file.name)}-ocr.docx`,
+        blob: docxBlob,
+      },
+    ];
+  } finally {
+    await worker.terminate();
+  }
+}
 
 const POSITIONS: Array<{ value: string; label: string }> = [
   { value: "bottom-center", label: "Bottom center" },
@@ -296,6 +489,13 @@ async function batch(
 }
 
 export const toolImpls: Record<string, ToolImpl> = {
+  "ocr": {
+    accept: PDF,
+    uploadLabel: "Select scanned PDF",
+    actionLabel: "Start OCR",
+    fields: OCR_FIELDS,
+    run: runOcr,
+  },
   /* ------------------------------------------------------------------ organize */
   merge: {
     accept: PDF,

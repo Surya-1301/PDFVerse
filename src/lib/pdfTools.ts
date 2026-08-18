@@ -12,6 +12,7 @@ import {
   Scissors,
   ShieldCheck,
   Stamp,
+  ScanText,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -50,6 +51,8 @@ export const pdfTools: PdfTool[] = [
   { title: "Organize PDF", description: "Reorder PDF pages into a custom sequence.", slug: "organize", category: "organize", icon: FileText },
   { title: "Add Pages to PDF", description: "Insert pages from another PDF into an existing PDF.", slug: "add-pages", category: "organize", icon: Plus },
   { title: "Compare PDF", description: "Compare two PDFs and inspect differences.", slug: "compare", category: "organize", icon: FileSearch },
+  { title: "OCR PDF", description: "Turn scanned PDFs into searchable PDFs and extract text with OCR.", slug: "ocr", category: "convertFromPdf", icon: ScanText },
+  { title: "Chat with PDF", description: "Ask questions, summarize, and explore a PDF with AI.", slug: "chat-with-pdf", category: "convertFromPdf", icon: FileSearch },
   { title: "Rotate PDF", description: "Rotate all or selected pages.", slug: "rotate", category: "organize", icon: RotateCw },
   { title: "Add page numbers", description: "Add page numbers to every page.", slug: "add-page-numbers", category: "organize", icon: Hash },
   { title: "Add watermark", description: "Add a text watermark across PDF pages.", slug: "watermark", category: "edit", icon: Stamp },
@@ -99,6 +102,7 @@ export const slugAliases: Record<string, string> = {
   "crop-pdf": "crop",
   "pdf-forms": "forms",
   "compare-pdf": "compare",
+  "chat-pdf": "chat-with-pdf",
   "editor": "pdf-editor",
 };
 
