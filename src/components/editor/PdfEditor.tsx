@@ -6,8 +6,8 @@ import {
   ArrowUpRight,
 
   Check,
-  ChevronLeft,
-  ChevronRight,
+  
+  
   Download,
   Eraser,
   FilePlus2,
@@ -386,7 +386,7 @@ export default function PdfEditor() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#09090b] text-white">
+    <div className="fixed inset-0 z-[100] flex h-[100dvh] w-screen flex-col overflow-hidden bg-[#09090b] text-white">
       {/* HEADER */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#111113] px-3">
         <div className="flex min-w-0 items-center gap-2">
@@ -430,18 +430,35 @@ export default function PdfEditor() {
             <Redo2 className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={download}
             disabled={busy}
-            className="flex h-9 items-center gap-2 rounded-lg bg-violet-600 px-3 text-xs font-semibold hover:bg-violet-500 disabled:opacity-50"
+            aria-label={busy ? "Exporting PDF" : "Download PDF"}
+            title={busy ? "Exporting PDF" : "Download PDF"}
+            className="
+              flex h-9 shrink-0 items-center justify-center gap-2
+              rounded-lg bg-violet-600 px-3
+              text-xs font-semibold whitespace-nowrap
+              transition hover:bg-violet-500
+              disabled:cursor-not-allowed disabled:opacity-50
+              sm:min-w-[132px]
+            "
           >
-            <Download className="h-4 w-4" />
-            {busy ? "Exporting..." : "Download PDF"}
+            <Download className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">
+              <span className="sm:hidden">
+                {busy ? "Exporting" : "Download"}
+              </span>
+              <span className="hidden sm:inline">
+                {busy ? "Exporting..." : "Download PDF"}
+              </span>
+            </span>
           </button>
         </div>
       </header>
 
       {/* TOOLBAR */}
-      <div className="flex min-h-12 shrink-0 items-center justify-center gap-1 overflow-x-auto border-b border-white/10 bg-[#151517] px-2">
+      <div className="flex min-h-12 shrink-0 items-center justify-start gap-0.5 overflow-x-auto border-b border-white/10 bg-[#151517] px-1 sm:justify-center sm:gap-1 sm:px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TOOLS.map((t) => (
 
           <button
@@ -458,7 +475,7 @@ export default function PdfEditor() {
               setTool(t.id === "image" ? "select" : t.id);
               setSelected(null);
             }}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+            className={`flex h-9 shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition sm:h-auto sm:gap-1.5 sm:px-2.5 ${
               tool === t.id
                 ? "bg-violet-600 text-white"
                 : "text-slate-300 hover:bg-white/10"
@@ -469,10 +486,10 @@ export default function PdfEditor() {
           </button>
         ))}
 
-        <span className="mx-2 h-7 w-px bg-white/10" />
+        <span className="mx-1 h-7 w-px shrink-0 bg-white/10 sm:mx-2" />
 
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
           onClick={() => setScale((s) => Math.max(0.4, +(s - 0.1).toFixed(2)))}
           aria-label="Zoom out"
         >
@@ -481,12 +498,12 @@ export default function PdfEditor() {
         <button
           type="button"
           onClick={() => setScale(1)}
-          className="min-w-12 rounded-lg px-2 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+          className="min-w-12 shrink-0 rounded-lg px-2 py-1.5 text-xs text-slate-300 hover:bg-white/10"
         >
           {Math.round(scale * 100)}%
         </button>
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10"
           onClick={() => setScale((s) => Math.min(3, +(s + 0.1).toFixed(2)))}
           aria-label="Zoom in"
         >
@@ -496,7 +513,7 @@ export default function PdfEditor() {
 
 
       {/* context bar */}
-      <div className="z-20 flex min-h-11 flex-wrap items-center gap-3 border-b border-white/10 bg-[#111113] px-4 py-1.5 text-xs text-slate-300">
+      <div className="z-20 flex min-h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 bg-[#111113] px-2 py-1.5 text-xs text-slate-300 sm:px-4 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
         {selectedItem ? (
           <ItemProps
@@ -515,13 +532,13 @@ export default function PdfEditor() {
           </span>
         ) : (
           <>
-            <span className="font-medium capitalize">{tool} tool</span>
+            <span className="shrink-0 font-medium capitalize">{tool} tool</span>
             {tool === "shape" && (
 
               <select
                 value={shapeKind}
                 onChange={(e) => setShapeKind(e.target.value as ShapeKind)}
-                className="rounded border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
+                className="h-9 shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
               >
                 <option value="rect">Rectangle</option>
                 <option value="ellipse">Ellipse</option>
@@ -537,7 +554,7 @@ export default function PdfEditor() {
                   max={96}
                   value={fontSize}
                   onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-16 rounded border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
+                  className="h-9 w-16 shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
                 />
               </label>
             )}
@@ -688,34 +705,10 @@ export default function PdfEditor() {
             ))}
           </div>
 
-          {/* PAGE NAVIGATION */}
-          <div className="sticky bottom-4 z-20 mx-auto flex w-fit items-center gap-2 rounded-xl border border-white/10 bg-[#111113]/95 px-2 py-1.5 shadow-2xl backdrop-blur">
-            <button
-              type="button"
-              onClick={() => goToPage(curPage - 1)}
-              disabled={curPage <= 1}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30"
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="px-2 text-xs text-slate-300">
-              Page <b className="text-white">{curPage}</b> / {state.pages.length}
-            </span>
-            <button
-              type="button"
-              onClick={() => goToPage(curPage + 1)}
-              disabled={curPage >= state.pages.length}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-30"
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
         </main>
 
         {/* PROPERTIES */}
-        <aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] xl:block">
+        <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-white/10 bg-[#111113] md:block">
           <div className="border-b border-white/10 p-4">
             <h2 className="text-sm font-semibold">Properties</h2>
           </div>
@@ -724,6 +717,7 @@ export default function PdfEditor() {
             <div className="flex flex-col gap-3 p-4 text-xs text-slate-300 [&_select]:w-full [&_input[type=number]]:w-full">
               <ItemProps
                 item={selectedItem}
+                vertical
                 onChange={(patch) => updateItem(selectedItem.id, patch)}
                 onDelete={() => removeItem(selectedItem.id)}
               />
@@ -786,8 +780,13 @@ function Dropzone({
   const input = useRef<HTMLInputElement | null>(null);
   const [over, setOver] = useState(false);
   return (
-    <section className="min-h-screen w-full bg-[#09090b] px-4 pb-16 pt-6 text-white sm:px-6 sm:pt-8">
-      <div className="mx-auto w-full max-w-[1400px]">
+    <section className="relative min-h-screen w-full overflow-hidden bg-slate-950 px-4 pb-16 pt-6 text-white sm:px-6 sm:pt-8">
+      {/* Background glow — matches the other PDFVerse tools */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/25 blur-3xl" />
+      <div className="pointer-events-none absolute -left-40 top-1/3 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-40 bottom-10 h-80 w-80 rounded-full bg-fuchsia-600/10 blur-3xl" />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1400px]">
         <Link
           to="/"
           className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
@@ -795,13 +794,7 @@ function Dropzone({
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to tools
         </Link>
-        <div className="relative overflow-hidden rounded-[28px] border border-white/[0.10] bg-[#101014] shadow-[0_30px_100px_rgba(0,0,0,0.38)]">
-          {/* Ambient background */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-violet-600/[0.08] blur-3xl" />
-            <div className="absolute -bottom-40 -right-40 h-[460px] w-[460px] rounded-full bg-fuchsia-600/[0.07] blur-3xl" />
-            <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500/[0.035] blur-3xl" />
-          </div>
+        <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] shadow-2xl shadow-violet-950/20">
 
           {/* Editor header */}
           <div className="relative flex items-center justify-between border-b border-white/[0.07] px-7 py-5 sm:px-10">
@@ -925,22 +918,219 @@ function Dropzone({
 
 function ItemProps({
   item,
+  vertical = false,
   onChange,
   onDelete,
 }: {
   item: Item;
+  vertical?: boolean;
   onChange: (p: Partial<Item>) => void;
   onDelete: () => void;
 }) {
+  if (vertical) {
+    return (
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            Type
+          </span>
+          <div className="flex h-10 items-center rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm font-medium capitalize text-slate-200">
+            {item.type}
+          </div>
+        </div>
+
+        {item.type === "text" && (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Font
+              </label>
+              <select
+                value={item.font}
+                onChange={(e) => onChange({ font: e.target.value } as Partial<Item>)}
+                className="h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30"
+              >
+                <option>Helvetica</option>
+                <option>Times</option>
+                <option>Courier</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Font Size
+              </label>
+              <input
+                type="number"
+                min={6}
+                max={96}
+                value={item.size}
+                onChange={(e) => onChange({ size: Number(e.target.value) } as Partial<Item>)}
+                className="h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Style
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  aria-label="Bold"
+                  title="Bold"
+                  className={`flex h-10 items-center justify-center rounded-lg border border-white/15 text-sm font-bold transition ${
+                    item.bold
+                      ? "bg-violet-600 text-white"
+                      : "bg-white/[0.03] text-slate-300 hover:bg-white/10"
+                  }`}
+                  onClick={() => onChange({ bold: !item.bold } as Partial<Item>)}
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  aria-label="Italic"
+                  title="Italic"
+                  className={`flex h-10 items-center justify-center rounded-lg border border-white/15 text-sm italic transition ${
+                    item.italic
+                      ? "bg-violet-600 text-white"
+                      : "bg-white/[0.03] text-slate-300 hover:bg-white/10"
+                  }`}
+                  onClick={() => onChange({ italic: !item.italic } as Partial<Item>)}
+                >
+                  I
+                </button>
+                <button
+                  type="button"
+                  aria-label="Underline"
+                  title="Underline"
+                  className={`flex h-10 items-center justify-center rounded-lg border border-white/15 text-sm underline transition ${
+                    item.underline
+                      ? "bg-violet-600 text-white"
+                      : "bg-white/[0.03] text-slate-300 hover:bg-white/10"
+                  }`}
+                  onClick={() => onChange({ underline: !item.underline } as Partial<Item>)}
+                >
+                  U
+                </button>
+                <button
+                  type="button"
+                  aria-label="Strikethrough"
+                  title="Strikethrough"
+                  className={`flex h-10 items-center justify-center rounded-lg border border-white/15 text-sm line-through transition ${
+                    item.strike
+                      ? "bg-violet-600 text-white"
+                      : "bg-white/[0.03] text-slate-300 hover:bg-white/10"
+                  }`}
+                  onClick={() => onChange({ strike: !item.strike } as Partial<Item>)}
+                >
+                  S
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Alignment
+              </label>
+              <select
+                value={item.align}
+                onChange={(e) => onChange({ align: e.target.value } as Partial<Item>)}
+                className="h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </>
+        )}
+
+        {item.type === "link" && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              URL
+            </label>
+            <input
+              value={item.url}
+              placeholder="https://example.com"
+              onChange={(e) => onChange({ url: e.target.value } as Partial<Item>)}
+              className="h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30"
+            />
+          </div>
+        )}
+
+        {"color" in item && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              Color
+            </span>
+            <div className="grid grid-cols-6 gap-2">
+              {SWATCHES.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => onChange({ color: c } as Partial<Item>)}
+                  style={{ background: c }}
+                  className={`h-8 w-8 rounded-full border border-white/20 transition ${
+                    item.color === c
+                      ? "ring-2 ring-violet-400 ring-offset-2 ring-offset-[#111113]"
+                      : "hover:scale-105"
+                  }`}
+                  aria-label={`Color ${c}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {item.type === "shape" && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              Stroke
+            </span>
+            <div className="grid grid-cols-6 gap-2">
+              {SWATCHES.map((c) => (
+                <button
+                  type="button"
+                  key={c}
+                  onClick={() => onChange({ stroke: c } as Partial<Item>)}
+                  style={{ background: c }}
+                  className={`h-8 w-8 rounded-full border border-white/20 transition ${
+                    item.stroke === c
+                      ? "ring-2 ring-violet-400 ring-offset-2 ring-offset-[#111113]"
+                      : "hover:scale-105"
+                  }`}
+                  aria-label={`Stroke ${c}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="my-1 border-t border-white/10" />
+
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-red-500/40 px-3 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+        >
+          <Trash2 size={14} /> Delete {item.type}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <span className="font-medium capitalize">{item.type}</span>
+    <div className="flex min-w-max shrink-0 items-center gap-2">
+      <span className="shrink-0 font-medium capitalize">{item.type}</span>
       {item.type === "text" && (
         <>
           <select
             value={item.font}
             onChange={(e) => onChange({ font: e.target.value } as Partial<Item>)}
-            className="rounded border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
+            className="h-9 shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
           >
             <option>Helvetica</option>
             <option>Times</option>
@@ -952,39 +1142,50 @@ function ItemProps({
             max={96}
             value={item.size}
             onChange={(e) => onChange({ size: Number(e.target.value) } as Partial<Item>)}
-            className="w-16 rounded border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
+            className="h-9 w-16 shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
           />
           <button
-            className={`rounded border border-white/15 px-2 py-1 font-bold ${item.bold ? "bg-violet-600 text-white" : "text-slate-300"}`}
+            type="button"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 px-2 py-1 font-bold ${
+              item.bold ? "bg-violet-600 text-white" : "text-slate-300"
+            }`}
             onClick={() => onChange({ bold: !item.bold } as Partial<Item>)}
           >
             B
           </button>
           <button
-            className={`rounded border border-white/15 px-2 py-1 italic ${item.italic ? "bg-violet-600 text-white" : "text-slate-300"}`}
+            type="button"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 px-2 py-1 italic ${
+              item.italic ? "bg-violet-600 text-white" : "text-slate-300"
+            }`}
             onClick={() => onChange({ italic: !item.italic } as Partial<Item>)}
           >
             I
           </button>
           <button
-            className={`rounded border border-white/15 px-2 py-1 underline ${item.underline ? "bg-violet-600 text-white" : "text-slate-300"}`}
+            type="button"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 px-2 py-1 underline ${
+              item.underline ? "bg-violet-600 text-white" : "text-slate-300"
+            }`}
             onClick={() => onChange({ underline: !item.underline } as Partial<Item>)}
             title="Underline"
           >
             U
           </button>
           <button
-            className={`rounded border border-white/15 px-2 py-1 line-through ${item.strike ? "bg-violet-600 text-white" : "text-slate-300"}`}
+            type="button"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 px-2 py-1 line-through ${
+              item.strike ? "bg-violet-600 text-white" : "text-slate-300"
+            }`}
             onClick={() => onChange({ strike: !item.strike } as Partial<Item>)}
             title="Strikethrough"
           >
             S
           </button>
-
           <select
             value={item.align}
             onChange={(e) => onChange({ align: e.target.value } as Partial<Item>)}
-            className="rounded border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
+            className="h-9 shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white outline-none"
           >
             <option value="left">Left</option>
             <option value="center">Center</option>
@@ -1001,38 +1202,41 @@ function ItemProps({
         />
       )}
       {"color" in item && (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
           {SWATCHES.map((c) => (
             <button
+              type="button"
               key={c}
               onClick={() => onChange({ color: c } as Partial<Item>)}
               style={{ background: c }}
-              className="h-5 w-5 rounded-full border border-white/20"
+              className="h-7 w-7 shrink-0 rounded-full border border-white/20"
               aria-label={`Color ${c}`}
             />
           ))}
         </div>
       )}
       {item.type === "shape" && (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
           {SWATCHES.map((c) => (
             <button
+              type="button"
               key={c}
               onClick={() => onChange({ stroke: c } as Partial<Item>)}
               style={{ background: c }}
-              className="h-5 w-5 rounded-full border border-white/20"
+              className="h-7 w-7 shrink-0 rounded-full border border-white/20"
               aria-label={`Stroke ${c}`}
             />
           ))}
         </div>
       )}
       <button
+        type="button"
         onClick={onDelete}
-        className="ml-auto inline-flex items-center gap-1 rounded border border-red-500/40 px-2 py-1 text-red-400 hover:bg-red-500/10"
+        className="ml-1 inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-red-500/40 px-3 py-1 text-red-400 hover:bg-red-500/10"
       >
         <Trash2 size={13} /> Delete
       </button>
-    </>
+    </div>
   );
 }
 
@@ -1094,6 +1298,7 @@ function PageView(props: PageViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [hoverActive, setHoverActive] = useState(true);
+  const [hoveredTextId, setHoveredTextId] = useState<string | null>(null);
 
   // switching tools re-enables the hover outlines
   useEffect(() => {
@@ -1191,7 +1396,12 @@ function PageView(props: PageViewProps) {
 
     // edittext: clicking an empty area hides the hover outlines; they return on cursor move
     if (tool === "edittext") {
-      if (!(e.target as HTMLElement).dataset["item"]) setHoverActive(false);
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-pdf-text-item]")) {
+        setSelected(null);
+        setEditingText(null);
+      }
+      setHoverActive(true);
       return;
     }
 
@@ -1395,8 +1605,19 @@ function PageView(props: PageViewProps) {
           className="absolute inset-0 touch-none"
           style={{ cursor }}
           onPointerDown={startCreate}
-          onPointerMove={() => {
-            if (tool === "edittext" && !hoverActive) setHoverActive(true);
+          onPointerMove={(e) => {
+            if (tool !== "edittext") return;
+
+            setHoverActive(true);
+
+            const target = e.target as HTMLElement;
+            const textItem = target.closest("[data-pdf-text-item]") as HTMLElement | null;
+
+            // Empty PDF area = no hovered text.
+            setHoveredTextId(textItem?.dataset.pdfTextItem ?? null);
+          }}
+          onPointerLeave={() => {
+            if (tool === "edittext") setHoveredTextId(null);
           }}
         >
           {/* Cover source glyphs as soon as editing starts, not only after the
@@ -1430,6 +1651,7 @@ function PageView(props: PageViewProps) {
               selected={selected === item.id}
               editing={editingText === item.id}
               quickEdit={tool === "edittext" && hoverActive}
+              hovered={hoveredTextId === item.id}
               eraseMode={tool === "eraser"}
               onSelect={() => setSelected(item.id)}
               onEdit={() => setEditingText(item.id)}
@@ -1516,6 +1738,7 @@ function ItemView({
   selected,
   editing,
   quickEdit = false,
+  hovered,
   eraseMode = false,
   onSelect,
   onEdit,
@@ -1528,6 +1751,7 @@ function ItemView({
   selected: boolean;
   editing: boolean;
   quickEdit?: boolean;
+  hovered?: boolean;
   eraseMode?: boolean;
   onSelect: () => void;
   onEdit: () => void;
@@ -1535,7 +1759,11 @@ function ItemView({
   onChange: (p: Partial<Item>, record?: boolean) => void;
   onDragStart: (e: React.PointerEvent, item: Item, mode: "move" | "resize") => void;
 }) {
-  const [hovered, setHovered] = useState(false);
+  const [localHovered, setLocalHovered] = useState(false);
+  const isHovered = hovered ?? localHovered;
+
+  const hoverText =
+    quickEdit && item.type === "text" && !editing && isHovered;
 
   const box: React.CSSProperties = {
     position: "absolute",
@@ -1543,15 +1771,15 @@ function ItemView({
     top: item.y * scale,
     width: item.w * scale,
     height: item.h * scale,
-    outline:
-      quickEdit && item.type === "text" && !editing && hovered
-        ? "2px solid var(--primary)"
-        : undefined,
-    outlineOffset: quickEdit && item.type === "text" ? "2px" : undefined,
-    background:
-      quickEdit && item.type === "text" && !editing && hovered
-        ? "color-mix(in oklab, var(--primary) 10%, transparent)"
-        : undefined,
+
+    // Edit-text hover: use a clean border + soft violet glow.
+    // No dedicated underline/hover line is rendered.
+    outline: hoverText ? "2px solid rgb(139 92 246 / 0.95)" : undefined,
+    outlineOffset: hoverText ? "1px" : undefined,
+    background: hoverText ? "rgb(139 92 246 / 0.07)" : undefined,
+    boxShadow: hoverText
+      ? "0 0 0 1px rgb(139 92 246 / 0.18), 0 0 10px rgb(139 92 246 / 0.28)"
+      : undefined,
   };
 
   // an original PDF run that has not been touched: the page canvas already
@@ -1675,6 +1903,7 @@ function ItemView({
   return (
     <div
       data-item="1"
+      data-pdf-text-item={item.type === "text" ? item.id : undefined}
       style={box}
       className={[
         selected ? "outline outline-2 outline-ring" : "",
@@ -1683,8 +1912,8 @@ function ItemView({
           ? "cursor-text rounded-[2px]"
           : "",
       ].join(" ")}
-      onPointerEnter={() => textQuick && setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
+      onPointerEnter={() => textQuick && setLocalHovered(true)}
+      onPointerLeave={() => textQuick && setLocalHovered(false)}
       onPointerDown={(e) => {
         if (editing) return;
         if (eraseMode) {

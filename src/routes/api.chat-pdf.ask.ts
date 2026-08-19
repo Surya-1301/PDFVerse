@@ -2,174 +2,714 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const MAX_QUESTION_LENGTH = 4000;
 
-function json(data: unknown, status = 200) {
+const GEMINI_API_BASE =
+  "https://generativelanguage.googleapis.com/v1beta";
+
+type GeminiFile = {
+  name?: string;
+  displayName?: string;
+  mimeType?: string;
+  sizeBytes?: string;
+  uri?: string;
+  state?:
+    | "STATE_UNSPECIFIED"
+    | "PROCESSING"
+    | "ACTIVE"
+    | "FAILED";
+  error?: {
+    code?: number;
+    message?: string;
+  };
+};
+
+type GeminiInteractionResponse = {
+  id?: string;
+  object?: string;
+  model?: string;
+  status?:
+    | "in_progress"
+    | "requires_action"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "incomplete";
+  output_text?: string;
+  steps?: Array<{
+    type?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+  errors?: Array<{
+    code?: string;
+    message?: string;
+  }>;
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+  };
+};
+
+function json(
+  data: unknown,
+  status = 200,
+) {
   return Response.json(data, {
     status,
-    headers: { "Cache-Control": "no-store" },
+    headers: {
+      "Cache-Control": "no-store",
+    },
   });
 }
 
-function getOpenAiKey() {
-  return process.env.OPENAI_API_KEY?.trim() || "";
+function getEnv(name: string) {
+  return process.env[name]?.trim() || "";
 }
 
-function isSafeFileId(value: unknown): value is string {
-  return typeof value === "string" && /^file-[A-Za-z0-9_-]+$/.test(value);
+function getGeminiApiKey() {
+  return getEnv("GEMINI_API_KEY");
 }
 
-function isSafeResponseId(value: unknown): value is string {
-  return typeof value === "string" && /^(resp|response)_[A-Za-z0-9_-]+$/.test(value);
-}
-
-async function signFileId(fileId: string, apiKey: string) {
-  const secret = process.env.CHAT_PDF_TOKEN_SECRET?.trim() || apiKey;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
+function getGeminiModel() {
+  return (
+    getEnv("GEMINI_CHAT_PDF_MODEL") ||
+    "gemini-3.6-flash"
   );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(fileId),
+}
+
+function isSafeFileId(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" &&
+    /^files\/[a-z0-9-]{1,40}$/.test(
+      value,
+    )
   );
-  return Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
+}
+
+function isSafeInteractionId(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" &&
+    /^[A-Za-z0-9._-]{1,300}$/.test(
+      value,
+    )
+  );
+}
+
+async function signFileId(
+  fileId: string,
+  secret: string,
+) {
+  const key =
+    await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      {
+        name: "HMAC",
+        hash: "SHA-256",
+      },
+      false,
+      ["sign"],
+    );
+
+  const signature =
+    await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(fileId),
+    );
+
+  return Array.from(
+    new Uint8Array(signature),
+  )
+    .map((byte) =>
+      byte.toString(16).padStart(2, "0"),
+    )
     .join("");
 }
 
-function safeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+function safeEqual(
+  a: string,
+  b: string,
+) {
+  if (a.length !== b.length) {
+    return false;
   }
+
+  let result = 0;
+
+  for (
+    let i = 0;
+    i < a.length;
+    i += 1
+  ) {
+    result |=
+      a.charCodeAt(i) ^
+      b.charCodeAt(i);
+  }
+
   return result === 0;
 }
 
-export const Route = createFileRoute("/api/chat-pdf/ask")({
+async function getGeminiFile(
+  fileId: string,
+  apiKey: string,
+): Promise<GeminiFile | null> {
+  const response =
+    await fetch(
+      `${GEMINI_API_BASE}/${fileId}`,
+      {
+        method: "GET",
+        headers: {
+          "x-goog-api-key":
+            apiKey,
+        },
+      },
+    );
+
+  const payload =
+    (await response.json().catch(
+      () => null,
+    )) as
+      | GeminiFile
+      | {
+          error?: {
+            message?: string;
+          };
+        }
+      | null;
+
+  if (!response.ok) {
+    console.error(
+      "[Chat PDF] Gemini file lookup failed:",
+      response.status,
+      payload,
+    );
+
+    return null;
+  }
+
+  return payload as GeminiFile;
+}
+
+async function waitForFileReady(
+  fileId: string,
+  apiKey: string,
+) {
+  const maxAttempts = 30;
+
+  for (
+    let attempt = 0;
+    attempt < maxAttempts;
+    attempt += 1
+  ) {
+    const file =
+      await getGeminiFile(
+        fileId,
+        apiKey,
+      );
+
+    if (!file) {
+      throw new Error(
+        "The uploaded PDF could not be found in Gemini.",
+      );
+    }
+
+    if (
+      file.state === "ACTIVE"
+    ) {
+      return file;
+    }
+
+    if (
+      file.state === "FAILED"
+    ) {
+      throw new Error(
+        file.error?.message ||
+          "Gemini failed to process the PDF.",
+      );
+    }
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          500,
+        ),
+    );
+  }
+
+  throw new Error(
+    "Gemini is still processing the PDF. Please try again in a moment.",
+  );
+}
+
+function extractAnswer(
+  payload: GeminiInteractionResponse,
+) {
+  if (
+    typeof payload.output_text ===
+    "string" &&
+    payload.output_text.trim()
+  ) {
+    return payload.output_text.trim();
+  }
+
+  const textParts: string[] = [];
+
+  for (
+    const step of
+      payload.steps ?? []
+  ) {
+    if (
+      step.type !==
+      "model_output"
+    ) {
+      continue;
+    }
+
+    for (
+      const content of
+        step.content ?? []
+    ) {
+      if (
+        content.type === "text" &&
+        typeof content.text ===
+          "string"
+      ) {
+        textParts.push(
+          content.text,
+        );
+      }
+    }
+  }
+
+  return textParts
+    .join("\n")
+    .trim();
+}
+
+function getProviderError(
+  payload: GeminiInteractionResponse | null,
+) {
+  if (
+    payload?.error?.message
+  ) {
+    return payload.error.message;
+  }
+
+  if (
+    Array.isArray(
+      payload?.errors,
+    )
+  ) {
+    const message =
+      payload.errors.find(
+        (item) =>
+          typeof item?.message ===
+          "string",
+      )?.message;
+
+    if (message) {
+      return message;
+    }
+  }
+
+  return "Gemini could not answer the question.";
+}
+
+export const Route = createFileRoute(
+  "/api/chat-pdf/ask",
+)({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        const apiKey = getOpenAiKey();
-        const model = process.env.OPENAI_CHAT_PDF_MODEL?.trim() || "gpt-5.6-luna";
-        if (!apiKey) {
+      POST: async ({
+        request,
+      }) => {
+        try {
+          /* ============================================================
+             1. SERVER CONFIGURATION
+          ============================================================ */
+
+          const apiKey =
+            getGeminiApiKey();
+
+          const model =
+            getGeminiModel();
+
+          if (!apiKey) {
+            return json(
+              {
+                error:
+                  "GEMINI_API_KEY is not configured on the server.",
+              },
+              500,
+            );
+          }
+
+          /* ============================================================
+             2. READ REQUEST
+          ============================================================ */
+
+          const body =
+            await request
+              .json()
+              .catch(
+                () => null,
+              );
+
+          const fileId =
+            body?.fileId;
+
+          const question =
+            typeof body?.question ===
+            "string"
+              ? body.question.trim()
+              : "";
+
+          const previousResponseId =
+            body?.previousResponseId;
+
+          const fileToken =
+            body?.fileToken;
+
+          /* ============================================================
+             3. VALIDATE FILE
+          ============================================================ */
+
+          if (
+            !isSafeFileId(
+              fileId,
+            )
+          ) {
+            return json(
+              {
+                error:
+                  "A valid uploaded PDF is required.",
+              },
+              400,
+            );
+          }
+
+          /* ============================================================
+             4. VALIDATE FILE TOKEN
+          ============================================================ */
+
+          const tokenSecret =
+            getEnv(
+              "CHAT_PDF_TOKEN_SECRET",
+            ) || apiKey;
+
+          const expectedToken =
+            await signFileId(
+              fileId,
+              tokenSecret,
+            );
+
+          if (
+            typeof fileToken !==
+              "string" ||
+            !safeEqual(
+              fileToken,
+              expectedToken,
+            )
+          ) {
+            return json(
+              {
+                error:
+                  "This PDF session is invalid or expired.",
+              },
+              403,
+            );
+          }
+
+          /* ============================================================
+             5. VALIDATE QUESTION
+          ============================================================ */
+
+          if (!question) {
+            return json(
+              {
+                error:
+                  "Ask a question about the PDF.",
+              },
+              400,
+            );
+          }
+
+          if (
+            question.length >
+            MAX_QUESTION_LENGTH
+          ) {
+            return json(
+              {
+                error:
+                  `Questions must be ${MAX_QUESTION_LENGTH} characters or fewer.`,
+              },
+              400,
+            );
+          }
+
+          /* ============================================================
+             6. VALIDATE CONVERSATION STATE
+          ============================================================ */
+
+          if (
+            previousResponseId !==
+              undefined &&
+            !isSafeInteractionId(
+              previousResponseId,
+            )
+          ) {
+            return json(
+              {
+                error:
+                  "Invalid conversation state.",
+              },
+              400,
+            );
+          }
+
+          const firstTurn =
+            !previousResponseId;
+
+          /* ============================================================
+             7. GET GEMINI FILE
+          ============================================================ */
+
+          let geminiFile:
+            | GeminiFile
+            | null = null;
+
+          try {
+            geminiFile =
+              await waitForFileReady(
+                fileId,
+                apiKey,
+              );
+          } catch (error) {
+            console.error(
+              "[Chat PDF] PDF is not ready:",
+              error,
+            );
+
+            return json(
+              {
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "The PDF is not ready yet.",
+              },
+              502,
+            );
+          }
+
+          if (
+            !geminiFile.uri
+          ) {
+            return json(
+              {
+                error:
+                  "Gemini did not return a usable PDF URI.",
+              },
+              502,
+            );
+          }
+
+          /* ============================================================
+             8. BUILD GEMINI INPUT
+          ============================================================ */
+
+          const input = firstTurn
+            ? [
+                {
+                  type: "document",
+                  uri: geminiFile.uri,
+                  mime_type:
+                    "application/pdf",
+                },
+                {
+                  type: "text",
+                  text: question,
+                },
+              ]
+            : [
+                {
+                  type: "text",
+                  text: question,
+                },
+              ];
+
+          /* ============================================================
+             9. CREATE GEMINI INTERACTION
+          ============================================================ */
+
+          console.log(
+            "[Chat PDF] Asking Gemini:",
+            {
+              model,
+              fileId,
+              firstTurn,
+            },
+          );
+
+          const response =
+            await fetch(
+              `${GEMINI_API_BASE}/interactions`,
+              {
+                method: "POST",
+                headers: {
+                  "x-goog-api-key":
+                    apiKey,
+                  "Content-Type":
+                    "application/json",
+                },
+                body:
+                  JSON.stringify({
+                    model,
+                    input,
+
+                    system_instruction:
+                      "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
+
+                    ...(previousResponseId
+                      ? {
+                          previous_interaction_id:
+                            previousResponseId,
+                        }
+                      : {}),
+
+                    store: true,
+
+                    generation_config:
+                      {
+                        max_output_tokens:
+                          2048,
+                        thinking_level:
+                          "low",
+                      },
+                  }),
+              },
+            );
+
+          const payload =
+            (await response
+              .json()
+              .catch(
+                () => null,
+              )) as GeminiInteractionResponse | null;
+
+          /* ============================================================
+             10. HANDLE GEMINI ERROR
+          ============================================================ */
+
+          if (
+            !response.ok
+          ) {
+            console.error(
+              "[Chat PDF] Gemini interaction failed:",
+              {
+                status:
+                  response.status,
+                payload,
+              },
+            );
+
+            return json(
+              {
+                error:
+                  getProviderError(
+                    payload,
+                  ),
+                providerStatus:
+                  response.status,
+              },
+              response.status,
+            );
+          }
+
+          if (
+            payload?.status ===
+            "failed"
+          ) {
+            return json(
+              {
+                error:
+                  getProviderError(
+                    payload,
+                  ),
+              },
+              502,
+            );
+          }
+
+          /* ============================================================
+             11. EXTRACT ANSWER
+          ============================================================ */
+
+          const answer =
+            payload
+              ? extractAnswer(
+                  payload,
+                )
+              : "";
+
+          const interactionId =
+            typeof payload?.id ===
+            "string"
+              ? payload.id
+              : "";
+
+          if (!interactionId) {
+            console.error(
+              "[Chat PDF] Gemini did not return an interaction ID:",
+              payload,
+            );
+
+            return json(
+              {
+                error:
+                  "Gemini returned an answer but did not return conversation state.",
+              },
+              502,
+            );
+          }
+
+          /* ============================================================
+             12. SUCCESS
+          ============================================================ */
+
+          return json({
+            answer:
+              answer ||
+              "I couldn't find a useful answer in the PDF.",
+
+            responseId:
+              interactionId,
+
+            model,
+          });
+        } catch (error) {
+          console.error(
+            "[Chat PDF] Unexpected ask error:",
+            error,
+          );
+
           return json(
-            { error: "OPENAI_API_KEY is not configured on the server." },
+            {
+              error:
+                error instanceof Error
+                  ? `Server error: ${error.message}`
+                  : "Could not get an answer.",
+            },
             500,
           );
         }
-
-        const body = await request.json().catch(() => null);
-        const fileId = body?.fileId;
-        const question =
-          typeof body?.question === "string"
-            ? body.question.trim()
-            : "";
-        const previousResponseId = body?.previousResponseId;
-        const fileToken = body?.fileToken;
-
-        if (!isSafeFileId(fileId)) {
-          return json({ error: "A valid uploaded PDF is required." }, 400);
-        }
-
-        if (typeof fileToken !== "string" || !safeEqual(fileToken, await signFileId(fileId, apiKey))) {
-          return json({ error: "This PDF session is invalid or expired." }, 403);
-        }
-
-        if (!question) {
-          return json({ error: "Ask a question about the PDF." }, 400);
-        }
-
-        if (question.length > MAX_QUESTION_LENGTH) {
-          return json(
-            { error: `Questions must be ${MAX_QUESTION_LENGTH} characters or fewer.` },
-            400,
-          );
-        }
-
-        if (
-          previousResponseId !== undefined &&
-          !isSafeResponseId(previousResponseId)
-        ) {
-          return json({ error: "Invalid conversation state." }, 400);
-        }
-
-        const firstTurn = !previousResponseId;
-
-        const input = firstTurn
-          ? [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "input_file",
-                    file_id: fileId,
-                  },
-                  {
-                    type: "input_text",
-                    text: question,
-                  },
-                ],
-              },
-            ]
-          : [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "input_text",
-                    text: question,
-                  },
-                ],
-              },
-            ];
-
-        const response = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            instructions:
-              "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
-            input,
-            ...(previousResponseId
-              ? { previous_response_id: previousResponseId }
-              : {}),
-            store: true,
-            truncation: "auto",
-          }),
-        });
-
-        const payload = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          const message =
-            payload && typeof payload === "object" && "error" in payload
-              ? String(
-                  (payload.error as { message?: unknown })?.message ??
-                    "OpenAI could not answer the question.",
-                )
-              : "OpenAI could not answer the question.";
-
-          return json({ error: message }, response.status);
-        }
-
-        const answer =
-          typeof payload?.output_text === "string"
-            ? payload.output_text.trim()
-            : "";
-
-        return json({
-          answer: answer || "I couldn't find a useful answer in the PDF.",
-          responseId: String(payload?.id ?? ""),
-          model,
-        });
       },
     },
   },

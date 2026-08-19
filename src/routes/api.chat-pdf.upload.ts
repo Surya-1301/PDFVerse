@@ -1,26 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const MAX_PDF_SIZE = 50 * 1024 * 1024;
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_UPLOAD_BASE =
+  "https://generativelanguage.googleapis.com/upload/v1beta";
 
-type OpenAIFileResponse = {
-  id?: string;
-  object?: string;
-  bytes?: number;
-  created_at?: number;
-  filename?: string;
-  purpose?: string;
+type GeminiFile = {
+  name?: string;
+  displayName?: string;
+  mimeType?: string;
+  sizeBytes?: string;
+  uri?: string;
+  state?: "STATE_UNSPECIFIED" | "PROCESSING" | "ACTIVE" | "FAILED";
   error?: {
+    code?: number;
     message?: string;
-    type?: string;
-    code?: string;
-    param?: string | null;
   };
 };
 
-function jsonResponse(
-  data: unknown,
-  status = 200,
-) {
+type GeminiFileResponse = {
+  file?: GeminiFile;
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+  };
+};
+
+function jsonResponse(data: unknown, status = 200) {
   return Response.json(data, {
     status,
     headers: {
@@ -29,9 +36,18 @@ function jsonResponse(
   });
 }
 
-function getApiKey() {
+function getEnv(name: string) {
+  return process.env[name]?.trim() || "";
+}
+
+function getGeminiApiKey() {
+  return getEnv("GEMINI_API_KEY");
+}
+
+function getGeminiModel() {
   return (
-    process.env.OPENAI_API_KEY?.trim() || ""
+    getEnv("GEMINI_CHAT_PDF_MODEL") ||
+    "gemini-3.6-flash"
   );
 }
 
@@ -39,32 +55,104 @@ async function createFileToken(
   fileId: string,
   secret: string,
 ) {
-  const key =
-    await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      {
-        name: "HMAC",
-        hash: "SHA-256",
-      },
-      false,
-      ["sign"],
-    );
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    {
+      name: "HMAC",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"],
+  );
 
-  const signature =
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(fileId),
-    );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(fileId),
+  );
 
-  return Array.from(
-    new Uint8Array(signature),
-  )
+  return Array.from(new Uint8Array(signature))
     .map((byte) =>
       byte.toString(16).padStart(2, "0"),
     )
     .join("");
+}
+
+async function getGeminiFile(
+  fileId: string,
+  apiKey: string,
+): Promise<GeminiFile | null> {
+  const response = await fetch(
+    `${GEMINI_API_BASE}/${fileId}`,
+    {
+      method: "GET",
+      headers: {
+        "x-goog-api-key": apiKey,
+      },
+    },
+  );
+
+  const payload =
+    (await response.json().catch(() => null)) as
+      | GeminiFile
+      | {
+          error?: {
+            message?: string;
+          };
+        }
+      | null;
+
+  if (!response.ok) {
+    console.error(
+      "[Chat PDF] Gemini file metadata request failed:",
+      response.status,
+      payload,
+    );
+
+    return null;
+  }
+
+  return payload as GeminiFile;
+}
+
+async function waitForFileReady(
+  fileId: string,
+  apiKey: string,
+) {
+  const maxAttempts = 30;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const file = await getGeminiFile(
+      fileId,
+      apiKey,
+    );
+
+    if (!file) {
+      throw new Error(
+        "Gemini could not verify the uploaded PDF.",
+      );
+    }
+
+    if (file.state === "ACTIVE") {
+      return file;
+    }
+
+    if (file.state === "FAILED") {
+      throw new Error(
+        file.error?.message ||
+          "Gemini could not process the uploaded PDF.",
+      );
+    }
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 500),
+    );
+  }
+
+  throw new Error(
+    "Gemini is still processing the PDF. Please try again in a moment.",
+  );
 }
 
 export const Route = createFileRoute(
@@ -74,43 +162,36 @@ export const Route = createFileRoute(
     handlers: {
       POST: async ({ request }) => {
         console.log(
-          "[Chat PDF] ================================",
+          "[Chat PDF] =================================",
         );
         console.log(
-          "[Chat PDF] Upload request received",
+          "[Chat PDF] Gemini PDF upload request",
         );
 
         try {
           /* ============================================================
-             1. SERVER ENVIRONMENT
+             1. SERVER CONFIGURATION
           ============================================================ */
 
-          const apiKey = getApiKey();
-
-          const model =
-            process.env.OPENAI_CHAT_PDF_MODEL?.trim() ||
-            "gpt-5.6-luna";
+          const apiKey = getGeminiApiKey();
+          const model = getGeminiModel();
 
           console.log(
-            "[Chat PDF] API key configured:",
+            "[Chat PDF] Gemini API key configured:",
             Boolean(apiKey),
           );
 
           console.log(
-            "[Chat PDF] Model:",
+            "[Chat PDF] Gemini model:",
             model,
           );
 
           if (!apiKey) {
-            console.error(
-              "[Chat PDF] OPENAI_API_KEY is missing",
-            );
-
             return jsonResponse(
               {
                 success: false,
                 error:
-                  "OPENAI_API_KEY is not configured on the server. Check .env.local and restart the development server.",
+                  "GEMINI_API_KEY is not configured on the server. Add it to your .env file or Cloudflare Secret.",
               },
               500,
             );
@@ -120,20 +201,10 @@ export const Route = createFileRoute(
              2. REQUEST VALIDATION
           ============================================================ */
 
-          console.log(
-            "[Chat PDF] Method:",
-            request.method,
-          );
-
           const contentType =
             request.headers.get(
               "content-type",
             ) || "";
-
-          console.log(
-            "[Chat PDF] Content-Type:",
-            contentType,
-          );
 
           if (
             !contentType
@@ -153,7 +224,7 @@ export const Route = createFileRoute(
           }
 
           /* ============================================================
-             3. READ MULTIPART FORM
+             3. READ FORM DATA
           ============================================================ */
 
           let formData: FormData;
@@ -181,10 +252,6 @@ export const Route = createFileRoute(
             formData.get("file");
 
           if (!(uploaded instanceof File)) {
-            console.error(
-              "[Chat PDF] FormData did not contain a File",
-            );
-
             return jsonResponse(
               {
                 success: false,
@@ -196,25 +263,12 @@ export const Route = createFileRoute(
           }
 
           /* ============================================================
-             4. FILE INFORMATION
+             4. FILE VALIDATION
           ============================================================ */
 
           const filename =
             uploaded.name?.trim() ||
             "document.pdf";
-
-          console.log(
-            "[Chat PDF] File received:",
-            {
-              name: filename,
-              type: uploaded.type,
-              size: uploaded.size,
-            },
-          );
-
-          /* ============================================================
-             5. PDF VALIDATION
-          ============================================================ */
 
           const filenameIsPdf =
             filename
@@ -225,10 +279,7 @@ export const Route = createFileRoute(
             uploaded.type ===
             "application/pdf";
 
-          if (
-            !filenameIsPdf &&
-            !mimeIsPdf
-          ) {
+          if (!filenameIsPdf && !mimeIsPdf) {
             return jsonResponse(
               {
                 success: false,
@@ -250,10 +301,7 @@ export const Route = createFileRoute(
             );
           }
 
-          if (
-            uploaded.size >
-            MAX_PDF_SIZE
-          ) {
+          if (uploaded.size > MAX_PDF_SIZE) {
             return jsonResponse(
               {
                 success: false,
@@ -264,12 +312,17 @@ export const Route = createFileRoute(
             );
           }
 
+          console.log(
+            "[Chat PDF] PDF received:",
+            {
+              filename,
+              size: uploaded.size,
+              type: uploaded.type,
+            },
+          );
+
           /* ============================================================
-             6. READ FILE INTO MEMORY
-             
-             This creates a fresh File object for the outgoing
-             multipart request and avoids runtime-specific issues
-             with forwarding the incoming File directly.
+             5. READ PDF BYTES
           ============================================================ */
 
           let fileBytes: ArrayBuffer;
@@ -279,7 +332,7 @@ export const Route = createFileRoute(
               await uploaded.arrayBuffer();
           } catch (error) {
             console.error(
-              "[Chat PDF] Could not read PDF bytes:",
+              "[Chat PDF] Failed to read PDF bytes:",
               error,
             );
 
@@ -293,188 +346,260 @@ export const Route = createFileRoute(
             );
           }
 
-          const pdfBlob =
-            new Blob([fileBytes], {
-              type: "application/pdf",
-            });
-
-          const pdfFile = new File(
-            [pdfBlob],
-            filename,
-            {
-              type: "application/pdf",
-            },
-          );
-
-          console.log(
-            "[Chat PDF] PDF prepared for OpenAI:",
-            {
-              name: pdfFile.name,
-              size: pdfFile.size,
-              type: pdfFile.type,
-            },
-          );
-
           /* ============================================================
-             7. OPENAI FILE UPLOAD
+             6. START GEMINI RESUMABLE UPLOAD
           ============================================================ */
 
-          const openAiForm =
-            new FormData();
-
-          openAiForm.append(
-            "purpose",
-            "user_data",
-          );
-
-          openAiForm.append(
-            "file",
-            pdfFile,
-            filename,
-          );
-
-          /*
-           * IMPORTANT:
-           *
-           * Do not set Content-Type manually.
-           * fetch() generates the multipart boundary.
-           */
-
           console.log(
-            "[Chat PDF] Sending PDF to OpenAI...",
+            "[Chat PDF] Starting Gemini Files API upload...",
           );
 
-          const openAiResponse =
+          const startUploadResponse =
             await fetch(
-              "https://api.openai.com/v1/files",
+              `${GEMINI_UPLOAD_BASE}/files`,
               {
                 method: "POST",
                 headers: {
-                  Authorization:
-                    `Bearer ${apiKey}`,
+                  "x-goog-api-key":
+                    apiKey,
+                  "X-Goog-Upload-Protocol":
+                    "resumable",
+                  "X-Goog-Upload-Command":
+                    "start",
+                  "X-Goog-Upload-Header-Content-Length":
+                    String(uploaded.size),
+                  "X-Goog-Upload-Header-Content-Type":
+                    "application/pdf",
+                  "Content-Type":
+                    "application/json",
                 },
-                  body: openAiForm,
+                body: JSON.stringify({
+                  file: {
+                    display_name:
+                      filename,
+                  },
+                }),
               },
             );
 
-          const responseText =
-            await openAiResponse.text();
-
-          console.log(
-            "[Chat PDF] OpenAI status:",
-            openAiResponse.status,
-          );
-
-          /* ============================================================
-             8. PARSE OPENAI RESPONSE
-          ============================================================ */
-
-          let openAiData:
-            | OpenAIFileResponse
-            | null = null;
-
-          try {
-            openAiData =
-              JSON.parse(
-                responseText,
-              ) as OpenAIFileResponse;
-          } catch {
-            console.error(
-              "[Chat PDF] OpenAI returned non-JSON response:",
-              responseText,
-            );
-          }
-
-          /* ============================================================
-             9. HANDLE OPENAI ERROR
-          ============================================================ */
-
-          if (!openAiResponse.ok) {
-            const providerError =
-              openAiData?.error;
+          if (!startUploadResponse.ok) {
+            const text =
+              await startUploadResponse.text();
 
             console.error(
-              "[Chat PDF] ================================",
-            );
-            console.error(
-              "[Chat PDF] OPENAI FILE UPLOAD FAILED",
-            );
-            console.error(
-              "[Chat PDF] Status:",
-              openAiResponse.status,
-            );
-            console.error(
-              "[Chat PDF] Type:",
-              providerError?.type,
-            );
-            console.error(
-              "[Chat PDF] Code:",
-              providerError?.code,
-            );
-            console.error(
-              "[Chat PDF] Message:",
-              providerError?.message,
-            );
-            console.error(
-              "[Chat PDF] Raw response:",
-              responseText,
-            );
-            console.error(
-              "[Chat PDF] ================================",
+              "[Chat PDF] Gemini upload initialization failed:",
+              startUploadResponse.status,
+              text,
             );
 
             return jsonResponse(
               {
                 success: false,
                 error:
-                  providerError?.message ||
-                  `OpenAI rejected the PDF upload with status ${openAiResponse.status}.`,
+                  "Gemini could not initialize the PDF upload.",
                 providerStatus:
-                  openAiResponse.status,
-                providerType:
-                  providerError?.type ||
-                  null,
-                providerCode:
-                  providerError?.code ||
-                  null,
+                  startUploadResponse.status,
               },
-              openAiResponse.status,
+              startUploadResponse.status,
             );
           }
 
-          /* ============================================================
-             10. EXTRACT OPENAI FILE ID
-          ============================================================ */
+          const uploadUrl =
+            startUploadResponse.headers.get(
+              "x-goog-upload-url",
+            );
 
-          const fileId =
-            typeof openAiData?.id ===
-            "string"
-              ? openAiData.id
-              : "";
-
-          if (!fileId) {
+          if (!uploadUrl) {
             console.error(
-              "[Chat PDF] OpenAI response did not contain a file ID:",
-              openAiData,
+              "[Chat PDF] Gemini did not return an upload URL.",
             );
 
             return jsonResponse(
               {
                 success: false,
                 error:
-                  "OpenAI accepted the PDF but did not return a file ID.",
+                  "Gemini did not return an upload URL.",
               },
               502,
             );
           }
 
           /* ============================================================
-             11. CREATE SIGNED TOKEN
+             7. UPLOAD PDF BYTES
+          ============================================================ */
+
+          console.log(
+            "[Chat PDF] Uploading PDF bytes to Gemini...",
+          );
+
+          const uploadResponse =
+            await fetch(uploadUrl, {
+              method: "POST",
+              headers: {
+                "Content-Length":
+                  String(uploaded.size),
+                "X-Goog-Upload-Offset":
+                  "0",
+                "X-Goog-Upload-Command":
+                  "upload, finalize",
+                "Content-Type":
+                  "application/pdf",
+              },
+              body: fileBytes,
+            });
+
+          const uploadResponseText =
+            await uploadResponse.text();
+
+          if (!uploadResponse.ok) {
+            console.error(
+              "[Chat PDF] Gemini PDF upload failed:",
+              uploadResponse.status,
+              uploadResponseText,
+            );
+
+            let providerError: {
+              error?: {
+                message?: string;
+              };
+            } | null = null;
+
+            try {
+              providerError =
+                JSON.parse(
+                  uploadResponseText,
+                );
+            } catch {
+              // Ignore non-JSON response.
+            }
+
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  providerError?.error
+                    ?.message ||
+                  `Gemini rejected the PDF upload with status ${uploadResponse.status}.`,
+                providerStatus:
+                  uploadResponse.status,
+              },
+              uploadResponse.status,
+            );
+          }
+
+          /* ============================================================
+             8. PARSE GEMINI FILE RESPONSE
+          ============================================================ */
+
+          let geminiData:
+            | GeminiFileResponse
+            | null = null;
+
+          try {
+            geminiData =
+              JSON.parse(
+                uploadResponseText,
+              ) as GeminiFileResponse;
+          } catch {
+            console.error(
+              "[Chat PDF] Gemini returned invalid JSON:",
+              uploadResponseText,
+            );
+
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  "Gemini uploaded the PDF but returned an invalid response.",
+              },
+              502,
+            );
+          }
+
+          const file =
+            geminiData.file;
+
+          const fileId =
+            typeof file?.name ===
+            "string"
+              ? file.name
+              : "";
+
+          if (!fileId) {
+            console.error(
+              "[Chat PDF] Gemini did not return a file resource name:",
+              geminiData,
+            );
+
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  "Gemini accepted the PDF but did not return a file ID.",
+              },
+              502,
+            );
+          }
+
+          /* ============================================================
+             9. WAIT FOR GEMINI TO PROCESS THE PDF
+          ============================================================ */
+
+          console.log(
+            "[Chat PDF] Waiting for Gemini PDF processing:",
+            fileId,
+          );
+
+          let readyFile: GeminiFile;
+
+          try {
+            readyFile =
+              await waitForFileReady(
+                fileId,
+                apiKey,
+              );
+          } catch (error) {
+            console.error(
+              "[Chat PDF] Gemini PDF processing failed:",
+              error,
+            );
+
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Gemini could not process the PDF.",
+              },
+              502,
+            );
+          }
+
+          if (!readyFile.uri) {
+            console.error(
+              "[Chat PDF] Gemini file has no URI:",
+              readyFile,
+            );
+
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  "Gemini processed the PDF but did not return a usable file URI.",
+              },
+              502,
+            );
+          }
+
+          /* ============================================================
+             10. CREATE SIGNED FILE TOKEN
           ============================================================ */
 
           const tokenSecret =
-            process.env.CHAT_PDF_TOKEN_SECRET?.trim() ||
-            apiKey;
+            getEnv(
+              "CHAT_PDF_TOKEN_SECRET",
+            ) || apiKey;
 
           const fileToken =
             await createFileToken(
@@ -483,20 +608,21 @@ export const Route = createFileRoute(
             );
 
           /* ============================================================
-             12. SUCCESS
+             11. SUCCESS
           ============================================================ */
 
           console.log(
-            "[Chat PDF] Upload successful:",
+            "[Chat PDF] Gemini PDF upload successful:",
             {
               fileId,
               filename,
               size: uploaded.size,
+              state: readyFile.state,
             },
           );
 
           console.log(
-            "[Chat PDF] ================================",
+            "[Chat PDF] =================================",
           );
 
           return jsonResponse({
@@ -509,19 +635,8 @@ export const Route = createFileRoute(
           });
         } catch (error) {
           console.error(
-            "[Chat PDF] ================================",
-          );
-
-          console.error(
-            "[Chat PDF] UNEXPECTED SERVER ERROR",
-          );
-
-          console.error(
+            "[Chat PDF] Unexpected upload error:",
             error,
-          );
-
-          console.error(
-            "[Chat PDF] ================================",
           );
 
           return jsonResponse(
