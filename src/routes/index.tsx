@@ -88,7 +88,7 @@ function Home() {
 
               <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
                 Edit PDF files for free. Add text, images, shapes, signatures,
-                highlights, and more.
+                highlights.
               </p>
             </div>
 

@@ -4,10 +4,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowUpRight,
-
   Check,
-  
-  
   Download,
   Eraser,
   FilePlus2,
@@ -125,6 +122,7 @@ export default function PdfEditor() {
   const scrollRef = useRef<HTMLElement | null>(null);
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [curPage, setCurPage] = useState(1);
+  const [mobilePagesOpen, setMobilePagesOpen] = useState(false);
   /** pages already scanned for original text (including pages with none) */
   const [seedDone, setSeedDone] = useState<number[]>([]);
 
@@ -574,6 +572,154 @@ export default function PdfEditor() {
           </>
         )}
       </div>
+
+      {/* Mobile pages launcher */}
+      <button
+        type="button"
+        onClick={() => setMobilePagesOpen(true)}
+        className="
+          fixed bottom-4 left-4 z-[90]
+          flex h-11 items-center gap-2 rounded-full
+          border border-white/15 bg-[#111113]/95 px-4
+          text-sm font-semibold text-slate-200 shadow-xl
+          backdrop-blur-md transition hover:bg-white/10
+          lg:hidden
+        "
+        aria-label="Open pages"
+      >
+        <FilePlus2 size={17} />
+        Pages
+      </button>
+
+      {/* Mobile pages drawer */}
+      {mobilePagesOpen && (
+        <div className="fixed inset-0 z-[120] lg:hidden">
+          <button
+            type="button"
+            aria-label="Close pages"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobilePagesOpen(false)}
+          />
+
+          <aside
+            className="
+              absolute left-0 top-0 flex h-full w-[min(86vw,320px)]
+              flex-col border-r border-white/10 bg-[#111113]
+              shadow-2xl
+            "
+          >
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Pages</p>
+                <p className="text-[11px] text-slate-500">
+                  {state.pages.length} {state.pages.length === 1 ? "page" : "pages"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobilePagesOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-xl text-slate-400 hover:bg-white/10 hover:text-white"
+                aria-label="Close pages"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="space-y-4">
+                {state.pages.map((p, i) => {
+                  const d = pageDisplay(p.index, p.rotation);
+                  return (
+                    <div key={`mobile-${p.index}-${i}`} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          goToPage(i + 1);
+                          setMobilePagesOpen(false);
+                        }}
+                        className={`relative mx-auto block overflow-hidden rounded border bg-white shadow-sm ${
+                          curPage === i + 1
+                            ? "border-violet-400 ring-2 ring-violet-400"
+                            : "border-white/10"
+                        }`}
+                        style={{ width: 150, height: (150 * d.h) / d.w }}
+                        aria-label={`Go to page ${i + 1}`}
+                      >
+                        {!p.blank && (
+                          <Thumb doc={doc} index={p.index} rot={d.rot} width={150} />
+                        )}
+                        <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[11px] text-slate-200">
+                          {i + 1}
+                        </span>
+                      </button>
+
+                      <div className="mt-2 flex justify-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/10"
+                          aria-label="Rotate page"
+                          onClick={() =>
+                            commit((s) => ({
+                              ...s,
+                              pages: s.pages.map((q, j) =>
+                                j === i ? { ...q, rotation: q.rotation + 90 } : q,
+                              ),
+                            }))
+                          }
+                        >
+                          <RotateCw size={15} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/10"
+                          aria-label="Delete page"
+                          onClick={() =>
+                            commit((s) => ({
+                              ...s,
+                              pages: s.pages.filter((_, j) => j !== i),
+                            }))
+                          }
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="
+                  mt-5 flex w-full items-center justify-center gap-2
+                  rounded-xl border border-dashed border-violet-400/40
+                  bg-violet-500/5 py-3 text-sm font-medium text-violet-300
+                  transition hover:bg-violet-500/10
+                "
+                onClick={() => {
+                  commit((s) => ({
+                    ...s,
+                    pages: [
+                      ...s.pages,
+                      {
+                        index: -1 - s.pages.length,
+                        rotation: 0,
+                        blank: { width: 595, height: 842 },
+                      },
+                    ],
+                  }));
+                  setMobilePagesOpen(false);
+                }}
+              >
+                <FilePlus2 size={16} />
+                Add blank page
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1">
         {/* pages sidebar */}

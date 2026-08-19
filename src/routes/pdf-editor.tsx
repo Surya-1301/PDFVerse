@@ -7,7 +7,7 @@ import { HowToUse } from "@/components/site/HowToUse";
 export const Route = createFileRoute("/pdf-editor")({
   head: () => ({
     meta: [
-      { title: "Online PDF Editor — Edit PDF Text, Sign & Annotate | PDFVerse" },
+      { title: "PDF Editor — Edit PDF Text, Sign & Annotate | PDFVerse" },
       {
         name: "description",
         content:
