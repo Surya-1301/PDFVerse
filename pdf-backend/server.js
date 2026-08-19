@@ -12,29 +12,38 @@ const app = express();
 
 const PORT = process.env.PORT || 4000;
 
-const ALLOWED_ORIGINS = [
-  "https://pdfverse.pages.dev",
-  "http://localhost:3000",
-  "http://localhost:5173",
-];
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+
+  // Local development (allow any localhost or 127.0.0.1 port, such as 5173, 3000, etc.)
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    return true;
+  }
+
+  // Cloudflare Pages production and all branch/preview deployments
+  if (
+    origin === "https://pdfverse.pages.dev" ||
+    /^https:\/\/[a-zA-Z0-9_-]+\.pdfverse\.pages\.dev$/.test(origin) ||
+    /^https:\/\/[a-zA-Z0-9_-]+\.pages\.dev$/.test(origin)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
         return;
       }
 
-      if (ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: [
       "Content-Disposition",
       "X-Original-Size",
@@ -672,6 +681,9 @@ function pdfToPdfa(inputPath, outputPath) {
   });
 }
 
+/**
+ * Updated: returns a clean professional message for wrong password instead of traceback.
+ */
 function unlockPdf(inputPath, outputPath, password) {
   const pyScript = `
 import sys
@@ -998,7 +1010,7 @@ try:
         pdf_files = [
             os.path.join(work_dir, file_name)
             for file_name in os.listdir(work_dir)
-            if file_name.lower().endsWith(".pdf")
+            if file_name.lower().endswith(".pdf")
         ]
 
         if not pdf_files:

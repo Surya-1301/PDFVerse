@@ -117,8 +117,14 @@ export function ChatWithPdf() {
     } catch (uploadError) {
       setFileId("");
       setFileToken("");
+      const isNetworkError =
+        uploadError instanceof TypeError ||
+        (uploadError instanceof Error &&
+          uploadError.message.toLowerCase().includes("fetch"));
       setError(
-        uploadError instanceof Error
+        isNetworkError
+          ? "Unable to connect to the PDF API. If your backend is deployed on Render free tier, please wait 30 seconds for it to wake up and try again."
+          : uploadError instanceof Error
           ? uploadError.message
           : "Could not upload the PDF.",
       );
@@ -178,8 +184,14 @@ export function ChatWithPdf() {
         },
       ]);
     } catch (askError) {
+      const isNetworkError =
+        askError instanceof TypeError ||
+        (askError instanceof Error &&
+          askError.message.toLowerCase().includes("fetch"));
       setError(
-        askError instanceof Error
+        isNetworkError
+          ? "Unable to reach the backend server to get an answer. Please check your connection or backend status and try again."
+          : askError instanceof Error
           ? askError.message
           : "Could not get an answer.",
       );
