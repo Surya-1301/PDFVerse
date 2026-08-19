@@ -1,6 +1,6 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pdfverse",
   "compatibility_date": "2026-08-17",
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "./dist/client"
 }
