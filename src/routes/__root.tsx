@@ -113,8 +113,7 @@ export const Route =
         },
         {
           name: "viewport",
-          content:
-            "width=device-width, initial-scale=1",
+          content: "width=device-width, initial-scale=1",
         },
         {
           title: "PDFVerse — Free Online PDF Tools",
@@ -127,33 +126,33 @@ export const Route =
       ],
 
       links: [
-  {
-    rel: "icon",
-    href: "/favicon-32x32.png?v=2",
-    type: "image/png",
-    sizes: "32x32",
-  },
-  {
-    rel: "icon",
-    href: "/favicon-16x16.png?v=2",
-    type: "image/png",
-    sizes: "16x16",
-  },
-  {
-    rel: "shortcut icon",
-    href: "/favicon.ico?v=2",
-    type: "image/x-icon",
-  },
-  {
-    rel: "apple-touch-icon",
-    href: "/apple-touch-icon.png?v=2",
-    sizes: "180x180",
-  },
-  {
-    rel: "stylesheet",
-    href: appCss,
-  },
-],
+        {
+          rel: "icon",
+          href: "/favicon-32x32.png?v=2",
+          type: "image/png",
+          sizes: "32x32",
+        },
+        {
+          rel: "icon",
+          href: "/favicon-16x16.png?v=2",
+          type: "image/png",
+          sizes: "16x16",
+        },
+        {
+          rel: "shortcut icon",
+          href: "/favicon.ico?v=2",
+          type: "image/x-icon",
+        },
+        {
+          rel: "apple-touch-icon",
+          href: "/apple-touch-icon.png?v=2",
+          sizes: "180x180",
+        },
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+      ],
     }),
 
     component: RootComponent,
@@ -164,28 +163,29 @@ export const Route =
   });
 
 function RootComponent() {
-  const { queryClient } =
-    Route.useRouteContext();
+  const { queryClient } = Route.useRouteContext();
 
   return (
-    <>
-      {/* Required by TanStack Start to render route head() */}
-      <HeadContent />
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
 
-      <QueryClientProvider client={queryClient}>
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-          <Header />
+      <body>
+        <QueryClientProvider client={queryClient}>
+          <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <Header />
 
-          <main className="flex-1">
-            <Outlet />
-          </main>
+            <main className="flex-1">
+              <Outlet />
+            </main>
 
-          <Footer />
-        </div>
-      </QueryClientProvider>
+            <Footer />
+          </div>
+        </QueryClientProvider>
 
-      {/* Required for TanStack Start client scripts */}
-      <Scripts />
-    </>
+        <Scripts />
+      </body>
+    </html>
   );
 }
