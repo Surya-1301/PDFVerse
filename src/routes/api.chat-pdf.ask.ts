@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const MAX_QUESTION_LENGTH = 4000;
-
 const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta";
 
@@ -65,7 +64,13 @@ function json(
 }
 
 function getEnv(name: string) {
-  return process.env[name]?.trim() || "";
+  if (typeof process !== "undefined" && process.env && process.env[name]) {
+    return process.env[name].trim();
+  }
+  if (typeof globalThis !== "undefined" && (globalThis as Record<string, unknown>)[name]) {
+    return String((globalThis as Record<string, unknown>)[name]).trim();
+  }
+  return "";
 }
 
 function getGeminiApiKey() {
@@ -75,7 +80,7 @@ function getGeminiApiKey() {
 function getGeminiModel() {
   return (
     getEnv("GEMINI_CHAT_PDF_MODEL") ||
-    "gemini-3.6-flash"
+    "gemini-1.5-flash"
   );
 }
 
@@ -332,10 +337,7 @@ export const Route = createFileRoute(
         request,
       }) => {
         try {
-          /* ============================================================
-             1. SERVER CONFIGURATION
-          ============================================================ */
-
+          /* 1. SERVER CONFIGURATION */
           const apiKey =
             getGeminiApiKey();
 
@@ -352,10 +354,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             2. READ REQUEST
-          ============================================================ */
-
+          /* 2. READ REQUEST */
           const body =
             await request
               .json()
@@ -378,10 +377,7 @@ export const Route = createFileRoute(
           const fileToken =
             body?.fileToken;
 
-          /* ============================================================
-             3. VALIDATE FILE
-          ============================================================ */
-
+          /* 3. VALIDATE FILE */
           if (
             !isSafeFileId(
               fileId,
@@ -396,10 +392,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             4. VALIDATE FILE TOKEN
-          ============================================================ */
-
+          /* 4. VALIDATE FILE TOKEN */
           const tokenSecret =
             getEnv(
               "CHAT_PDF_TOKEN_SECRET",
@@ -428,10 +421,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             5. VALIDATE QUESTION
-          ============================================================ */
-
+          /* 5. VALIDATE QUESTION */
           if (!question) {
             return json(
               {
@@ -455,10 +445,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             6. VALIDATE CONVERSATION STATE
-          ============================================================ */
-
+          /* 6. VALIDATE CONVERSATION STATE */
           if (
             previousResponseId !==
               undefined &&
@@ -478,10 +465,7 @@ export const Route = createFileRoute(
           const firstTurn =
             !previousResponseId;
 
-          /* ============================================================
-             7. GET GEMINI FILE
-          ============================================================ */
-
+          /* 7. GET GEMINI FILE */
           let geminiFile:
             | GeminiFile
             | null = null;
@@ -521,10 +505,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             8. BUILD GEMINI INPUT
-          ============================================================ */
-
+          /* 8. BUILD GEMINI INPUT */
           const input = firstTurn
             ? [
                 {
@@ -545,19 +526,7 @@ export const Route = createFileRoute(
                 },
               ];
 
-          /* ============================================================
-             9. CREATE GEMINI INTERACTION
-          ============================================================ */
-
-          console.log(
-            "[Chat PDF] Asking Gemini:",
-            {
-              model,
-              fileId,
-              firstTurn,
-            },
-          );
-
+          /* 9. CREATE GEMINI INTERACTION */
           const response =
             await fetch(
               `${GEMINI_API_BASE}/interactions`,
@@ -573,19 +542,15 @@ export const Route = createFileRoute(
                   JSON.stringify({
                     model,
                     input,
-
                     system_instruction:
                       "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
-
                     ...(previousResponseId
                       ? {
                           previous_interaction_id:
                             previousResponseId,
                         }
                       : {}),
-
                     store: true,
-
                     generation_config:
                       {
                         max_output_tokens:
@@ -604,22 +569,10 @@ export const Route = createFileRoute(
                 () => null,
               )) as GeminiInteractionResponse | null;
 
-          /* ============================================================
-             10. HANDLE GEMINI ERROR
-          ============================================================ */
-
+          /* 10. HANDLE GEMINI ERROR */
           if (
             !response.ok
           ) {
-            console.error(
-              "[Chat PDF] Gemini interaction failed:",
-              {
-                status:
-                  response.status,
-                payload,
-              },
-            );
-
             return json(
               {
                 error:
@@ -648,10 +601,6 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             11. EXTRACT ANSWER
-          ============================================================ */
-
           const answer =
             payload
               ? extractAnswer(
@@ -659,53 +608,19 @@ export const Route = createFileRoute(
                 )
               : "";
 
-          const interactionId =
-            typeof payload?.id ===
-            "string"
-              ? payload.id
-              : "";
-
-          if (!interactionId) {
-            console.error(
-              "[Chat PDF] Gemini did not return an interaction ID:",
-              payload,
-            );
-
-            return json(
-              {
-                error:
-                  "Gemini returned an answer but did not return conversation state.",
-              },
-              502,
-            );
-          }
-
-          /* ============================================================
-             12. SUCCESS
-          ============================================================ */
-
           return json({
-            answer:
-              answer ||
-              "I couldn't find a useful answer in the PDF.",
-
+            success: true,
             responseId:
-              interactionId,
-
-            model,
+              payload?.id,
+            answer,
           });
         } catch (error) {
-          console.error(
-            "[Chat PDF] Unexpected ask error:",
-            error,
-          );
-
           return json(
             {
               error:
                 error instanceof Error
-                  ? `Server error: ${error.message}`
-                  : "Could not get an answer.",
+                  ? error.message
+                  : "An unexpected error occurred while asking the PDF.",
             },
             500,
           );

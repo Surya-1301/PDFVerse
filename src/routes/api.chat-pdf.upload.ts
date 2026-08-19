@@ -37,7 +37,13 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 function getEnv(name: string) {
-  return process.env[name]?.trim() || "";
+  if (typeof process !== "undefined" && process.env && process.env[name]) {
+    return process.env[name].trim();
+  }
+  if (typeof globalThis !== "undefined" && (globalThis as Record<string, unknown>)[name]) {
+    return String((globalThis as Record<string, unknown>)[name]).trim();
+  }
+  return "";
 }
 
 function getGeminiApiKey() {
@@ -47,7 +53,7 @@ function getGeminiApiKey() {
 function getGeminiModel() {
   return (
     getEnv("GEMINI_CHAT_PDF_MODEL") ||
-    "gemini-3.6-flash"
+    "gemini-1.5-flash"
   );
 }
 
@@ -169,22 +175,9 @@ export const Route = createFileRoute(
         );
 
         try {
-          /* ============================================================
-             1. SERVER CONFIGURATION
-          ============================================================ */
-
+          /* 1. SERVER CONFIGURATION */
           const apiKey = getGeminiApiKey();
           const model = getGeminiModel();
-
-          console.log(
-            "[Chat PDF] Gemini API key configured:",
-            Boolean(apiKey),
-          );
-
-          console.log(
-            "[Chat PDF] Gemini model:",
-            model,
-          );
 
           if (!apiKey) {
             return jsonResponse(
@@ -197,10 +190,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             2. REQUEST VALIDATION
-          ============================================================ */
-
+          /* 2. REQUEST VALIDATION */
           const contentType =
             request.headers.get(
               "content-type",
@@ -223,10 +213,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             3. READ FORM DATA
-          ============================================================ */
-
+          /* 3. READ FORM DATA */
           let formData: FormData;
 
           try {
@@ -262,10 +249,7 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             4. FILE VALIDATION
-          ============================================================ */
-
+          /* 4. FILE VALIDATION */
           const filename =
             uploaded.name?.trim() ||
             "document.pdf";
@@ -312,19 +296,7 @@ export const Route = createFileRoute(
             );
           }
 
-          console.log(
-            "[Chat PDF] PDF received:",
-            {
-              filename,
-              size: uploaded.size,
-              type: uploaded.type,
-            },
-          );
-
-          /* ============================================================
-             5. READ PDF BYTES
-          ============================================================ */
-
+          /* 5. READ PDF BYTES */
           let fileBytes: ArrayBuffer;
 
           try {
@@ -346,104 +318,69 @@ export const Route = createFileRoute(
             );
           }
 
-          /* ============================================================
-             6. START GEMINI RESUMABLE UPLOAD
-          ============================================================ */
-
-          console.log(
-            "[Chat PDF] Starting Gemini Files API upload...",
-          );
-
+          /* 6. START GEMINI RESUMABLE UPLOAD */
           const startUploadResponse =
             await fetch(
               `${GEMINI_UPLOAD_BASE}/files`,
               {
                 method: "POST",
                 headers: {
-                  "x-goog-api-key":
-                    apiKey,
-                  "X-Goog-Upload-Protocol":
-                    "resumable",
-                  "X-Goog-Upload-Command":
-                    "start",
-                  "X-Goog-Upload-Header-Content-Length":
-                    String(uploaded.size),
-                  "X-Goog-Upload-Header-Content-Type":
-                    "application/pdf",
-                  "Content-Type":
-                    "application/json",
+                  "x-goog-api-key": apiKey,
+                  "X-Goog-Upload-Protocol": "resumable",
+                  "X-Goog-Upload-Command": "start",
+                  "X-Goog-Upload-Header-Content-Length": String(uploaded.size),
+                  "X-Goog-Upload-Header-Content-Type": "application/pdf",
+                  "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                   file: {
-                    display_name:
-                      filename,
+                    display_name: filename,
                   },
                 }),
               },
             );
 
           if (!startUploadResponse.ok) {
-            const text =
-              await startUploadResponse.text();
-
-            console.error(
-              "[Chat PDF] Gemini upload initialization failed:",
-              startUploadResponse.status,
-              text,
-            );
+            const text = await startUploadResponse.text();
+            let providerError: { error?: { message?: string } } | null = null;
+            try {
+              providerError = JSON.parse(text);
+            } catch {}
 
             return jsonResponse(
               {
                 success: false,
                 error:
+                  providerError?.error?.message ||
                   "Gemini could not initialize the PDF upload.",
-                providerStatus:
-                  startUploadResponse.status,
+                providerStatus: startUploadResponse.status,
               },
               startUploadResponse.status,
             );
           }
 
           const uploadUrl =
-            startUploadResponse.headers.get(
-              "x-goog-upload-url",
-            );
+            startUploadResponse.headers.get("x-goog-upload-url");
 
           if (!uploadUrl) {
-            console.error(
-              "[Chat PDF] Gemini did not return an upload URL.",
-            );
-
             return jsonResponse(
               {
                 success: false,
-                error:
-                  "Gemini did not return an upload URL.",
+                error: "Gemini did not return an upload URL.",
               },
               502,
             );
           }
 
-          /* ============================================================
-             7. UPLOAD PDF BYTES
-          ============================================================ */
-
-          console.log(
-            "[Chat PDF] Uploading PDF bytes to Gemini...",
-          );
-
+          /* 7. UPLOAD PDF BYTES */
           const uploadResponse =
             await fetch(uploadUrl, {
               method: "POST",
               headers: {
-                "Content-Length":
-                  String(uploaded.size),
-                "X-Goog-Upload-Offset":
-                  "0",
-                "X-Goog-Upload-Command":
-                  "upload, finalize",
-                "Content-Type":
-                  "application/pdf",
+                "Content-Length": String(uploaded.size),
+                "X-Goog-Upload-Offset": "0",
+                "X-Goog-Upload-Command": "upload, finalize",
+                "Content-Type": "application/pdf",
               },
               body: fileBytes,
             });
@@ -452,118 +389,55 @@ export const Route = createFileRoute(
             await uploadResponse.text();
 
           if (!uploadResponse.ok) {
-            console.error(
-              "[Chat PDF] Gemini PDF upload failed:",
-              uploadResponse.status,
-              uploadResponseText,
-            );
-
-            let providerError: {
-              error?: {
-                message?: string;
-              };
-            } | null = null;
-
+            let providerError: { error?: { message?: string } } | null = null;
             try {
-              providerError =
-                JSON.parse(
-                  uploadResponseText,
-                );
-            } catch {
-              // Ignore non-JSON response.
-            }
+              providerError = JSON.parse(uploadResponseText);
+            } catch {}
 
             return jsonResponse(
               {
                 success: false,
                 error:
-                  providerError?.error
-                    ?.message ||
+                  providerError?.error?.message ||
                   `Gemini rejected the PDF upload with status ${uploadResponse.status}.`,
-                providerStatus:
-                  uploadResponse.status,
+                providerStatus: uploadResponse.status,
               },
               uploadResponse.status,
             );
           }
 
-          /* ============================================================
-             8. PARSE GEMINI FILE RESPONSE
-          ============================================================ */
-
-          let geminiData:
-            | GeminiFileResponse
-            | null = null;
-
+          /* 8. PARSE GEMINI FILE RESPONSE */
+          let geminiData: GeminiFileResponse | null = null;
           try {
-            geminiData =
-              JSON.parse(
-                uploadResponseText,
-              ) as GeminiFileResponse;
+            geminiData = JSON.parse(uploadResponseText) as GeminiFileResponse;
           } catch {
-            console.error(
-              "[Chat PDF] Gemini returned invalid JSON:",
-              uploadResponseText,
-            );
-
             return jsonResponse(
               {
                 success: false,
-                error:
-                  "Gemini uploaded the PDF but returned an invalid response.",
+                error: "Gemini uploaded the PDF but returned an invalid response.",
               },
               502,
             );
           }
 
-          const file =
-            geminiData.file;
-
-          const fileId =
-            typeof file?.name ===
-            "string"
-              ? file.name
-              : "";
+          const file = geminiData.file;
+          const fileId = typeof file?.name === "string" ? file.name : "";
 
           if (!fileId) {
-            console.error(
-              "[Chat PDF] Gemini did not return a file resource name:",
-              geminiData,
-            );
-
             return jsonResponse(
               {
                 success: false,
-                error:
-                  "Gemini accepted the PDF but did not return a file ID.",
+                error: "Gemini accepted the PDF but did not return a file ID.",
               },
               502,
             );
           }
 
-          /* ============================================================
-             9. WAIT FOR GEMINI TO PROCESS THE PDF
-          ============================================================ */
-
-          console.log(
-            "[Chat PDF] Waiting for Gemini PDF processing:",
-            fileId,
-          );
-
+          /* 9. WAIT FOR GEMINI TO PROCESS THE PDF */
           let readyFile: GeminiFile;
-
           try {
-            readyFile =
-              await waitForFileReady(
-                fileId,
-                apiKey,
-              );
+            readyFile = await waitForFileReady(fileId, apiKey);
           } catch (error) {
-            console.error(
-              "[Chat PDF] Gemini PDF processing failed:",
-              error,
-            );
-
             return jsonResponse(
               {
                 success: false,
@@ -577,75 +451,36 @@ export const Route = createFileRoute(
           }
 
           if (!readyFile.uri) {
-            console.error(
-              "[Chat PDF] Gemini file has no URI:",
-              readyFile,
-            );
-
             return jsonResponse(
               {
                 success: false,
-                error:
-                  "Gemini processed the PDF but did not return a usable file URI.",
+                error: "Gemini processed the PDF but did not return a usable file URI.",
               },
               502,
             );
           }
 
-          /* ============================================================
-             10. CREATE SIGNED FILE TOKEN
-          ============================================================ */
-
-          const tokenSecret =
-            getEnv(
-              "CHAT_PDF_TOKEN_SECRET",
-            ) || apiKey;
-
-          const fileToken =
-            await createFileToken(
-              fileId,
-              tokenSecret,
-            );
-
-          /* ============================================================
-             11. SUCCESS
-          ============================================================ */
-
-          console.log(
-            "[Chat PDF] Gemini PDF upload successful:",
-            {
-              fileId,
-              filename,
-              size: uploaded.size,
-              state: readyFile.state,
-            },
-          );
-
-          console.log(
-            "[Chat PDF] =================================",
-          );
+          /* 10. CREATE SIGNED FILE TOKEN */
+          const tokenSecret = getEnv("CHAT_PDF_TOKEN_SECRET") || apiKey;
+          const fileToken = await createFileToken(fileId, tokenSecret);
 
           return jsonResponse({
             success: true,
             fileId,
             fileToken,
-            filename,
-            size: uploaded.size,
-            model,
+            name: readyFile.displayName || filename,
+            mimeType: readyFile.mimeType || "application/pdf",
+            sizeBytes: readyFile.sizeBytes || String(uploaded.size),
+            state: readyFile.state,
           });
         } catch (error) {
-          console.error(
-            "[Chat PDF] Unexpected upload error:",
-            error,
-          );
-
           return jsonResponse(
             {
               success: false,
               error:
                 error instanceof Error
-                  ? `Server error: ${error.message}`
-                  : "Could not upload the PDF.",
+                  ? error.message
+                  : "An unexpected error occurred while processing the PDF.",
             },
             500,
           );
