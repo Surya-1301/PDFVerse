@@ -3,8 +3,6 @@ import {
   AlertTriangle,
   Download,
   Eraser,
-  Eye,
-
   FileText,
   Loader2,
   Upload,
@@ -14,7 +12,6 @@ import {
 import { getToolImpl, type Field, type ToolValues } from "@/lib/pdf/tools";
 import type { ToolFile } from "@/lib/pdf/toolkit";
 import { formatFileSize } from "@/lib/formatFileSize";
-import { PreviewButton, PreviewModal, type PreviewTarget } from "./FilePreview";
 
 
 function defaultValues(fields: Field[]): ToolValues {
@@ -28,6 +25,53 @@ function defaultValues(fields: Field[]): ToolValues {
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-500";
+
+function InlineFilePreview({
+  name,
+  type,
+  url,
+}: {
+  name: string;
+  type: string;
+  url: string;
+}) {
+  const isPdf = type.includes("pdf") || name.toLowerCase().endsWith(".pdf");
+  const isImage = type.startsWith("image/");
+
+  const pdfUrl = isPdf
+    ? `${url}${url.includes("#") ? "&" : "#"}toolbar=0&navpanes=0&scrollbar=0&view=FitH`
+    : url;
+
+  return (
+    <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
+      <div className="flex h-[220px] w-full items-center justify-center overflow-hidden bg-[#171a22] sm:h-[280px] lg:h-[320px]">
+        {isPdf ? (
+          <iframe
+            title={`Preview of ${name}`}
+            src={pdfUrl}
+            loading="lazy"
+            className="h-full w-full border-0 bg-white"
+          />
+        ) : isImage ? (
+          <div className="flex h-full w-full items-center justify-center bg-white p-3">
+            <img
+              src={url}
+              alt={`Preview of ${name}`}
+              className="h-full w-full object-contain"
+            />
+          </div>
+        ) : (
+          <iframe
+            title={`Preview of ${name}`}
+            src={url}
+            loading="lazy"
+            className="h-full w-full border-0 bg-white"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
 type ToolRunnerProps = {
   slug: string;
@@ -48,28 +92,18 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const [results, setResults] = useState<Array<ToolFile & { url: string }>>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<PreviewTarget | null>(null);
-  const tempUrl = useRef<string | null>(null);
+  const [selectedPreviewUrls, setSelectedPreviewUrls] = useState<string[]>([]);
+  const selectedPreviewUrlsRef = useRef<string[]>([]);
 
-  useEffect(
-    () => () => {
-      if (tempUrl.current) URL.revokeObjectURL(tempUrl.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    return () => {
+      selectedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
-  const closePreview = () => {
-    setPreview(null);
-    if (tempUrl.current) {
-      URL.revokeObjectURL(tempUrl.current);
-      tempUrl.current = null;
-    }
-  };
-
-  const previewFile = (file: File) => {
-    if (tempUrl.current) URL.revokeObjectURL(tempUrl.current);
-    tempUrl.current = URL.createObjectURL(file);
-    setPreview({ name: file.name, type: file.type, url: tempUrl.current });
+  const setSelectedUrls = (urls: string[]) => {
+    selectedPreviewUrlsRef.current = urls;
+    setSelectedPreviewUrls(urls);
   };
 
 
@@ -89,20 +123,39 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     setValues((prev) => ({ ...prev, [name]: value }));
 
   const clearResults = () => {
-    setPreview(null);
     results.forEach((r) => URL.revokeObjectURL(r.url));
-
     setResults([]);
     setNames({});
     setError("");
     setStatus("");
   };
 
+  const clearSelectedPreviews = () => {
+    selectedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    selectedPreviewUrlsRef.current = [];
+    setSelectedPreviewUrls([]);
+  };
+
   const onPick = (list: FileList | null) => {
     if (!list || list.length === 0) return;
+
     const picked = Array.from(list);
-    setFiles((prev) => (impl.multiple ? [...prev, ...picked] : picked.slice(0, 1)));
+    const nextFiles = impl.multiple
+      ? [...files, ...picked]
+      : picked.slice(0, 1);
+
     clearResults();
+
+    if (impl.multiple) {
+      const urls = picked.map((file) => URL.createObjectURL(file));
+      setFiles(nextFiles);
+      setSelectedUrls([...selectedPreviewUrlsRef.current, ...urls]);
+    } else {
+      selectedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      const url = URL.createObjectURL(picked[0]);
+      setFiles(nextFiles);
+      setSelectedUrls([url]);
+    }
   };
 
   const run = async () => {
@@ -115,7 +168,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
         extraFiles,
         progress: (message) => setStatus(message),
       });
-      setResults(out.map((file) => ({ ...file, url: URL.createObjectURL(file.blob) })));
+
+      const processed = out.map((file) => ({
+        ...file,
+        url: URL.createObjectURL(file.blob),
+      }));
+
+      setResults(processed);
       setStatus("");
     } catch (err) {
       setError(
@@ -176,38 +235,86 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           <span className="text-base font-semibold text-white">
             Click to browse or drop {impl.multiple ? "files" : "a file"} here
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="hidden">
             Everything runs in your browser — nothing is uploaded to a server.
           </span>
         </button>
 
         {files.length > 0 ? (
-          <ul className="mt-4 space-y-2">
-            {files.map((file, index) => (
-              <li
-                key={`${file.name}-${index}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm"
-              >
-                <span className="truncate text-slate-200">{file.name}</span>
-                <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
-                  {formatFileSize(file.size)}
-                  <PreviewButton onClick={() => previewFile(file)} />
+          <div className="mt-4 sm:mt-5">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+              {files.map((file, index) => {
+                const previewUrl = selectedPreviewUrls[index];
 
-                  <button
-                    type="button"
-                    aria-label={`Remove ${file.name}`}
-                    onClick={() => {
-                      setFiles((prev) => prev.filter((_, i) => i !== index));
-                      clearResults();
-                    }}
-                    className="text-slate-400 transition hover:text-white"
+                return (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="group min-w-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950/80 shadow-[0_8px_20px_rgba(0,0,0,0.16)] transition duration-200 hover:border-violet-500/30"
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
+                    {/* Only filename + remove button */}
+                    <div className="flex min-h-10 items-center gap-1.5 px-2.5 py-2 sm:min-h-12 sm:gap-2 sm:px-3 sm:py-2.5">
+                      <p
+                        className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-100 sm:text-sm"
+                        title={file.name}
+                      >
+                        {file.name}
+                      </p>
+
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        title={`Remove ${file.name}`}
+                        onClick={() => {
+                          const url = selectedPreviewUrls[index];
+                          if (url) URL.revokeObjectURL(url);
+
+                          const nextUrls = selectedPreviewUrls.filter(
+                            (_, i) => i !== index,
+                          );
+                          selectedPreviewUrlsRef.current = nextUrls;
+                          setSelectedPreviewUrls(nextUrls);
+
+                          setFiles((prev) => prev.filter((_, i) => i !== index));
+                          clearResults();
+                        }}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-slate-900 text-slate-300 transition hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-300 sm:h-9 sm:w-9"
+                      >
+                        <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      </button>
+                    </div>
+
+                    {/* Preview only — no icon, metadata, badge, or extra text */}
+                    <div className="h-[108px] w-full overflow-hidden bg-[#171a22] sm:h-[145px] lg:h-[165px]">
+                      {previewUrl ? (
+                        file.type.includes("pdf") ||
+                        file.name.toLowerCase().endsWith(".pdf") ? (
+                          <iframe
+                            title={`Preview of ${file.name}`}
+                            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                            className="block h-full w-full border-0 bg-white"
+                          />
+                        ) : file.type.startsWith("image/") ? (
+                          <div className="flex h-full w-full items-center justify-center bg-white">
+                            <img
+                              src={previewUrl}
+                              alt={`Preview of ${file.name}`}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <iframe
+                            title={`Preview of ${file.name}`}
+                            src={previewUrl}
+                            className="block h-full w-full border-0 bg-white"
+                          />
+                        )
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ) : null}
 
         {fields.length > 0 ? (
@@ -303,12 +410,12 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap gap-2.5 sm:mt-5 sm:gap-3">
           <button
             type="button"
             onClick={run}
             disabled={!canProcess}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:hover:bg-slate-700"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-violet-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:hover:bg-slate-700"
           >
             {busy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -324,9 +431,10 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               setFiles([]);
               setExtraFiles({});
               setValues(defaultValues(fields));
+              clearSelectedPreviews();
               clearResults();
             }}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-500/30 px-3.5 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
           >
             <Eraser className="h-4 w-4" />
             Clear
@@ -348,104 +456,96 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       </div>
 
       {/* ============ OUTPUT PANEL ============ */}
-      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-3 sm:p-5 lg:p-6">
+        <div className="flex items-start justify-between gap-3 sm:items-center">
           <div>
-            <h2 className="font-semibold text-white">Result</h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <h2 className="text-base font-semibold text-white sm:text-lg">Result</h2>
+            <p className="mt-1 max-w-[240px] text-xs leading-5 text-slate-500 sm:max-w-none">
               Your processed file appears here, ready to download.
             </p>
           </div>
 
           {results.length > 0 ? (
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">
+            <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 sm:px-3 sm:text-xs">
               Output ready
             </span>
           ) : null}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950 p-4">
+        <div className="mt-5">
           {results.length > 0 ? (
             <>
-              <ul className="space-y-3">
-                {results.map((file) => {
-                  const dot = file.name.lastIndexOf(".");
-                  const base = dot > 0 ? file.name.slice(0, dot) : file.name;
-                  const ext = dot > 0 ? file.name.slice(dot) : "";
-                  const current = names[file.name] ?? base;
+              <div className="min-h-0 rounded-xl border border-dashed border-white/10 bg-slate-900/40 p-3 sm:min-h-[420px] sm:p-5">
+                <ul className="grid w-full grid-cols-1 gap-5">
+                  {results.map((file) => {
+                    const dot = file.name.lastIndexOf(".");
+                    const base = dot > 0 ? file.name.slice(0, dot) : file.name;
+                    const ext = dot > 0 ? file.name.slice(dot) : "";
+                    const current = names[file.name] ?? base;
+                    const outputName = `${current || base}${ext}`;
 
-                  return (
-                    <li
-                      key={file.name}
-                      className="rounded-2xl border border-white/10 bg-slate-900/70 p-4"
-                    >
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-200">
-                          {(ext || ".file").replace(".", "").toUpperCase()}
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-300">
-                          {formatFileSize(file.blob.size)}
-                        </span>
-                      </div>
+                    return (
+                      <li key={file.name} className="w-full">
+                        <div className="mx-auto w-full max-w-[680px]">
+                          <InlineFilePreview
+                            name={outputName}
+                            type={file.blob.type}
+                            url={file.url}
+                          />
 
-                      <label className="mb-1.5 block text-xs font-medium text-slate-400">
-                        File name
-                      </label>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                            <div className="min-w-0">
+                              <label className="mb-2 block text-xs font-medium text-slate-400">
+                                File name
+                              </label>
+                              <input
+                                type="text"
+                                value={current}
+                                spellCheck={false}
+                                onChange={(event) =>
+                                  setNames((prev) => ({
+                                    ...prev,
+                                    [file.name]: event.target.value,
+                                  }))
+                                }
+                                className="min-h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
+                              />
+                            </div>
 
-                      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-                        <input
-                          type="text"
-                          value={current}
-                          spellCheck={false}
-                          onChange={(event) =>
-                            setNames((prev) => ({ ...prev, [file.name]: event.target.value }))
-                          }
-                          className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            closePreview();
-                            setPreview({
-                              name: `${current || base}${ext}`,
-                              type: file.blob.type,
-                              url: file.url,
-                            });
-                          }}
-                          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10 sm:w-auto"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Preview
-                        </button>
-
-                        <a
-                          href={file.url}
-                          download={`${current || base}${ext}`}
-                          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 sm:w-auto"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download
-                        </a>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                            <a
+                              href={file.url}
+                              download={outputName}
+                              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 sm:w-auto sm:min-w-[170px] sm:py-2.5"
+                            >
+                              <Download className="h-4 w-4" />
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
 
               <button
                 type="button"
                 onClick={() => {
+                  results.forEach((r) => URL.revokeObjectURL(r.url));
                   setFiles([]);
-                  clearResults();
+                  setResults([]);
+                  setNames({});
+                  clearSelectedPreviews();
+                  setStatus("");
+                  setError("");
                 }}
-                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-violet-500/30 hover:bg-white/10 sm:mt-5 sm:min-h-12"
               >
                 Process another file
               </button>
             </>
           ) : (
-            <div className="flex min-h-[360px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/40 text-center text-sm text-slate-500">
+            <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/40 px-5 py-10 text-center text-sm text-slate-500 sm:min-h-[420px]">
               <div className="max-w-xs">
                 <FileText className="mx-auto mb-3 h-10 w-10" />
                 <p className="font-medium text-slate-300">No output yet</p>
@@ -458,9 +558,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           )}
         </div>
       </div>
-
-      <PreviewModal target={preview} onClose={closePreview} />
     </div>
-
   );
 }
