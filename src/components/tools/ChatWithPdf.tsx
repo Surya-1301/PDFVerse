@@ -12,6 +12,10 @@ import {
   User,
 } from "lucide-react";
 
+const API_BASE =
+  import.meta.env.VITE_PDF_API_BASE_URL ||
+  "https://pdf-verse-api.onrender.com";
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const SUGGESTIONS = [
@@ -93,7 +97,7 @@ export function ChatWithPdf() {
       const form = new FormData();
       form.append("file", nextFile);
 
-      const response = await fetch("/api/chat-pdf/upload", {
+      const response = await fetch(`${API_BASE}/api/chat-pdf/upload`, {
         method: "POST",
         body: form,
       });
@@ -141,7 +145,7 @@ export function ChatWithPdf() {
     setMessages((current) => [...current, userMessage]);
 
     try {
-      const response = await fetch("/api/chat-pdf/ask", {
+      const response = await fetch(`${API_BASE}/api/chat-pdf/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 4000;
 const ALLOWED_ORIGINS = [
   "https://pdfverse.pages.dev",
   "http://localhost:3000",
-  "http://localhost:3001",
+  "http://localhost:5173",
 ];
 
 app.use(
@@ -672,9 +672,6 @@ function pdfToPdfa(inputPath, outputPath) {
   });
 }
 
-/**
- * Updated: returns a clean professional message for wrong password instead of traceback.
- */
 function unlockPdf(inputPath, outputPath, password) {
   const pyScript = `
 import sys
@@ -1001,7 +998,7 @@ try:
         pdf_files = [
             os.path.join(work_dir, file_name)
             for file_name in os.listdir(work_dir)
-            if file_name.lower().endswith(".pdf")
+            if file_name.lower().endsWith(".pdf")
         ]
 
         if not pdf_files:
@@ -2454,6 +2451,291 @@ doc.close()
     });
   },
 );
+
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_UPLOAD_BASE = "https://generativelanguage.googleapis.com/upload/v1beta";
+
+app.post("/api/chat-pdf/upload", upload.single("file"), async (req, res) => {
+  let filePath = "";
+  try {
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const model = (process.env.GEMINI_CHAT_PDF_MODEL || "gemini-1.5-flash").trim();
+
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: "GEMINI_API_KEY is not configured on the server.",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: "No PDF file was uploaded.",
+      });
+    }
+
+    filePath = req.file.path;
+    const fileBytes = await fsp.readFile(filePath);
+    const filename = req.file.originalname || "document.pdf";
+
+    const startUploadResponse = await fetch(`${GEMINI_UPLOAD_BASE}/files`, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "X-Goog-Upload-Protocol": "resumable",
+        "X-Goog-Upload-Command": "start",
+        "X-Goog-Upload-Header-Content-Length": String(req.file.size),
+        "X-Goog-Upload-Header-Content-Type": "application/pdf",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        file: {
+          display_name: filename,
+        },
+      }),
+    });
+
+    if (!startUploadResponse.ok) {
+      const text = await startUploadResponse.text();
+      let providerError = null;
+      try {
+        providerError = JSON.parse(text);
+      } catch {}
+
+      return res.status(startUploadResponse.status).json({
+        success: false,
+        error:
+          providerError?.error?.message ||
+          "Gemini could not initialize the PDF upload.",
+      });
+    }
+
+    const uploadUrl = startUploadResponse.headers.get("x-goog-upload-url");
+    if (!uploadUrl) {
+      return res.status(502).json({
+        success: false,
+        error: "Gemini did not return an upload URL.",
+      });
+    }
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "Content-Length": String(req.file.size),
+        "X-Goog-Upload-Offset": "0",
+        "X-Goog-Upload-Command": "upload, finalize",
+        "Content-Type": "application/pdf",
+      },
+      body: fileBytes,
+    });
+
+    const uploadText = await uploadResponse.text();
+    let geminiData = null;
+    try {
+      geminiData = JSON.parse(uploadText);
+    } catch {
+      return res.status(502).json({
+        success: false,
+        error: "Gemini returned an invalid response during file upload.",
+      });
+    }
+
+    const file = geminiData.file;
+    const fileId = typeof file?.name === "string" ? file.name : "";
+
+    if (!fileId) {
+      return res.status(502).json({
+        success: false,
+        error: "Gemini did not return a file resource name.",
+      });
+    }
+
+    // Wait for file state to become ACTIVE
+    let isReady = false;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const metaRes = await fetch(`${GEMINI_API_BASE}/${fileId}`, {
+        method: "GET",
+        headers: { "x-goog-api-key": apiKey },
+      });
+      const meta = await metaRes.json().catch(() => null);
+
+      if (meta?.state === "ACTIVE") {
+        isReady = true;
+        break;
+      }
+      if (meta?.state === "FAILED") {
+        throw new Error(meta?.error?.message || "Gemini failed to process the PDF.");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    if (!isReady) {
+      return res.status(502).json({
+        success: false,
+        error: "Gemini is still processing the PDF. Please try again in a moment.",
+      });
+    }
+
+    const tokenSecret = (process.env.CHAT_PDF_TOKEN_SECRET || apiKey).trim();
+    const fileToken = crypto
+      .createHmac("sha256", tokenSecret)
+      .update(fileId)
+      .digest("hex");
+
+    return res.json({
+      success: true,
+      fileId,
+      fileToken,
+      name: filename,
+      mimeType: "application/pdf",
+      sizeBytes: String(req.file.size),
+    });
+  } catch (error) {
+    console.error("[Chat PDF] Upload error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to upload PDF.",
+    });
+  } finally {
+    if (filePath) {
+      await safeDelete(filePath);
+    }
+  }
+});
+
+app.post("/api/chat-pdf/ask", async (req, res) => {
+  try {
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const model = (process.env.GEMINI_CHAT_PDF_MODEL || "gemini-1.5-flash").trim();
+
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "GEMINI_API_KEY is not configured on the server.",
+      });
+    }
+
+    const body = req.body || {};
+    const fileId = String(body.fileId || "").trim();
+    const fileToken = String(body.fileToken || "").trim();
+    const question = String(body.question || "").trim();
+    const previousResponseId = body.previousResponseId
+      ? String(body.previousResponseId).trim()
+      : undefined;
+
+    if (!fileId || !fileToken) {
+      return res.status(400).json({ error: "A valid uploaded PDF session is required." });
+    }
+
+    if (!question) {
+      return res.status(400).json({ error: "Question cannot be empty." });
+    }
+
+    // Validate signed session token
+    const tokenSecret = (process.env.CHAT_PDF_TOKEN_SECRET || apiKey).trim();
+    const expectedToken = crypto
+      .createHmac("sha256", tokenSecret)
+      .update(fileId)
+      .digest("hex");
+
+    if (fileToken !== expectedToken) {
+      return res.status(403).json({ error: "This PDF session is invalid or expired." });
+    }
+
+    // Fetch file details from Gemini
+    const fileRes = await fetch(`${GEMINI_API_BASE}/${fileId}`, {
+      method: "GET",
+      headers: { "x-goog-api-key": apiKey },
+    });
+    const fileData = await fileRes.json().catch(() => null);
+
+    if (!fileRes.ok || !fileData?.uri) {
+      return res.status(502).json({ error: "The uploaded PDF could not be found in Gemini." });
+    }
+
+    const firstTurn = !previousResponseId;
+    const input = firstTurn
+      ? [
+          {
+            type: "document",
+            uri: fileData.uri,
+            mime_type: "application/pdf",
+          },
+          {
+            type: "text",
+            text: question,
+          },
+        ]
+      : [
+          {
+            type: "text",
+            text: question,
+          },
+        ];
+
+    const response = await fetch(`${GEMINI_API_BASE}/interactions`, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        input,
+        system_instruction:
+          "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
+        ...(previousResponseId ? { previous_interaction_id: previousResponseId } : {}),
+        store: true,
+        generation_config: {
+          max_output_tokens: 2048,
+          thinking_level: "low",
+        },
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const errorMsg =
+        payload?.error?.message ||
+        (Array.isArray(payload?.errors) && payload.errors[0]?.message) ||
+        "Gemini could not answer the question.";
+
+      return res.status(response.status).json({
+        error: errorMsg,
+        providerStatus: response.status,
+      });
+    }
+
+    let answer = "";
+    if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
+      answer = payload.output_text.trim();
+    } else if (Array.isArray(payload?.steps)) {
+      const textParts = [];
+      for (const step of payload.steps) {
+        if (step.type === "model_output" && Array.isArray(step.content)) {
+          for (const item of step.content) {
+            if (item.type === "text" && item.text) {
+              textParts.push(item.text);
+            }
+          }
+        }
+      }
+      answer = textParts.join("\n").trim();
+    }
+
+    return res.json({
+      success: true,
+      responseId: payload?.id,
+      answer: answer || "No answer was returned.",
+    });
+  } catch (error) {
+    console.error("[Chat PDF] Ask error:", error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to get an answer.",
+    });
+  }
+});
 
 app.use((error, _req, res, _next) => {
   console.error(error);
