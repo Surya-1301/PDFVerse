@@ -40,16 +40,23 @@ app.use(
         return;
       }
 
-      callback(new Error(`Not allowed by CORS: ${origin}`));
+      callback(null, false);
     },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
     exposedHeaders: [
       "Content-Disposition",
       "X-Original-Size",
       "X-Compressed-Size",
       "X-Compression-Used",
     ],
+    credentials: true,
   }),
 );
 
@@ -2616,10 +2623,36 @@ app.post("/api/chat-pdf/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+async function resolveAvailableGeminiModels(apiKey) {
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+      {
+        headers: { "x-goog-api-key": apiKey },
+      },
+    );
+    const data = await res.json().catch(() => null);
+
+    if (res.ok && Array.isArray(data?.models)) {
+      const supported = data.models
+        .filter(
+          (m) =>
+            Array.isArray(m.supportedGenerationMethods) &&
+            m.supportedGenerationMethods.includes("generateContent"),
+        )
+        .map((m) => m.name.replace(/^models\//, ""));
+
+      return supported;
+    }
+  } catch (err) {
+    console.error("[Chat PDF] Could not list Gemini models:", err);
+  }
+  return [];
+}
+
 app.post("/api/chat-pdf/ask", async (req, res) => {
   try {
     const apiKey = (process.env.GEMINI_API_KEY || "").trim();
-    const model = (process.env.GEMINI_CHAT_PDF_MODEL || "gemini-1.5-flash").trim();
 
     if (!apiKey) {
       return res.status(500).json({
@@ -2631,9 +2664,7 @@ app.post("/api/chat-pdf/ask", async (req, res) => {
     const fileId = String(body.fileId || "").trim();
     const fileToken = String(body.fileToken || "").trim();
     const question = String(body.question || "").trim();
-    const previousResponseId = body.previousResponseId
-      ? String(body.previousResponseId).trim()
-      : undefined;
+    const history = Array.isArray(body.history) ? body.history : [];
 
     if (!fileId || !fileToken) {
       return res.status(400).json({ error: "A valid uploaded PDF session is required." });
@@ -2655,91 +2686,168 @@ app.post("/api/chat-pdf/ask", async (req, res) => {
     }
 
     // Fetch file details from Gemini
-    const fileRes = await fetch(`${GEMINI_API_BASE}/${fileId}`, {
-      method: "GET",
-      headers: { "x-goog-api-key": apiKey },
-    });
+    const fileRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${fileId}?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "GET",
+        headers: { "x-goog-api-key": apiKey },
+      },
+    );
     const fileData = await fileRes.json().catch(() => null);
 
     if (!fileRes.ok || !fileData?.uri) {
       return res.status(502).json({ error: "The uploaded PDF could not be found in Gemini." });
     }
 
-    const firstTurn = !previousResponseId;
-    const input = firstTurn
-      ? [
+    // Build standard Gemini contents array
+    const contents = [];
+
+    if (history.length > 0) {
+      let isFirst = true;
+      for (const msg of history) {
+        if (msg.role === "user") {
+          if (isFirst) {
+            contents.push({
+              role: "user",
+              parts: [
+                {
+                  fileData: {
+                    mimeType: "application/pdf",
+                    fileUri: fileData.uri,
+                  },
+                },
+                { text: String(msg.text || "") },
+              ],
+            });
+            isFirst = false;
+          } else {
+            contents.push({
+              role: "user",
+              parts: [{ text: String(msg.text || "") }],
+            });
+          }
+        } else if (msg.role === "assistant" || msg.role === "model") {
+          contents.push({
+            role: "model",
+            parts: [{ text: String(msg.text || "") }],
+          });
+        }
+      }
+      contents.push({
+        role: "user",
+        parts: isFirst
+          ? [
+              {
+                fileData: {
+                  mimeType: "application/pdf",
+                  fileUri: fileData.uri,
+                },
+              },
+              { text: question },
+            ]
+          : [{ text: question }],
+      });
+    } else {
+      contents.push({
+        role: "user",
+        parts: [
           {
-            type: "document",
-            uri: fileData.uri,
-            mime_type: "application/pdf",
+            fileData: {
+              mimeType: "application/pdf",
+              fileUri: fileData.uri,
+            },
           },
-          {
-            type: "text",
-            text: question,
-          },
-        ]
-      : [
-          {
-            type: "text",
-            text: question,
-          },
-        ];
-
-    const response = await fetch(`${GEMINI_API_BASE}/interactions`, {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        input,
-        system_instruction:
-          "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
-        ...(previousResponseId ? { previous_interaction_id: previousResponseId } : {}),
-        store: true,
-        generation_config: {
-          max_output_tokens: 2048,
-          thinking_level: "low",
-        },
-      }),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const errorMsg =
-        payload?.error?.message ||
-        (Array.isArray(payload?.errors) && payload.errors[0]?.message) ||
-        "Gemini could not answer the question.";
-
-      return res.status(response.status).json({
-        error: errorMsg,
-        providerStatus: response.status,
+          { text: question },
+        ],
       });
     }
 
-    let answer = "";
-    if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
-      answer = payload.output_text.trim();
-    } else if (Array.isArray(payload?.steps)) {
-      const textParts = [];
-      for (const step of payload.steps) {
-        if (step.type === "model_output" && Array.isArray(step.content)) {
-          for (const item of step.content) {
-            if (item.type === "text" && item.text) {
-              textParts.push(item.text);
-            }
-          }
-        }
-      }
-      answer = textParts.join("\n").trim();
+    // Determine model candidate list
+    const envModel = (process.env.GEMINI_CHAT_PDF_MODEL || "").trim().replace(/^models\//, "");
+    const availableModels = await resolveAvailableGeminiModels(apiKey);
+
+    const candidateModels = [];
+    if (envModel) candidateModels.push(envModel);
+
+    // Prioritized model fallback list
+    const defaults = [
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-002",
+      "gemini-1.5-flash-001",
+      "gemini-2.5-flash",
+      "gemini-1.5-pro",
+      "gemini-pro",
+    ];
+
+    for (const m of availableModels) {
+      if (!candidateModels.includes(m)) candidateModels.push(m);
+    }
+    for (const m of defaults) {
+      if (!candidateModels.includes(m)) candidateModels.push(m);
     }
 
-    return res.json({
-      success: true,
-      responseId: payload?.id,
-      answer: answer || "No answer was returned.",
+    let lastError = "Could not get an answer from Gemini.";
+    let lastStatus = 500;
+
+    for (const modelToTry of candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToTry)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [
+              {
+                text: "You are PDFVerse's document assistant. Answer questions using the uploaded PDF as the primary source. Do not invent facts. If the PDF does not contain enough information to answer, say so clearly. When useful, mention the page number or section where the answer comes from. Keep answers readable with short headings and bullets when appropriate.",
+              },
+            ],
+          },
+          generationConfig: {
+            maxOutputTokens: 2048,
+            temperature: 0.4,
+          },
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (response.ok) {
+        const candidate = payload?.candidates?.[0];
+        const parts = candidate?.content?.parts || [];
+        const answer =
+          parts
+            .map((p) => p.text)
+            .filter(Boolean)
+            .join("\n")
+            .trim() || "No answer was returned.";
+
+        return res.json({
+          success: true,
+          modelUsed: modelToTry,
+          answer,
+        });
+      }
+
+      lastError = payload?.error?.message || `Gemini error on model ${modelToTry}`;
+      lastStatus = response.status;
+      console.warn(`[Chat PDF] Attempt with model ${modelToTry} failed (${response.status}):`, lastError);
+
+      // If error is not a 404 (model not found), don't keep cycling models on 400 bad request
+      if (response.status !== 404 && !lastError.includes("not found")) {
+        break;
+      }
+    }
+
+    return res.status(lastStatus).json({
+      error: lastError,
+      providerStatus: lastStatus,
     });
   } catch (error) {
     console.error("[Chat PDF] Ask error:", error);
