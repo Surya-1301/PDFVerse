@@ -74,9 +74,6 @@
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/compare</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/rotate</loc>
@@ -110,9 +107,6 @@
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/forms</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/jpg-to-pdf</loc>
@@ -182,57 +176,30 @@
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/pdf-to-excel</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/compress</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/header-footer</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/repair</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/sign</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/metadata-editor</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/unlock</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/protect</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/redact</loc>
-    <lastmod>2026-08-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://pdfverse.pages.dev/pdf/batch-compress</loc>
@@ -271,3 +238,4 @@
     <priority>0.7</priority>
   </url>
 </urlset>
+​
