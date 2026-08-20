@@ -102,6 +102,27 @@ function ErrorComponent({
   );
 }
 
+const siteUrl = "https://pdfverse.pages.dev";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "PDFVerse",
+  url: siteUrl,
+  description:
+    "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/pdf/{search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "PDFVerse",
+    url: siteUrl,
+  },
+};
+
 export const Route =
   createRootRouteWithContext<{
     queryClient: QueryClient;
@@ -120,6 +141,36 @@ export const Route =
         },
         {
           name: "description",
+          content:
+            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+        },
+        {
+          property: "og:title",
+          content: "PDFVerse — Free Online PDF Tools",
+        },
+        {
+          property: "og:description",
+          content:
+            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+        },
+        {
+          property: "og:type",
+          content: "website",
+        },
+        {
+          property: "og:url",
+          content: siteUrl,
+        },
+        {
+          name: "twitter:card",
+          content: "summary_large_image",
+        },
+        {
+          name: "twitter:title",
+          content: "PDFVerse — Free Online PDF Tools",
+        },
+        {
+          name: "twitter:description",
           content:
             "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
         },
@@ -168,6 +219,10 @@ function RootComponent() {
   return (
     <html lang="en">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <HeadContent />
       </head>
 
