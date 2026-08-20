@@ -14,9 +14,67 @@ import {
 
 const API_BASE =
   import.meta.env.VITE_PDF_API_BASE_URL ||
-  "https://pdf-verse-api.onrender.com";
+  "https://pdf-verse-api-uu40.onrender.com";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const REQUEST_TIMEOUT_MS = 120_000;
+const WAKE_TIMEOUT_MS = 90_000;
+const WAKE_POLL_MS = 3_000;
+
+function isTransportError(error: unknown) {
+  return (
+    error instanceof TypeError ||
+    (error instanceof DOMException && error.name === "TimeoutError") ||
+    (error instanceof Error && error.message.toLowerCase().includes("fetch"))
+  );
+}
+
+/**
+ * Render free-tier services spin down after inactivity and can take 50s+ to
+ * boot. Poll the cheap /health route until the container answers, so the cold
+ * start does not burn the real upload/ask request.
+ */
+async function wakeBackend() {
+  const deadline = Date.now() + WAKE_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${API_BASE}/health`, {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (response.ok) return true;
+    } catch {
+      // Still booting - keep polling until the deadline.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, WAKE_POLL_MS));
+  }
+
+  return false;
+}
+
+async function fetchWithWake(url: string, init: RequestInit) {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (!isTransportError(error)) throw error;
+
+    // Retry once, but only after the backend confirms it is actually awake.
+    if (!(await wakeBackend())) throw error;
+
+    return await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  }
+}
 
 const SUGGESTIONS = [
   "What is this document about?",
@@ -97,7 +155,7 @@ export function ChatWithPdf() {
       const form = new FormData();
       form.append("file", nextFile);
 
-      const response = await fetch(`${API_BASE}/api/chat-pdf/upload`, {
+      const response = await fetchWithWake(`${API_BASE}/api/chat-pdf/upload`, {
         method: "POST",
         body: form,
       });
@@ -117,10 +175,7 @@ export function ChatWithPdf() {
     } catch (uploadError) {
       setFileId("");
       setFileToken("");
-      const isNetworkError =
-        uploadError instanceof TypeError ||
-        (uploadError instanceof Error &&
-          uploadError.message.toLowerCase().includes("fetch"));
+      const isNetworkError = isTransportError(uploadError);
       setError(
         isNetworkError
           ? "Unable to connect to the PDF API. If your backend is deployed on Render free tier, please wait 30 seconds for it to wake up and try again."
@@ -151,7 +206,7 @@ export function ChatWithPdf() {
     setMessages((current) => [...current, userMessage]);
 
     try {
-      const response = await fetch(`${API_BASE}/api/chat-pdf/ask`, {
+      const response = await fetchWithWake(`${API_BASE}/api/chat-pdf/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -184,10 +239,7 @@ export function ChatWithPdf() {
         },
       ]);
     } catch (askError) {
-      const isNetworkError =
-        askError instanceof TypeError ||
-        (askError instanceof Error &&
-          askError.message.toLowerCase().includes("fetch"));
+      const isNetworkError = isTransportError(askError);
       setError(
         isNetworkError
           ? "Unable to reach the backend server to get an answer. Please check your connection or backend status and try again."

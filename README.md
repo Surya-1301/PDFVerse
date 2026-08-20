@@ -11,7 +11,7 @@ https://pdfverse.pages.dev
 PDF backend:
 
 ```txt
-https://pdf-verse-api.onrender.com
+https://pdf-verse-api-uu40.onrender.com
 ```
 
 ---
@@ -179,7 +179,7 @@ Create:
 Add:
 
 ```env
-NEXT_PUBLIC_PDF_API_BASE_URL=https://pdf-verse-api.onrender.com
+VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
 ```
 
 ### 4. Run development server
@@ -201,7 +201,7 @@ http://localhost:3000
 ### Frontend
 
 ```env
-NEXT_PUBLIC_PDF_API_BASE_URL=https://pdf-verse-api.onrender.com
+VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
 ```
 
 This tells the frontend where to send server-side PDF processing requests.
@@ -224,7 +224,7 @@ Root directory: /
 ### Required environment variable
 
 ```txt
-NEXT_PUBLIC_PDF_API_BASE_URL=https://pdf-verse-api.onrender.com
+VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
 ```
 
 ---
@@ -255,7 +255,7 @@ The PDF backend is deployed on Render.
 Backend URL:
 
 ```txt
-https://pdf-verse-api.onrender.com
+https://pdf-verse-api-uu40.onrender.com
 ```
 
 ### Render settings
