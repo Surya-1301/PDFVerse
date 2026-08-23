@@ -178,6 +178,11 @@ export const Route =
 
       links: [
         {
+    rel: "manifest",
+    href: "/manifest.webmanifest",
+  },
+  
+        {
           rel: "icon",
           href: "/favicon-32x32.png?v=2",
           type: "image/png",
