@@ -34,8 +34,7 @@ function NotFoundComponent() {
         </h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has
-          been moved.
+          The page you're looking for doesn't exist or has been moved.
         </p>
 
         <div className="mt-6">
@@ -74,8 +73,8 @@ function ErrorComponent({
         </h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try
-          refreshing or head back home.
+          Something went wrong on our end. You can try refreshing or head back
+          home.
         </p>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -134,7 +133,8 @@ export const Route =
         },
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1",
+          content:
+            "width=device-width, initial-scale=1, viewport-fit=cover",
         },
         {
           title: "PDFVerse — Free Online PDF Tools",
@@ -144,6 +144,30 @@ export const Route =
           content:
             "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
         },
+
+        // PWA / mobile browser settings
+        {
+          name: "theme-color",
+          content: "#7c3aed",
+        },
+        {
+          name: "mobile-web-app-capable",
+          content: "yes",
+        },
+        {
+          name: "apple-mobile-web-app-capable",
+          content: "yes",
+        },
+        {
+          name: "apple-mobile-web-app-status-bar-style",
+          content: "black-translucent",
+        },
+        {
+          name: "apple-mobile-web-app-title",
+          content: "PDFVerse",
+        },
+
+        // Open Graph
         {
           property: "og:title",
           content: "PDFVerse — Free Online PDF Tools",
@@ -161,6 +185,8 @@ export const Route =
           property: "og:url",
           content: siteUrl,
         },
+
+        // Twitter
         {
           name: "twitter:card",
           content: "summary_large_image",
@@ -177,11 +203,13 @@ export const Route =
       ],
 
       links: [
+        // PWA manifest
         {
-    rel: "manifest",
-    href: "/manifest.webmanifest",
-  },
-  
+          rel: "manifest",
+          href: "/manifest.webmanifest",
+        },
+
+        // Standard favicon
         {
           rel: "icon",
           href: "/favicon-32x32.png?v=2",
@@ -199,11 +227,15 @@ export const Route =
           href: "/favicon.ico?v=2",
           type: "image/x-icon",
         },
+
+        // iOS home screen icon
         {
           rel: "apple-touch-icon",
           href: "/apple-touch-icon.png?v=2",
           sizes: "180x180",
         },
+
+        // Global stylesheet
         {
           rel: "stylesheet",
           href: appCss,
@@ -226,8 +258,11 @@ function RootComponent() {
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd),
+          }}
         />
+
         <HeadContent />
       </head>
 

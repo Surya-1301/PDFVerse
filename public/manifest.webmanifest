@@ -1,10 +1,11 @@
 {
   "name": "PDFVerse",
   "short_name": "PDFVerse",
-  "description": "PDFVerse - Your All-in-One Utility Hub.",
+  "description": "Free online PDF tools for editing, converting, compressing and managing PDF files.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#020617",
   "theme_color": "#7c3aed",
   "icons": [
