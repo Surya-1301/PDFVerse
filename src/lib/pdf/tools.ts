@@ -1454,7 +1454,7 @@ export const toolImpls: Record<string, ToolImpl> = {
           { value: "layout", label: "Preserve layout (recommended)" },
           { value: "text", label: "Clean editable text" },
         ],
-        help: "The server-side converter gives much better Word output for multi-column PDFs, tables, and formatted documents.",
+        help: "",
       },
     ],
     run: async (ctx) => {

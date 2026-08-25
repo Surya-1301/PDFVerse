@@ -254,11 +254,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           <span className="text-base font-semibold text-white">
             Click to browse or drop {impl.multiple ? "files" : "a file"} here
           </span>
-          <span className="text-xs leading-5 text-slate-500">
-            {impl.processing === "server"
-              ? "Processed securely on the PDFVerse conversion server."
-              : "Processed locally in your browser."}
-          </span>
         </button>
 
         {files.length > 0 ? (
@@ -726,10 +721,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               <div className="max-w-xs">
                 <FileText className="mx-auto mb-3 h-10 w-10" />
                 <p className="font-medium text-slate-300">No output yet</p>
-                <p className="mt-1 leading-6">
-                  Upload a file, choose your settings, and process it. Your result will appear
-                  here.
-                </p>
               </div>
             </div>
           )}
