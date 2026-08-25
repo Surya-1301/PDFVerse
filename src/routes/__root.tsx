@@ -16,7 +16,7 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
@@ -98,6 +98,147 @@ function ErrorComponent({
         </div>
       </div>
     </div>
+  );
+}
+
+const TOOL_CATEGORY_BY_SLUG: Record<string, string> = {
+  // Convert to PDF
+  "jpg-to-pdf": "convertToPdf",
+  "scan-to-pdf": "convertToPdf",
+  "word-to-pdf": "convertToPdf",
+  "powerpoint-to-pdf": "convertToPdf",
+  "excel-to-pdf": "convertToPdf",
+  "html-to-pdf": "convertToPdf",
+
+  // Convert from PDF
+  "pdf-to-jpg": "convertFromPdf",
+  "pdf-to-word": "convertFromPdf",
+  "pdf-to-text": "convertFromPdf",
+  "extract-images": "convertFromPdf",
+  "pdf-to-powerpoint": "convertFromPdf",
+  "pdf-to-excel": "convertFromPdf",
+};
+
+const TOOLS_CATEGORY_STORAGE_KEY =
+  "pdfverse-tools-category";
+
+const VALID_TOOL_CATEGORIES = new Set([
+  "all",
+  "edit",
+  "organize",
+  "convertToPdf",
+  "convertFromPdf",
+  "security",
+]);
+
+function getToolSlugFromPath(pathname: string): string | null {
+  const match =
+    pathname.match(/^\/pdf\/([^/]+)\/?$/);
+
+  return match?.[1] ?? null;
+}
+
+function getToolsCategoryFromPath(
+  pathname: string,
+): string | null {
+  const slug =
+    getToolSlugFromPath(pathname);
+
+  if (!slug) return null;
+
+  return (
+    TOOL_CATEGORY_BY_SLUG[slug] ??
+    null
+  );
+}
+
+function persistToolsCategory(
+  category: string,
+) {
+  if (
+    !VALID_TOOL_CATEGORIES.has(
+      category,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      TOOLS_CATEGORY_STORAGE_KEY,
+      category,
+    );
+  } catch {
+    // Storage can be unavailable in private/restricted contexts.
+  }
+}
+
+function readStoredToolsCategory(): string {
+  try {
+    const stored =
+      window.localStorage.getItem(
+        TOOLS_CATEGORY_STORAGE_KEY,
+      );
+
+    if (
+      stored &&
+      VALID_TOOL_CATEGORIES.has(stored)
+    ) {
+      return stored;
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+
+  return "all";
+}
+
+function ensureToolsCategoryInUrl(
+  category: string,
+) {
+  if (
+    !VALID_TOOL_CATEGORIES.has(
+      category,
+    )
+  ) {
+    return;
+  }
+
+  const url =
+    new URL(window.location.href);
+
+  const current =
+    url.searchParams.get(
+      "category",
+    );
+
+  if (current === category) {
+    return;
+  }
+
+  if (category === "all") {
+    url.searchParams.delete(
+      "category",
+    );
+  } else {
+    url.searchParams.set(
+      "category",
+      category,
+    );
+  }
+
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${
+      url.searchParams.toString()
+        ? `?${url.searchParams.toString()}`
+        : ""
+    }${url.hash}`,
+  );
+
+  window.dispatchEvent(
+    new PopStateEvent("popstate"),
   );
 }
 
@@ -252,6 +393,80 @@ export const Route =
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const previousPathRef =
+    useRef<string | null>(null);
+
+  useEffect(() => {
+    const syncToolCategory = () => {
+      const pathname =
+        window.location.pathname;
+
+      const categoryFromTool =
+        getToolsCategoryFromPath(
+          pathname,
+        );
+
+      if (categoryFromTool) {
+        persistToolsCategory(
+          categoryFromTool,
+        );
+      }
+
+      if (pathname === "/tools") {
+        const category =
+          new URL(
+            window.location.href,
+          ).searchParams.get(
+            "category",
+          );
+
+        if (
+          category &&
+          VALID_TOOL_CATEGORIES.has(
+            category,
+          )
+        ) {
+          persistToolsCategory(
+            category,
+          );
+        } else {
+          const previousPath =
+            previousPathRef.current;
+
+          const previousCategory =
+            previousPath
+              ? getToolsCategoryFromPath(
+                  previousPath,
+                )
+              : null;
+
+          if (previousCategory) {
+            ensureToolsCategoryInUrl(
+              previousCategory,
+            );
+          } else {
+            ensureToolsCategoryInUrl(
+              readStoredToolsCategory(),
+            );
+          }
+        }
+      }
+
+      previousPathRef.current =
+        pathname;
+    };
+
+    syncToolCategory();
+
+    const unsubscribe =
+      router.subscribe(
+        "onResolved",
+        syncToolCategory,
+      );
+
+    return unsubscribe;
+  }, [router]);
 
   return (
     <html lang="en">
@@ -267,7 +482,9 @@ function RootComponent() {
       </head>
 
       <body>
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider
+          client={queryClient}
+        >
           <div className="flex min-h-screen flex-col bg-background text-foreground">
             <Header />
 

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FilePlus2, Upload } from "lucide-react";
 
 import { Container } from "@/components/site/Container";
@@ -30,9 +30,99 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const getCategoryFromUrl = (): Category => {
+    const value = new URLSearchParams(
+      window.location.search,
+    ).get("category");
+
+    if (
+      value === "edit" ||
+      value === "organize" ||
+      value === "convertToPdf" ||
+      value === "convertFromPdf" ||
+      value === "security"
+    ) {
+      return value;
+    }
+
+    return "all";
+  };
+
+  const [activeCategory, setActiveCategory] =
+    useState<Category>(() => getCategoryFromUrl());
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const toolsSectionRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      setActiveCategory(getCategoryFromUrl());
+    };
+
+    window.addEventListener("popstate", syncFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", syncFromUrl);
+    };
+  }, []);
+
+  const scrollToTools = () => {
+    const element = toolsSectionRef.current;
+    if (!element) return;
+
+    const top =
+      element.getBoundingClientRect().top +
+      window.scrollY -
+      110;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+  };
+
+  function changeCategory(category: Category) {
+    setActiveCategory(category);
+
+    const url = new URL(window.location.href);
+
+    if (category === "all") {
+      url.searchParams.delete("category");
+    } else {
+      url.searchParams.set("category", category);
+    }
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+
+    // Let the filtered cards render first, then slide the page
+    // to the tools area with the category bar in view.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollToTools();
+      });
+    });
+  }
+
+  useEffect(() => {
+    // When landing on /?category=..., restore the selected tab
+    // and place the tools area in view after the page has rendered.
+    const category = getCategoryFromUrl();
+
+    if (category === "all") return;
+
+    const timer = window.setTimeout(() => {
+      scrollToTools();
+    }, 60);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const visibleTools = useMemo(() => {
     if (activeCategory === "all") return pdfTools;
@@ -133,13 +223,17 @@ function Home() {
         </div>
 
         {/* PDF TOOL CATEGORIES */}
-        <div id="pdf-tools" className="mx-auto mt-10 max-w-6xl scroll-mt-8">
+        <div
+          id="pdf-tools"
+          ref={toolsSectionRef}
+          className="mx-auto mt-10 max-w-6xl scroll-mt-8"
+        >
           <div className="flex flex-nowrap gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categoryTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveCategory(tab.id)}
+                onClick={() => changeCategory(tab.id)}
                 className={`shrink-0 rounded-full border px-5 py-3 text-sm font-semibold tracking-[0.14em] transition ${
                   activeCategory === tab.id
                     ? "border-white bg-white text-slate-950"

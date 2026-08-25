@@ -27,51 +27,279 @@ function defaultValues(fields: Field[]): ToolValues {
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-violet-500";
 
-function InlineFilePreview({
+const PDF_API_BASE_URL =
+  import.meta.env.VITE_PDF_API_BASE_URL ||
+  "http://localhost:4000";
+
+type PreviewDescriptor = {
+  url: string;
+  type: string;
+  kind:
+    | "pdf"
+    | "image"
+    | "text"
+    | "html"
+    | "video"
+    | "audio"
+    | "generic";
+};
+
+const OFFICE_EXTENSIONS = /\.(doc|docx|xls|xlsx|ppt|pptx)$/i;
+const TEXT_EXTENSIONS = /\.(txt|csv|json|xml|md|css|js|ts|jsx|tsx|yaml|yml|log|svg)$/i;
+const HTML_EXTENSIONS = /\.(html?|xhtml)$/i;
+
+function getPreviewKind(
+  name: string,
+  type: string,
+): PreviewDescriptor["kind"] {
+  const lowerName = name.toLowerCase();
+  const lowerType = type.toLowerCase();
+
+  if (
+    lowerType.includes("pdf") ||
+    lowerName.endsWith(".pdf")
+  ) {
+    return "pdf";
+  }
+
+  if (lowerType.startsWith("image/")) {
+    return "image";
+  }
+
+  if (lowerType.startsWith("video/")) {
+    return "video";
+  }
+
+  if (lowerType.startsWith("audio/")) {
+    return "audio";
+  }
+
+  if (
+    lowerType.includes("html") ||
+    HTML_EXTENSIONS.test(lowerName)
+  ) {
+    return "html";
+  }
+
+  if (
+    lowerType.startsWith("text/") ||
+    TEXT_EXTENSIONS.test(lowerName)
+  ) {
+    return "text";
+  }
+
+  return "generic";
+}
+
+async function buildPreview(
+  file: File,
+): Promise<PreviewDescriptor> {
+  const kind = getPreviewKind(
+    file.name,
+    file.type,
+  );
+
+  if (
+    kind === "pdf" ||
+    kind === "image" ||
+    kind === "video" ||
+    kind === "audio" ||
+    kind === "text" ||
+    kind === "html"
+  ) {
+    return {
+      url: URL.createObjectURL(file),
+      type: file.type || "application/octet-stream",
+      kind,
+    };
+  }
+
+  if (
+    OFFICE_EXTENSIONS.test(file.name)
+  ) {
+    const formData = new FormData();
+    formData.append(
+      "file",
+      file,
+      file.name,
+    );
+
+    const response = await fetch(
+      `${PDF_API_BASE_URL}/api/pdf/office-to-pdf`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      let message = `Could not create a preview for ${file.name}.`;
+
+      try {
+        const payload =
+          (await response.json()) as {
+            error?: string;
+          };
+
+        if (payload?.error) {
+          message = payload.error;
+        }
+      } catch {
+        // Keep fallback message.
+      }
+
+      throw new Error(message);
+    }
+
+    const blob =
+      await response.blob();
+
+    if (!blob.size) {
+      throw new Error(
+        `Preview conversion returned an empty file for ${file.name}.`,
+      );
+    }
+
+    return {
+      url: URL.createObjectURL(blob),
+      type: "application/pdf",
+      kind: "pdf",
+    };
+  }
+
+  return {
+    url: "",
+    type: file.type || "application/octet-stream",
+    kind: "generic",
+  };
+}
+
+function PreviewContent({
   name,
   type,
   url,
+  kind,
 }: {
   name: string;
   type: string;
   url: string;
+  kind: PreviewDescriptor["kind"];
 }) {
-  const isPdf = type.includes("pdf") || name.toLowerCase().endsWith(".pdf");
-  const isImage = type.startsWith("image/");
+  const pdfUrl =
+    kind === "pdf"
+      ? `${url}${url.includes("#") ? "&" : "#"}toolbar=0&navpanes=0&scrollbar=0&view=FitH`
+      : url;
 
-  const pdfUrl = isPdf
-    ? `${url}${url.includes("#") ? "&" : "#"}toolbar=0&navpanes=0&scrollbar=0&view=FitH`
-    : url;
+  if (kind === "pdf") {
+    return (
+      <iframe
+        title={`Preview of ${name}`}
+        src={pdfUrl}
+        loading="lazy"
+        className="h-full w-full border-0 bg-white"
+      />
+    );
+  }
+
+  if (kind === "image") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white p-3">
+        <img
+          src={url}
+          alt={`Preview of ${name}`}
+          className="h-full w-full object-contain"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "video") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-black p-2">
+        <video
+          src={url}
+          controls
+          playsInline
+          className="max-h-full max-w-full"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "audio") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-950 p-6">
+        <audio
+          src={url}
+          controls
+          className="w-full"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "text") {
+    return (
+      <iframe
+        title={`Text preview of ${name}`}
+        src={url}
+        className="h-full w-full border-0 bg-white p-2"
+        sandbox=""
+      />
+    );
+  }
+
+  if (kind === "html") {
+    return (
+      <iframe
+        title={`HTML preview of ${name}`}
+        src={url}
+        className="h-full w-full border-0 bg-white"
+        sandbox="allow-same-origin"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-slate-950 px-6 text-center">
+      <FileText className="h-12 w-12 text-violet-300" />
+      <div>
+        <p className="font-semibold text-slate-100">
+          Preview unavailable
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          {name} is ready to process.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InlineFilePreview({
+  name,
+  type,
+  url,
+  kind,
+}: {
+  name: string;
+  type: string;
+  url: string;
+  kind?: PreviewDescriptor["kind"];
+}) {
+  const previewKind =
+    kind ?? getPreviewKind(name, type);
 
   return (
     <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
       <div className="flex h-[220px] w-full items-center justify-center overflow-hidden bg-[#171a22] sm:h-[280px] lg:h-[320px]">
-        {isPdf ? (
-          <iframe
-            title={`Preview of ${name}`}
-            src={pdfUrl}
-            loading="lazy"
-            className="h-full w-full border-0 bg-white"
-          />
-        ) : isImage ? (
-          <div className="flex h-full w-full items-center justify-center bg-white p-3">
-            <img
-              src={url}
-              alt={`Preview of ${name}`}
-              className="h-full w-full object-contain"
-            />
-          </div>
-        ) : (
-          <iframe
-            title={`Preview of ${name}`}
-            src={url}
-            loading="lazy"
-            className="h-full w-full border-0 bg-white"
-          />
-        )}
+        <PreviewContent
+          name={name}
+          type={type}
+          url={url}
+          kind={previewKind}
+        />
       </div>
     </div>
-
   );
 }
 
@@ -95,9 +323,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const [names, setNames] = useState<Record<string, string>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedPreviewUrls, setSelectedPreviewUrls] = useState<string[]>([]);
+  const [selectedPreviewKinds, setSelectedPreviewKinds] = useState<
+    PreviewDescriptor["kind"][]
+  >([]);
+  const [previewLoading, setPreviewLoading] = useState<boolean[]>([]);
   const [mobilePreview, setMobilePreview] = useState<{
     name: string;
     url: string;
+    type: string;
+    kind: PreviewDescriptor["kind"];
   } | null>(null);
   const selectedPreviewUrlsRef = useRef<string[]>([]);
 
@@ -107,9 +341,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     };
   }, []);
 
-  const setSelectedUrls = (urls: string[]) => {
+  const setSelectedUrls = (
+    urls: string[],
+    kinds: PreviewDescriptor["kind"][] = [],
+    loading: boolean[] = [],
+  ) => {
     selectedPreviewUrlsRef.current = urls;
     setSelectedPreviewUrls(urls);
+    setSelectedPreviewKinds(kinds);
+    setPreviewLoading(loading);
   };
 
 
@@ -140,27 +380,125 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     selectedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     selectedPreviewUrlsRef.current = [];
     setSelectedPreviewUrls([]);
+    setSelectedPreviewKinds([]);
+    setPreviewLoading([]);
   };
 
-  const onPick = (list: FileList | null) => {
+  const onPick = async (
+    list: FileList | null,
+  ) => {
     if (!list || list.length === 0) return;
 
     const picked = Array.from(list);
+
     const nextFiles = impl.multiple
       ? [...files, ...picked]
       : picked.slice(0, 1);
 
     clearResults();
 
+    if (!impl.multiple) {
+      selectedPreviewUrlsRef.current.forEach((url) =>
+        URL.revokeObjectURL(url),
+      );
+    }
+
+    const nextCount = nextFiles.length;
+
+    setFiles(nextFiles);
+
+    const baseUrls = Array.from({
+      length: nextCount,
+    }).map(() => "");
+
+    const baseKinds: PreviewDescriptor["kind"][] =
+      Array.from({
+        length: nextCount,
+      }).map(() => "generic");
+
+    const baseLoading = Array.from({
+      length: nextCount,
+    }).map(() => true);
+
     if (impl.multiple) {
-      const urls = picked.map((file) => URL.createObjectURL(file));
-      setFiles(nextFiles);
-      setSelectedUrls([...selectedPreviewUrlsRef.current, ...urls]);
+      const existingUrls =
+        selectedPreviewUrlsRef.current;
+
+      const existingKinds =
+        selectedPreviewKinds;
+
+      const existingLoading =
+        previewLoading;
+
+      setSelectedUrls(
+        [
+          ...existingUrls,
+          ...picked.map(() => ""),
+        ],
+        [
+          ...existingKinds,
+          ...picked.map(() => "generic" as const),
+        ],
+        [
+          ...existingLoading,
+          ...picked.map(() => true),
+        ],
+      );
     } else {
-      selectedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      const url = URL.createObjectURL(picked[0]);
-      setFiles(nextFiles);
-      setSelectedUrls([url]);
+      setSelectedUrls(
+        baseUrls,
+        baseKinds,
+        baseLoading,
+      );
+    }
+
+    const startIndex = impl.multiple
+      ? nextCount - picked.length
+      : 0;
+
+    for (
+      let offset = 0;
+      offset < picked.length;
+      offset += 1
+    ) {
+      const file = picked[offset];
+
+      try {
+        const preview =
+          await buildPreview(file);
+
+        const targetIndex =
+          startIndex + offset;
+
+        setSelectedPreviewUrls((prev) => {
+          const next = [...prev];
+          next[targetIndex] =
+            preview.url;
+          return next;
+        });
+
+        setSelectedPreviewKinds((prev) => {
+          const next = [...prev];
+          next[targetIndex] =
+            preview.kind;
+          return next;
+        });
+      } catch (previewError) {
+        console.warn(
+          `Preview unavailable for ${file.name}:`,
+          previewError,
+        );
+      } finally {
+        const targetIndex =
+          startIndex + offset;
+
+        setPreviewLoading((prev) => {
+          const next = [...prev];
+          next[targetIndex] =
+            false;
+          return next;
+        });
+      }
     }
   };
 
@@ -199,13 +537,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
 
   const canProcess =
     !busy &&
-    (files.length > 0 || pastedHtml.length > 0);
+    (files.length > 0 ||
+      pastedHtml.length > 0);
 
   const disabledReason =
-    files.length === 0 && !pastedHtml
-      ? slug === "html-to-pdf"
-        ? "Upload an HTML file or paste HTML first."
-        : "Upload a file first."
+    files.length === 0 &&
+    pastedHtml.length === 0
+      ? "Upload a file first or paste your HTML."
       : "";
 
   return (
@@ -233,7 +571,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           multiple={impl.multiple}
           className="hidden"
           onChange={(event) => {
-            onPick(event.target.files);
+            void onPick(event.target.files);
             event.target.value = "";
           }}
         />
@@ -244,7 +582,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
-            onPick(event.dataTransfer.files);
+            void onPick(event.dataTransfer.files);
           }}
           className="flex w-full flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-slate-950 px-6 py-10 text-center transition hover:border-violet-500/50 hover:bg-violet-500/[0.06]"
         >
@@ -254,6 +592,11 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           <span className="text-base font-semibold text-white">
             Click to browse or drop {impl.multiple ? "files" : "a file"} here
           </span>
+          <span className="text-xs leading-5 text-slate-500">
+            {impl.processing === "server"
+              ? "Processed securely on the PDFVerse conversion server."
+              : "Processed locally in your browser."}
+          </span>
         </button>
 
         {files.length > 0 ? (
@@ -262,6 +605,11 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             <div className="space-y-3 md:hidden">
               {files.map((file, index) => {
                 const previewUrl = selectedPreviewUrls[index];
+                const previewKind =
+                  selectedPreviewKinds[index] ??
+                  getPreviewKind(file.name, file.type);
+                const isLoadingPreview =
+                  previewLoading[index] ?? false;
 
                 return (
                   <div
@@ -280,21 +628,31 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={!previewUrl}
-                      onClick={() => {
-                        if (!previewUrl) return;
-                        setMobilePreview({
-                          name: file.name,
-                          url: previewUrl,
-                        });
-                      }}
-                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Preview
-                    </button>
+                    {isLoadingPreview ? (
+                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-[11px] font-medium text-violet-200">
+                        Preparing…
+                      </span>
+                    ) : previewUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobilePreview({
+                            name: file.name,
+                            url: previewUrl,
+                            type: file.type,
+                            kind: previewKind,
+                          });
+                        }}
+                        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Preview
+                      </button>
+                    ) : (
+                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-white/5 bg-slate-900/60 px-2.5 text-[11px] font-medium text-slate-500">
+                        No preview
+                      </span>
+                    )}
 
                     <button
                       type="button"
@@ -307,8 +665,18 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                         const nextUrls = selectedPreviewUrls.filter(
                           (_, i) => i !== index,
                         );
+                        const nextKinds =
+                          selectedPreviewKinds.filter(
+                            (_, i) => i !== index,
+                          );
+                        const nextLoading =
+                          previewLoading.filter(
+                            (_, i) => i !== index,
+                          );
                         selectedPreviewUrlsRef.current = nextUrls;
                         setSelectedPreviewUrls(nextUrls);
+                        setSelectedPreviewKinds(nextKinds);
+                        setPreviewLoading(nextLoading);
 
                         setFiles((prev) => prev.filter((_, i) => i !== index));
                         clearResults();
@@ -326,6 +694,11 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             <div className="hidden grid-cols-1 gap-3 md:grid md:grid-cols-2 lg:grid-cols-3">
               {files.map((file, index) => {
                 const previewUrl = selectedPreviewUrls[index];
+                const previewKind =
+                  selectedPreviewKinds[index] ??
+                  getPreviewKind(file.name, file.type);
+                const isLoadingPreview =
+                  previewLoading[index] ?? false;
 
                 return (
                   <div
@@ -352,8 +725,19 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                           const nextUrls = selectedPreviewUrls.filter(
                             (_, i) => i !== index,
                           );
+                          const nextKinds =
+                            selectedPreviewKinds.filter(
+                              (_, i) => i !== index,
+                            );
+                          const nextLoading =
+                            previewLoading.filter(
+                              (_, i) => i !== index,
+                            );
+
                           selectedPreviewUrlsRef.current = nextUrls;
                           setSelectedPreviewUrls(nextUrls);
+                          setSelectedPreviewKinds(nextKinds);
+                          setPreviewLoading(nextLoading);
 
                           setFiles((prev) => prev.filter((_, i) => i !== index));
                           clearResults();
@@ -365,46 +749,51 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     </div>
 
                     {/* Preview — on mobile, tapping it opens a full-screen PDF viewer. */}
-                    <button
-                      type="button"
-                      className="block w-full cursor-default text-left md:cursor-default"
-                      onClick={() => {
-                        if (window.innerWidth < 768 && previewUrl) {
+                    <div
+                      className="block w-full text-left"
+                    >
+                      <div
+                        className="h-[145px] w-full overflow-hidden bg-[#171a22] md:h-[155px] lg:h-[165px]"
+                        onDoubleClick={() => {
+                          if (!previewUrl) return;
                           setMobilePreview({
                             name: file.name,
                             url: previewUrl,
+                            type: file.type,
+                            kind: previewKind,
                           });
-                        }
-                      }}
-                      aria-label={`Open preview of ${file.name}`}
-                    >
-                      <div className="h-[145px] w-full overflow-hidden bg-[#171a22] md:h-[155px] lg:h-[165px]">
-                        {previewUrl ? (
-                          file.type.includes("pdf") ||
-                          file.name.toLowerCase().endsWith(".pdf") ? (
-                            <iframe
-                              title={`Preview of ${file.name}`}
-                              src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                              className="pointer-events-none block h-full w-full border-0 bg-white"
-                            />
-                          ) : file.type.startsWith("image/") ? (
-                            <div className="flex h-full w-full items-center justify-center bg-white">
-                              <img
-                                src={previewUrl}
-                                alt={`Preview of ${file.name}`}
-                                className="pointer-events-none h-full w-full object-contain"
-                              />
-                            </div>
-                          ) : (
-                            <iframe
-                              title={`Preview of ${file.name}`}
-                              src={previewUrl}
-                              className="pointer-events-none block h-full w-full border-0 bg-white"
-                            />
-                          )
-                        ) : null}
+                        }}
+                      >
+                        {isLoadingPreview ? (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950 px-5 text-center">
+                            <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
+                            <p className="text-xs font-semibold text-slate-200">
+                              Preparing preview…
+                            </p>
+                            <p className="max-w-[220px] text-[11px] leading-4 text-slate-500">
+                              {file.name}
+                            </p>
+                          </div>
+                        ) : previewUrl ? (
+                          <PreviewContent
+                            name={file.name}
+                            type={file.type}
+                            url={previewUrl}
+                            kind={previewKind}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950 px-5 text-center">
+                            <FileText className="h-9 w-9 text-violet-300" />
+                            <p className="text-xs font-semibold text-slate-200">
+                              Preview unavailable
+                            </p>
+                            <p className="max-w-[220px] text-[11px] leading-4 text-slate-500">
+                              {file.name} is ready to process.
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    </button>
+                    </div>
                   </div>
                 );
               })}
@@ -605,19 +994,32 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                             </p>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMobilePreview({
-                                name: outputName,
-                                url: file.url,
-                              })
-                            }
-                            className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-3.5 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Preview
-                          </button>
+                          {file.blob.type.includes("pdf") ||
+                          file.blob.type.startsWith("image/") ||
+                          /\.(pdf|png|jpe?g|webp)$/i.test(outputName) ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMobilePreview({
+                                  name: outputName,
+                                  url: file.url,
+                                  type: file.blob.type,
+                                  kind: getPreviewKind(
+                                    outputName,
+                                    file.blob.type,
+                                  ),
+                                })
+                              }
+                              className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-3.5 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Preview
+                            </button>
+                          ) : (
+                            <span className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center rounded-lg border border-white/5 bg-slate-900/60 px-3 text-xs font-medium text-slate-500">
+                              Preview unavailable
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -672,7 +1074,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 sm:mt-6 sm:w-auto sm:min-w-[170px]"
   >
     <Download className="h-4 w-4" />
-    Download PDF
+    Download
   </a>
 </div>
                         </div>
@@ -696,7 +1098,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl bg-emerald-600 px-5 py-2.5 text-base font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 md:hidden"
           >
             <Download className="h-5 w-5" />
-            Download PDF
+            Download
           </a>
         )}
 
@@ -744,15 +1146,18 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                 <p className="truncate text-sm font-semibold text-white">
                   {mobilePreview.name}
                 </p>
-                <p className="text-xs text-slate-500">PDF preview</p>
+                <p className="text-xs text-slate-500">
+                  File preview
+                </p>
               </div>
             </div>
 
             <div className="min-h-0 flex-1 bg-[#202124] p-1">
-              <iframe
-                title={`Full preview of ${mobilePreview.name}`}
-                src={`${mobilePreview.url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
-                className="h-full w-full border-0 bg-white"
+              <PreviewContent
+                name={mobilePreview.name}
+                type={mobilePreview.type}
+                url={mobilePreview.url}
+                kind={mobilePreview.kind}
               />
             </div>
           </div>

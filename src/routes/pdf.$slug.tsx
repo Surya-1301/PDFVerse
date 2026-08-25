@@ -1,6 +1,5 @@
 import {
   createFileRoute,
-  Link,
   notFound,
   redirect,
   useNavigate,
@@ -129,6 +128,43 @@ function PdfToolPage() {
   const isCompare =
     slug === "compare";
 
+  const backCategory =
+    slug === "jpg-to-pdf" ||
+    slug === "scan-to-pdf" ||
+    slug === "word-to-pdf" ||
+    slug === "powerpoint-to-pdf" ||
+    slug === "excel-to-pdf" ||
+    slug === "html-to-pdf"
+      ? "convertToPdf"
+      : slug === "pdf-to-jpg" ||
+        slug === "pdf-to-word" ||
+        slug === "pdf-to-text" ||
+        slug === "extract-images" ||
+        slug === "pdf-to-powerpoint" ||
+        slug === "pdf-to-excel"
+        ? "convertFromPdf"
+        : slug === "protect" ||
+          slug === "unlock" ||
+          slug === "redact" ||
+          slug === "batch-protect" ||
+          slug === "batch-unlock"
+          ? "security"
+          : slug === "merge" ||
+            slug === "split" ||
+            slug === "remove-pages" ||
+            slug === "extract-pages" ||
+            slug === "organize" ||
+            slug === "add-pages" ||
+            slug === "compare" ||
+            slug === "ocr" ||
+            slug === "rotate" ||
+            slug === "add-page-numbers"
+            ? "organize"
+            : "edit";
+
+  const toolsBackHref =
+    `/?category=${encodeURIComponent(backCategory)}`;
+
   return (
     <section className="relative min-h-screen overflow-hidden bg-slate-950">
       {/* Background glow */}
@@ -155,13 +191,13 @@ function PdfToolPage() {
         <div className="mx-auto mt-8 max-w-6xl">
 
           {/* Back button */}
-          <Link
-            to="/"
+          <a
+            href={toolsBackHref}
             className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to tools
-          </Link>
+          </a>
 
           {/* =======================================================
               CHAT WITH PDF
