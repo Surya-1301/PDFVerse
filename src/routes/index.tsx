@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { FilePlus2, Upload } from "lucide-react";
 
 import { Container } from "@/components/site/Container";
+import { FloatingChat } from "@/components/site/FloatingChat";
 import { categoryTabs, pdfTools, type Category } from "@/lib/pdfTools";
 import { createBlankPdfFile, storePdfForEditor } from "@/lib/pdfEditorLaunch";
 
@@ -213,6 +214,8 @@ function Home() {
           </div>
         </div>
       </Container>
+
+      <FloatingChat />
     </section>
   );
 }

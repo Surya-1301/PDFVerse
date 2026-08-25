@@ -84,17 +84,23 @@ const SUGGESTIONS = [
   "List the key amounts or figures.",
 ];
 
+type Source = {
+  page: number;
+  score: number;
+  preview: string;
+};
+
 type Message = {
   id: string;
   role: "user" | "assistant";
   text: string;
+  sources?: Source[];
 };
 
 export function ChatWithPdf() {
   const [file, setFile] = useState<File | null>(null);
   const [fileId, setFileId] = useState("");
   const [fileToken, setFileToken] = useState("");
-  const [responseId, setResponseId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -115,7 +121,6 @@ export function ChatWithPdf() {
     setFile(null);
     setFileId("");
     setFileToken("");
-    setResponseId("");
     setMessages([]);
     setQuestion("");
     setError("");
@@ -147,7 +152,6 @@ export function ChatWithPdf() {
     setFile(nextFile);
     setFileId("");
     setFileToken("");
-    setResponseId("");
     setMessages([]);
     setUploading(true);
 
@@ -215,7 +219,10 @@ export function ChatWithPdf() {
           fileId,
           fileToken,
           question: text,
-          ...(responseId ? { previousResponseId: responseId } : {}),
+          history: messages.slice(-6).map(({ role, text: messageText }) => ({
+            role,
+            text: messageText,
+          })),
         }),
       });
 
@@ -229,13 +236,13 @@ export function ChatWithPdf() {
         );
       }
 
-      setResponseId(String(data.responseId ?? ""));
       setMessages((current) => [
         ...current,
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
           text: String(data.answer ?? "No answer was returned."),
+          sources: Array.isArray(data.sources) ? data.sources : [],
         },
       ]);
     } catch (askError) {
@@ -316,12 +323,12 @@ export function ChatWithPdf() {
                   {uploading ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Preparing document…
+                      Indexing document…
                     </>
                   ) : fileId ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      Ready to chat
+                      RAG index ready
                     </>
                   ) : (
                     "Upload failed"
@@ -435,7 +442,7 @@ export function ChatWithPdf() {
                 <div className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-500">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Reading the document…
+                    Searching the document…
                   </span>
                 </div>
               </div>
