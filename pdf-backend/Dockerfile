@@ -2,13 +2,15 @@ FROM node:20-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_NO_CACHE_DIR=1
 
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    python3-venv \
     libreoffice \
-    build-essential \
+    fonts-liberation \
+    fonts-noto-color-emoji \
     libglib2.0-0 \
     libnss3 \
     libnspr4 \
@@ -27,8 +29,6 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     libatspi2.0-0 \
-    fonts-liberation \
-    fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -49,6 +49,8 @@ RUN python3 -m playwright install chromium
 COPY . .
 
 ENV PORT=10000
+ENV PYTHON_BIN=/usr/bin/python3
+ENV LIBREOFFICE_BIN=/usr/bin/soffice
 
 EXPOSE 10000
 
