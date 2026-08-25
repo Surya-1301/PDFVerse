@@ -45,6 +45,7 @@ export type ToolContext = {
 
 export type ToolImpl = {
   accept: string;
+  processing?: "browser" | "server";
   multiple?: boolean;
   uploadLabel?: string;
   actionLabel?: string;
@@ -70,6 +71,74 @@ const first = (ctx: ToolContext) => {
 
 const PDF = "application/pdf";
 const IMAGES = "image/png,image/jpeg,image/webp";
+
+const PDF_API_BASE_URL =
+  import.meta.env.VITE_PDF_API_BASE_URL ||
+  "http://localhost:4000";
+
+async function runBackendConversion(
+  endpoint: string,
+  file: File,
+  progress: (message: string) => void,
+  fieldValues?: Record<string, string>,
+): Promise<ToolFile> {
+  progress("Uploading file securely…");
+
+  const form = new FormData();
+  form.append("file", file, file.name);
+
+  for (const [key, value] of Object.entries(fieldValues ?? {})) {
+    form.append(key, value);
+  }
+
+  const response = await fetch(`${PDF_API_BASE_URL}${endpoint}`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!response.ok) {
+    let message = `Conversion failed (HTTP ${response.status}).`;
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload?.error) message = payload.error;
+    } catch {
+      // Keep the generic HTTP error when the server did not return JSON.
+    }
+    throw new Error(message);
+  }
+
+  progress("Preparing your converted file…");
+
+  const blob = await response.blob();
+  if (!blob.size) {
+    throw new Error("The converter returned an empty file.");
+  }
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+  const serverName = utf8Match?.[1]
+    ? decodeURIComponent(utf8Match[1])
+    : asciiMatch?.[1];
+
+  const fallback = file.name.replace(/\.[^.]+$/u, "");
+
+  let extension = "";
+  const contentType = blob.type.toLowerCase();
+  if (contentType.includes("pdf")) extension = ".pdf";
+  else if (contentType.includes("word") || contentType.includes("document")) extension = ".docx";
+  else if (contentType.includes("spreadsheet") || contentType.includes("excel")) extension = ".xlsx";
+  else if (contentType.includes("presentation") || contentType.includes("powerpoint")) extension = ".pptx";
+  else if (contentType.includes("zip")) extension = ".zip";
+  else if (contentType.includes("jpeg")) extension = ".jpg";
+
+  const name = serverName?.trim() || `${fallback}${extension}`;
+
+  return {
+    name,
+    blob,
+  };
+}
 
 const OCR_LANGUAGES: Array<{ value: string; label: string; font: string }> = [
   { value: "eng", label: "English", font: "/NotoSans-Regular.ttf" },
@@ -1169,90 +1238,94 @@ export const toolImpls: Record<string, ToolImpl> = {
   },
 
   "word-to-pdf": {
-    accept: ".doc,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    processing: "server",
+    accept: ".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fields: [
+      {
+        name: "fidelity",
+        label: "Conversion mode",
+        type: "select",
+        default: "high",
+        options: [
+          { value: "high", label: "High fidelity (recommended)" },
+          { value: "standard", label: "Standard" },
+        ],
+        help: "",
+      },
+    ],
     run: async (ctx) => {
       const file = first(ctx);
-      ctx.progress("Reading the document…");
-      const mammoth = await import("mammoth/mammoth.browser.js");
-      const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
-      const dom = new DOMParser().parseFromString(result.value, "text/html");
-      const blocks: Array<{ text: string; bold?: boolean; size?: number }> = [];
-      dom.body.querySelectorAll("h1,h2,h3,h4,p,li,tr").forEach((node) => {
-        const text = (node.textContent ?? "").trim();
-        const tag = node.tagName.toLowerCase();
-        const size = tag === "h1" ? 20 : tag === "h2" ? 16 : tag === "h3" ? 14 : 11;
-        blocks.push({
-          text: tag === "li" ? `•  ${text}` : text,
-          bold: tag.startsWith("h"),
-          size,
-        });
-      });
-      if (blocks.length === 0) throw new Error("No readable text was found in that document.");
-      const doc = await textToPdf(blocks);
-      return [await savePdf(doc, `${baseName(file.name)}.pdf`)];
+      return [
+        await runBackendConversion(
+          "/api/pdf/office-to-pdf",
+          file,
+          ctx.progress,
+          { fidelity: str(ctx, "fidelity", "high") },
+        ),
+      ];
     },
   },
 
   "excel-to-pdf": {
-    accept: ".xls,.xlsx,.csv",
+    processing: "server",
+    accept: ".xls,.xlsx",
+    fields: [
+      {
+        name: "layout",
+        label: "Sheet layout",
+        type: "select",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto-fit sheets" },
+          { value: "wide", label: "Wide / landscape" },
+        ],
+        help: "",
+      },
+    ],
     run: async (ctx) => {
       const file = first(ctx);
-      const XLSX = await import("xlsx");
-      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
-      const blocks: Array<{ text: string; bold?: boolean; size?: number }> = [];
-      for (const sheetName of wb.SheetNames) {
-        const sheet = wb.Sheets[sheetName];
-        if (!sheet) continue;
-        blocks.push({ text: sheetName, bold: true, size: 15 });
-        const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false });
-        for (const row of rows) {
-          blocks.push({ text: (row ?? []).map((c) => String(c ?? "")).join("   |   "), size: 9 });
-        }
-        blocks.push({ text: "" });
-      }
-      const doc = await textToPdf(blocks, { title: baseName(file.name) });
-      return [await savePdf(doc, `${baseName(file.name)}.pdf`)];
+      return [
+        await runBackendConversion(
+          "/api/pdf/office-to-pdf",
+          file,
+          ctx.progress,
+          { layout: str(ctx, "layout", "auto") },
+        ),
+      ];
     },
   },
 
   "powerpoint-to-pdf": {
+    processing: "server",
     accept: ".ppt,.pptx",
+    fields: [
+      {
+        name: "fidelity",
+        label: "Slide fidelity",
+        type: "select",
+        default: "high",
+        options: [
+          { value: "high", label: "Preserve slide layout" },
+          { value: "standard", label: "Standard" },
+        ],
+        help: "",
+      },
+    ],
     run: async (ctx) => {
       const file = first(ctx);
-      const JSZip = (await import("jszip")).default;
-      const zip = await JSZip.loadAsync(await file.arrayBuffer());
-      const slideNames = Object.keys(zip.files)
-        .filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
-        .sort((a, b) => Number(a.match(/\d+/)?.[0] ?? 0) - Number(b.match(/\d+/)?.[0] ?? 0));
-      if (slideNames.length === 0) throw new Error("No slides were found in that file.");
-      const doc = await PDFDocument.create();
-      const font = await doc.embedFont(StandardFonts.Helvetica);
-      const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-      for (const [index, name] of slideNames.entries()) {
-        ctx.progress(`Converting slide ${index + 1} of ${slideNames.length}…`);
-        const xml = await zip.files[name]!.async("string");
-        const texts = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1] ?? "");
-        const page = doc.addPage([720, 540]);
-        page.drawRectangle({ x: 0, y: 0, width: 720, height: 540, color: rgb(1, 1, 1) });
-        let y = 470;
-        texts.forEach((text, i) => {
-          if (!text.trim() || y < 40) return;
-          const size = i === 0 ? 26 : 14;
-          page.drawText(text.slice(0, 90), {
-            x: 48,
-            y,
-            size,
-            font: i === 0 ? bold : font,
-            color: rgb(0.09, 0.09, 0.12),
-          });
-          y -= size * 1.7;
-        });
-      }
-      return [await savePdf(doc, `${baseName(file.name)}.pdf`)];
+      return [
+        await runBackendConversion(
+          "/api/pdf/office-to-pdf",
+          file,
+          ctx.progress,
+          { fidelity: str(ctx, "fidelity", "high") },
+        ),
+      ];
     },
   },
 
   "html-to-pdf": {
+    processing: "server",
     accept: ".html,.htm,text/html",
     fields: [
       {
@@ -1261,6 +1334,7 @@ export const toolImpls: Record<string, ToolImpl> = {
         type: "textarea",
         default: "",
         placeholder: "<h1>Title</h1><p>Body…</p>",
+        help: "",
       },
     ],
     run: async (ctx) => {
@@ -1268,60 +1342,81 @@ export const toolImpls: Record<string, ToolImpl> = {
       const file = ctx.files[0];
       const source = pasted || (file ? await file.text() : "");
       if (!source) throw new Error("Upload an HTML file or paste some HTML.");
-      const dom = new DOMParser().parseFromString(source, "text/html");
-      dom.querySelectorAll("script,style").forEach((n) => n.remove());
-      const blocks: Array<{ text: string; bold?: boolean; size?: number }> = [];
-      dom.body.querySelectorAll("h1,h2,h3,h4,p,li,td,pre").forEach((node) => {
-        const text = (node.textContent ?? "").trim();
-        if (!text) return;
-        const tag = node.tagName.toLowerCase();
-        blocks.push({
-          text: tag === "li" ? `•  ${text}` : text,
-          bold: tag.startsWith("h"),
-          size: tag === "h1" ? 20 : tag === "h2" ? 16 : tag === "h3" ? 14 : 11,
-        });
+
+      const fileName = file
+        ? baseName(file.name)
+        : "html-document";
+
+      const formResponse = await fetch(`${PDF_API_BASE_URL}/api/pdf/html-to-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          html: source,
+          fileName,
+        }),
       });
-      if (blocks.length === 0) blocks.push({ text: dom.body.textContent?.trim() || "Empty document" });
-      const doc = await textToPdf(blocks, dom.title ? { title: dom.title } : {});
-      return [await savePdf(doc, `${file ? baseName(file.name) : "page"}.pdf`)];
+
+      if (!formResponse.ok) {
+        let message = `HTML to PDF failed (HTTP ${formResponse.status}).`;
+        try {
+          const payload = (await formResponse.json()) as { error?: string };
+          if (payload?.error) message = payload.error;
+        } catch {
+          // Keep fallback message.
+        }
+        throw new Error(message);
+      }
+
+      const blob = await formResponse.blob();
+      return [
+        {
+          name: `${fileName}.pdf`,
+          blob,
+        },
+      ];
     },
   },
 
   /* ------------------------------------------------------------ convert ← PDF */
   "pdf-to-jpg": {
+    processing: "server",
     accept: PDF,
     fields: [
       {
         name: "dpi",
         label: "Quality",
         type: "select",
-        default: "2",
+        default: "150",
         options: [
-          { value: "1", label: "Screen (72 dpi)" },
-          { value: "2", label: "High (150 dpi)" },
-          { value: "3", label: "Print (216 dpi)" },
+          { value: "72", label: "Screen (72 dpi)" },
+          { value: "150", label: "High (150 dpi)" },
+          { value: "216", label: "Print (216 dpi)" },
         ],
       },
-      { name: "pages", label: "Pages", type: "text", placeholder: "all", default: "" },
+      {
+        name: "pages",
+        label: "Pages",
+        type: "text",
+        placeholder: "all, e.g. 1-3,5",
+        default: "",
+        help: "Leave empty for every page.",
+      },
     ],
     run: async (ctx) => {
       const file = first(ctx);
-      const doc = await getPdfJsDoc(file);
-      const wanted = parseRanges(str(ctx, "pages"), doc.numPages);
-      const scale = num(ctx, "dpi", 2);
-      const images: ToolFile[] = [];
-      for (const index of wanted) {
-        ctx.progress(`Rendering page ${index + 1}…`);
-        const page = await doc.getPage(index + 1);
-        const canvas = await renderPageToCanvas(page, scale);
-        images.push({
-          name: `${baseName(file.name)}-page-${index + 1}.jpg`,
-          blob: await canvasToJpeg(canvas, 0.92),
-        });
-      }
-      if (images.length === 0) throw new Error("No pages matched.");
-      if (images.length === 1) return images;
-      return [await zipFiles(images, `${baseName(file.name)}-images.zip`)];
+      return [
+        await runBackendConversion(
+          "/api/pdf-to-jpg",
+          file,
+          ctx.progress,
+          {
+            dpi: str(ctx, "dpi", "150"),
+            pages: str(ctx, "pages", ""),
+          },
+        ),
+      ];
     },
   },
 
@@ -1347,84 +1442,89 @@ export const toolImpls: Record<string, ToolImpl> = {
   },
 
   "pdf-to-word": {
+    processing: "server",
     accept: PDF,
+    fields: [
+      {
+        name: "quality",
+        label: "Conversion style",
+        type: "select",
+        default: "layout",
+        options: [
+          { value: "layout", label: "Preserve layout (recommended)" },
+          { value: "text", label: "Clean editable text" },
+        ],
+        help: "The server-side converter gives much better Word output for multi-column PDFs, tables, and formatted documents.",
+      },
+    ],
     run: async (ctx) => {
       const file = first(ctx);
-      ctx.progress("Extracting text…");
-      const pages = await extractText(file);
-      const { Document, Packer, Paragraph, TextRun } = await import("docx");
-      const children = pages.flatMap((page) => [
-        new Paragraph({
-          children: [new TextRun({ text: `Page ${page.page}`, bold: true, size: 26 })],
-        }),
-        ...page.lines.map((line) => new Paragraph({ children: [new TextRun({ text: line })] })),
-        new Paragraph({ children: [] }),
-      ]);
-      const doc = new Document({ sections: [{ children }] });
-      const blob = await Packer.toBlob(doc);
-      return [{ name: `${baseName(file.name)}.docx`, blob }];
+      return [
+        await runBackendConversion(
+          "/api/pdf-to-word",
+          file,
+          ctx.progress,
+          { quality: str(ctx, "quality", "layout") },
+        ),
+      ];
     },
   },
 
   "pdf-to-excel": {
+    processing: "server",
     accept: PDF,
+    fields: [
+      {
+        name: "mode",
+        label: "Extraction mode",
+        type: "select",
+        default: "tables",
+        options: [
+          { value: "tables", label: "Best effort tables" },
+          { value: "text", label: "Page text" },
+        ],
+        help: "",
+      },
+    ],
     run: async (ctx) => {
       const file = first(ctx);
-      const pages = await extractText(file);
-      const XLSX = await import("xlsx");
-      const wb = XLSX.utils.book_new();
-      for (const page of pages) {
-        const rows = page.lines.map((line) => line.split(/\s{2,}|\t|\s\|\s/));
-        const sheet = XLSX.utils.aoa_to_sheet(rows.length ? rows : [[""]]);
-        XLSX.utils.book_append_sheet(wb, sheet, `Page ${page.page}`.slice(0, 31));
-      }
-      const out = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
       return [
-        {
-          name: `${baseName(file.name)}.xlsx`,
-          blob: new Blob([out], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          }),
-        },
+        await runBackendConversion(
+          "/api/pdf-to-excel",
+          file,
+          ctx.progress,
+          { mode: str(ctx, "mode", "tables") },
+        ),
       ];
     },
   },
 
   "pdf-to-powerpoint": {
+    processing: "server",
     accept: PDF,
     fields: [
-      { name: "asImages", label: "Use page images (keeps the layout)", type: "checkbox", default: true },
+      {
+        name: "mode",
+        label: "Conversion mode",
+        type: "select",
+        default: "layout",
+        options: [
+          { value: "layout", label: "Preserve page layout" },
+          { value: "editable", label: "Editable text-first" },
+        ],
+        help: "",
+      },
     ],
     run: async (ctx) => {
       const file = first(ctx);
-      const PptxGenJS = (await import("pptxgenjs")).default;
-      const pptx = new PptxGenJS();
-      pptx.defineLayout({ name: "PDF", width: 10, height: 7.5 });
-      pptx.layout = "PDF";
-      if (bool(ctx, "asImages")) {
-        const doc = await getPdfJsDoc(file);
-        for (let i = 1; i <= doc.numPages; i += 1) {
-          ctx.progress(`Rendering page ${i} of ${doc.numPages}…`);
-          const page = await doc.getPage(i);
-          const canvas = await renderPageToCanvas(page, 2);
-          const slide = pptx.addSlide();
-          slide.addImage({ data: canvas.toDataURL("image/jpeg", 0.9), x: 0, y: 0, w: 10, h: 7.5 });
-        }
-      } else {
-        const pages = await extractText(file);
-        for (const page of pages) {
-          const slide = pptx.addSlide();
-          slide.addText(page.lines.join("\n") || `Page ${page.page}`, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 6.5,
-            fontSize: 12,
-          });
-        }
-      }
-      const blob = (await pptx.write({ outputType: "blob" })) as Blob;
-      return [{ name: `${baseName(file.name)}.pptx`, blob }];
+      return [
+        await runBackendConversion(
+          "/api/pdf-to-powerpoint",
+          file,
+          ctx.progress,
+          { mode: str(ctx, "mode", "layout") },
+        ),
+      ];
     },
   },
 

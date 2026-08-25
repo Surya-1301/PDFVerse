@@ -69,16 +69,16 @@ export const pdfTools: PdfTool[] = [
   { title: "Redact PDF", description: "Permanently hide text terms in a PDF.", slug: "redact", category: "security", icon: FileText },
   { title: "JPG to PDF", description: "Convert JPG, PNG, or WebP images into a PDF.", slug: "jpg-to-pdf", category: "convertToPdf", icon: ImageIcon },
   { title: "Scan to PDF", description: "Turn image scans into a PDF.", slug: "scan-to-pdf", category: "convertToPdf", icon: ImageIcon },
-  { title: "Word to PDF", description: "Convert DOC or DOCX files into a PDF.", slug: "word-to-pdf", category: "convertToPdf", icon: FileText },
-  { title: "PowerPoint to PDF", description: "Convert PPT or PPTX files into a PDF.", slug: "powerpoint-to-pdf", category: "convertToPdf", icon: FileText },
-  { title: "Excel to PDF", description: "Convert XLS or XLSX files into a PDF.", slug: "excel-to-pdf", category: "convertToPdf", icon: FileText },
-  { title: "HTML to PDF", description: "Convert HTML content into a PDF.", slug: "html-to-pdf", category: "convertToPdf", icon: FileText },
-  { title: "PDF to JPG", description: "Convert PDF pages into JPG images.", slug: "pdf-to-jpg", category: "convertFromPdf", icon: FileImage },
-  { title: "PDF to Word", description: "Convert a PDF into a DOCX file.", slug: "pdf-to-word", category: "convertFromPdf", icon: FileText },
+  { title: "Word to PDF", description: "Convert DOC or DOCX files into a high-fidelity PDF while preserving layout, tables, images, fonts, and page breaks.", slug: "word-to-pdf", category: "convertToPdf", icon: FileText },
+  { title: "PowerPoint to PDF", description: "Convert PPT or PPTX slides into high-fidelity PDF pages while preserving themes, images, charts, and slide layout.", slug: "powerpoint-to-pdf", category: "convertToPdf", icon: FileText },
+  { title: "Excel to PDF", description: "Convert Excel workbooks into print-ready PDFs with sheet layout and page sizing optimized automatically.", slug: "excel-to-pdf", category: "convertToPdf", icon: FileText },
+  { title: "HTML to PDF", description: "Render HTML into a print-ready PDF with CSS, images, tables, and browser-style page layout.", slug: "html-to-pdf", category: "convertToPdf", icon: FileText },
+  { title: "PDF to JPG", description: "Convert PDF pages into high-quality JPG images on the server, with efficient ZIP download for multi-page files.", slug: "pdf-to-jpg", category: "convertFromPdf", icon: FileImage },
+  { title: "PDF to Word", description: "Convert PDFs into editable DOCX files with better layout preservation for structured documents.", slug: "pdf-to-word", category: "convertFromPdf", icon: FileText },
   { title: "PDF to Text", description: "Extract plain text from every PDF page.", slug: "pdf-to-text", category: "convertFromPdf", icon: FileText },
   { title: "Extract Images", description: "Extract embedded images from a PDF as a ZIP file.", slug: "extract-images", category: "convertFromPdf", icon: FileImage },
-  { title: "PDF to PowerPoint", description: "Convert a PDF into a PowerPoint presentation.", slug: "pdf-to-powerpoint", category: "convertFromPdf", icon: FileText },
-  { title: "PDF to Excel", description: "Convert PDF tables into an Excel workbook.", slug: "pdf-to-excel", category: "convertFromPdf", icon: FileText },
+  { title: "PDF to PowerPoint", description: "Convert PDF pages into a PowerPoint presentation using server-side rendering for better visual fidelity.", slug: "pdf-to-powerpoint", category: "convertFromPdf", icon: FileText },
+  { title: "PDF to Excel", description: "Convert PDF content into an Excel workbook with server-side table extraction for better structure.", slug: "pdf-to-excel", category: "convertFromPdf", icon: FileText },
   { title: "Batch Compress", description: "Compress multiple PDFs and download one ZIP file.", slug: "batch-compress", category: "edit", icon: FileText },
   { title: "Batch Protect", description: "Password-protect multiple PDFs and download one ZIP file.", slug: "batch-protect", category: "security", icon: LockKeyhole },
   { title: "Batch Unlock", description: "Unlock multiple PDFs with one password and download a ZIP.", slug: "batch-unlock", category: "security", icon: LockKeyhole },
@@ -87,7 +87,7 @@ export const pdfTools: PdfTool[] = [
   { title: "Batch Repair", description: "Try to repair multiple PDFs and download one ZIP file.", slug: "batch-repair", category: "edit", icon: FileSearch },
 ];
 
-/** Legacy/alternate URLs from the original site, mapped to canonical slugs. */
+
 export const slugAliases: Record<string, string> = {
   "page-numbers": "add-page-numbers",
   "reorder": "organize",
@@ -110,3 +110,18 @@ export function findTool(slug: string) {
   return pdfTools.find((tool) => tool.slug === slug);
 }
 
+export const pdfBackendRoutes: Record<string, string> = {
+  "word-to-pdf": "/api/word-to-pdf",
+  "powerpoint-to-pdf": "/api/powerpoint-to-pdf",
+  "excel-to-pdf": "/api/excel-to-pdf",
+  "html-to-pdf": "/api/html-to-pdf",
+  
+  "pdf-to-jpg": "/api/pdf-to-jpg",
+  "pdf-to-word": "/api/pdf-to-word",
+  "pdf-to-excel": "/api/pdf-to-excel",
+  "pdf-to-powerpoint": "/api/pdf-to-powerpoint",
+};
+
+export function getPdfBackendRoute(slug: string): string | undefined {
+  return pdfBackendRoutes[slug];
+}

@@ -17,7 +17,6 @@ const API_BASE =
   "https://pdf-verse-api-uu40.onrender.com";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
 const REQUEST_TIMEOUT_MS = 120_000;
 const WAKE_TIMEOUT_MS = 90_000;
 const WAKE_POLL_MS = 3_000;
@@ -30,11 +29,6 @@ function isTransportError(error: unknown) {
   );
 }
 
-/**
- * Render free-tier services spin down after inactivity and can take 50s+ to
- * boot. Poll the cheap /health route until the container answers, so the cold
- * start does not burn the real upload/ask request.
- */
 async function wakeBackend() {
   const deadline = Date.now() + WAKE_TIMEOUT_MS;
 

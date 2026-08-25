@@ -1,32 +1,55 @@
-FROM node:22-bookworm-slim
+FROM node:20-bookworm-slim
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    ghostscript \
-    libreoffice \
-    chromium \
-    poppler-utils \
-    zip \
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-  && rm -rf /var/lib/apt/lists/*
+    python3-venv \
+    libreoffice \
+    build-essential \
+    libglib2.0-0 \
+    libnss3 \
+    libnspr4 \
+    libdbus-1-3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev
 
-RUN pip3 install --break-system-packages \
-  pymupdf \
-  python-pptx \
-  Pillow \
-  openpyxl \
-  pdf2docx \
-  pikepdf
+RUN npm ci --omit=dev
 
-COPY server.js ./
+COPY requirements.txt ./
 
-ENV NODE_ENV=production
-EXPOSE 4000
+RUN python3 -m pip install \
+    --break-system-packages \
+    --no-cache-dir \
+    -r requirements.txt
 
-CMD ["npm", "start"]
+RUN python3 -m playwright install chromium
+
+COPY . .
+
+ENV PORT=10000
+
+EXPOSE 10000
+
+CMD ["node", "server.js"]

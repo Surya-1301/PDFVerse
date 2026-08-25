@@ -1,0 +1,6 @@
+PyMuPDF
+openpyxl
+pdf2docx
+python-pptx
+Pillow
+pikepdf

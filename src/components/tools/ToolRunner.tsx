@@ -192,8 +192,21 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     }
   };
 
-  const canProcess = !busy && files.length > 0;
-  const disabledReason = files.length === 0 ? "Upload a file first." : "";
+  const pastedHtml =
+    slug === "html-to-pdf"
+      ? String(values.html ?? "").trim()
+      : "";
+
+  const canProcess =
+    !busy &&
+    (files.length > 0 || pastedHtml.length > 0);
+
+  const disabledReason =
+    files.length === 0 && !pastedHtml
+      ? slug === "html-to-pdf"
+        ? "Upload an HTML file or paste HTML first."
+        : "Upload a file first."
+      : "";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -241,8 +254,10 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           <span className="text-base font-semibold text-white">
             Click to browse or drop {impl.multiple ? "files" : "a file"} here
           </span>
-          <span className="hidden">
-            Everything runs in your browser — nothing is uploaded to a server.
+          <span className="text-xs leading-5 text-slate-500">
+            {impl.processing === "server"
+              ? "Processed securely on the PDFVerse conversion server."
+              : "Processed locally in your browser."}
           </span>
         </button>
 

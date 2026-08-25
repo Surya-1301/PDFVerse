@@ -2817,12 +2817,6 @@ doc.close()
    CHAT WITH PDF — GEMINI RAG
 ========================================================= */
 
-/**
- * GET /api/chat-pdf/status
- *
- * Lets the frontend determine whether the backend
- * has Gemini configured and whether RAG is enabled.
- */
 app.get(
   "/api/chat-pdf/status",
   (_req, res) => {
@@ -3165,6 +3159,433 @@ app.post(
   },
 );
 
+/* =========================================================
+   OFFICE → PDF
+   DOC / DOCX / XLS / XLSX / PPT / PPTX
+========================================================= */
+
+function isOfficeFile(file) {
+  const name = String(
+    file?.originalname || "",
+  ).toLowerCase();
+
+  return (
+    name.endsWith(".doc") ||
+    name.endsWith(".docx") ||
+    name.endsWith(".xls") ||
+    name.endsWith(".xlsx") ||
+    name.endsWith(".ppt") ||
+    name.endsWith(".pptx")
+  );
+}
+
+app.post(
+  "/api/pdf/office-to-pdf",
+  upload.single("file"),
+  async (req, res) => {
+    let inputPath = "";
+    let outputPath = "";
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "Office file is required.",
+        });
+      }
+
+      if (!isOfficeFile(req.file)) {
+        return res.status(400).json({
+          error:
+            "Please upload a DOC, DOCX, XLS, XLSX, PPT, or PPTX file.",
+        });
+      }
+
+      inputPath = req.file.path;
+
+      const outputDir =
+        path.dirname(inputPath);
+
+      const libreOffice =
+        process.env.LIBREOFFICE_BIN ||
+        (
+          process.platform === "darwin"
+            ? "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+            : "libreoffice"
+        );
+
+      console.log(
+        `[Office → PDF] Converting ${req.file.originalname}`,
+      );
+
+      console.log(
+        `[Office → PDF] LibreOffice: ${libreOffice}`,
+      );
+
+      await new Promise(
+        (resolve, reject) => {
+          execFile(
+            libreOffice,
+            [
+              "--headless",
+              "--nologo",
+              "--nofirststartwizard",
+              "--convert-to",
+              "pdf",
+              "--outdir",
+              outputDir,
+              inputPath,
+            ],
+            {
+              timeout: 300000,
+              maxBuffer:
+                20 * 1024 * 1024,
+            },
+            (
+              error,
+              stdout,
+              stderr,
+            ) => {
+              if (error) {
+                reject(
+                  new Error(
+                    stderr?.trim() ||
+                      stdout?.trim() ||
+                      error.message ||
+                      "LibreOffice conversion failed.",
+                  ),
+                );
+
+                return;
+              }
+
+              resolve();
+            },
+          );
+        },
+      );
+
+      const generatedBase =
+        path.basename(
+          inputPath,
+          path.extname(
+            inputPath,
+          ),
+        );
+
+      outputPath =
+        path.join(
+          outputDir,
+          `${generatedBase}.pdf`,
+        );
+
+      if (
+        !fs.existsSync(
+          outputPath,
+        )
+      ) {
+        const files =
+          await fsp.readdir(
+            outputDir,
+          );
+
+        const pdfFiles =
+          files.filter(
+            (name) =>
+              name
+                .toLowerCase()
+                .endsWith(".pdf"),
+          );
+
+        if (
+          pdfFiles.length === 0
+        ) {
+          throw new Error(
+            "LibreOffice completed without creating a PDF.",
+          );
+        }
+
+        outputPath =
+          path.join(
+            outputDir,
+            pdfFiles[0],
+          );
+      }
+
+      if (
+        !fs.existsSync(
+          outputPath,
+        )
+      ) {
+        throw new Error(
+          "Converted PDF file does not exist.",
+        );
+      }
+
+      const originalBase =
+        path.basename(
+          req.file.originalname ||
+            "document",
+          path.extname(
+            req.file.originalname ||
+              "document",
+          ),
+        );
+
+      const downloadName =
+        `${safeFileName(
+          originalBase,
+          "document",
+        )}.pdf`;
+
+      console.log(
+        `[Office → PDF] Created ${downloadName}`,
+      );
+
+      res.setHeader(
+        "Content-Type",
+        "application/pdf",
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${downloadName}"`,
+      );
+
+      res.setHeader(
+        "Cache-Control",
+        "no-store",
+      );
+
+      return sendFileAndCleanup(
+        res,
+        outputPath,
+        downloadName,
+        "application/pdf",
+        [inputPath],
+      );
+    } catch (error) {
+      console.error(
+        "[Office → PDF]",
+        error,
+      );
+
+      await safeDelete(
+        inputPath,
+      );
+
+      await safeDelete(
+        outputPath,
+      );
+
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Office to PDF conversion failed.",
+      });
+    }
+  },
+);
+
+/* =========================================================
+   HTML → PDF
+========================================================= */
+
+app.post(
+  "/api/pdf/html-to-pdf",
+  async (req, res) => {
+    let outputPath = "";
+
+    try {
+      const html =
+        String(
+          req.body?.html || "",
+        ).trim();
+
+      const fileName =
+        String(
+          req.body?.fileName ||
+            "html-document",
+        )
+          .replace(
+            /[^a-zA-Z0-9._-]/g,
+            "-",
+          )
+          .slice(0, 100) ||
+        "html-document";
+
+      if (!html) {
+        return res.status(400).json({
+          error:
+            "HTML content is required.",
+        });
+      }
+
+      const outputDir =
+        await createOutputDir(
+          "html-to-pdf",
+        );
+
+      outputPath =
+        path.join(
+          outputDir,
+          `${fileName}.pdf`,
+        );
+
+      const pyScript = `
+import asyncio
+import sys
+from pathlib import Path
+
+from playwright.async_api import async_playwright
+
+html_path = sys.argv[1]
+output_path = sys.argv[2]
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True
+        )
+
+        page = await browser.new_page(
+            viewport={
+                "width": 1280,
+                "height": 720,
+            }
+        )
+
+        html = Path(
+            html_path
+        ).read_text(
+            encoding="utf-8"
+        )
+
+        await page.set_content(
+            html,
+            wait_until="networkidle",
+        )
+
+        await page.emulate_media(
+            media="print"
+        )
+
+        await page.pdf(
+            path=output_path,
+            format="A4",
+            print_background=True,
+            margin={
+                "top": "20mm",
+                "right": "15mm",
+                "bottom": "20mm",
+                "left": "15mm",
+            },
+            prefer_css_page_size=True,
+        )
+
+        await browser.close()
+
+asyncio.run(main())
+`.trim();
+
+      const htmlInputPath =
+        path.join(
+          outputDir,
+          `${crypto.randomBytes(
+            8,
+          ).toString("hex")}.html`,
+        );
+
+      await fsp.writeFile(
+        htmlInputPath,
+        html,
+        "utf8",
+      );
+
+      await runPythonScript(
+        pyScript,
+        [
+          htmlInputPath,
+          outputPath,
+        ],
+        "HTML to PDF conversion failed.",
+        300000,
+      );
+
+      await safeDelete(
+        htmlInputPath,
+      );
+
+      if (
+        !fs.existsSync(
+          outputPath,
+        )
+      ) {
+        await safeRemoveDirectory(
+          outputDir,
+        );
+
+        throw new Error(
+          "HTML to PDF conversion did not create a PDF.",
+        );
+      }
+
+      res.setHeader(
+        "Content-Type",
+        "application/pdf",
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}.pdf"`,
+      );
+
+      res.setHeader(
+        "Cache-Control",
+        "no-store",
+      );
+
+      return res.sendFile(
+        outputPath,
+        {},
+        async (error) => {
+          await safeRemoveDirectory(
+            outputDir,
+          );
+
+          if (
+            error &&
+            !res.headersSent
+          ) {
+            res.status(500).json({
+              error:
+                error.message ||
+                "Could not send generated PDF.",
+            });
+          }
+        },
+      );
+    } catch (error) {
+      console.error(
+        "[HTML → PDF]",
+        error,
+      );
+
+      if (outputPath) {
+        await safeDelete(
+          outputPath,
+        );
+      }
+
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "HTML to PDF conversion failed.",
+      });
+    }
+  },
+);
 
 /* =========================================================
    404 HANDLER
@@ -3217,6 +3638,27 @@ app.use(
 /* =========================================================
    SERVER START
 ========================================================= */
+console.log(
+  "[PDFVerse] Registered POST routes:",
+);
+
+console.log(
+  app._router?.stack
+    ?.filter(
+      (layer) =>
+        layer.route &&
+        layer.route.path,
+    )
+    .map((layer) => ({
+      path:
+        layer.route.path,
+      methods:
+        Object.keys(
+          layer.route.methods,
+        ),
+    })),
+);
+
 
 app.listen(
   PORT,
