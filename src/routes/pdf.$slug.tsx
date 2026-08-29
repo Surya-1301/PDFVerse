@@ -162,8 +162,44 @@ function PdfToolPage() {
             ? "organize"
             : "edit";
 
-  const toolsBackHref =
-    `/?category=${encodeURIComponent(backCategory)}`;
+  // Preserve the category that was active when this tool was opened.
+  // The home route consumes this value immediately, so refreshing the
+  // main page afterwards starts from ALL.
+  const toolsBackHref = (() => {
+    if (typeof window === "undefined") {
+      return "/#pdf-tools";
+    }
+
+    let returnCategory = new URLSearchParams(
+      window.location.search,
+    ).get("returnCategory");
+
+    if (!returnCategory) {
+      try {
+        returnCategory = sessionStorage.getItem(
+          "pdfverse:return-category",
+        );
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+
+    const validCategories = new Set([
+      "all",
+      "edit",
+      "organize",
+      "convertToPdf",
+      "convertFromPdf",
+      "security",
+    ]);
+
+    if (returnCategory && validCategories.has(returnCategory)) {
+      return `/?returnCategory=${encodeURIComponent(returnCategory)}#pdf-tools`;
+    }
+
+    // Direct visits/bookmarks fall back to the tool's normal category.
+    return `/?returnCategory=${encodeURIComponent(backCategory)}#pdf-tools`;
+  })();
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-slate-950">

@@ -543,7 +543,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const disabledReason =
     files.length === 0 &&
     pastedHtml.length === 0
-      ? "Upload a file first or paste your HTML."
+      ? ""
       : "";
 
   return (
@@ -594,8 +594,8 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           </span>
           <span className="text-xs leading-5 text-slate-500">
             {impl.processing === "server"
-              ? "Processed securely on the PDFVerse conversion server."
-              : "Processed locally in your browser."}
+              ? ""
+              : ""}
           </span>
         </button>
 

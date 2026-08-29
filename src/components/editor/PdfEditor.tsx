@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
-import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -95,7 +94,49 @@ function loadSaved(key: string, pageCount: number): DocState | null {
 }
 
 
+const PDFVERSE_SOURCE_CATEGORY_KEY = "returnCategory";
+
+function getPdfEditorBackHref() {
+  if (typeof window === "undefined") {
+    return "/#pdf-tools";
+  }
+
+  let fromCategory = new URLSearchParams(
+    window.location.search,
+  ).get(PDFVERSE_SOURCE_CATEGORY_KEY);
+
+  if (!fromCategory) {
+    try {
+      fromCategory = sessionStorage.getItem(
+        PDFVERSE_SOURCE_CATEGORY_KEY,
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  const validCategories = new Set([
+    "all",
+    "edit",
+    "organize",
+    "convertToPdf",
+    "convertFromPdf",
+    "security",
+  ]);
+
+  if (fromCategory && validCategories.has(fromCategory)) {
+    if (fromCategory === "all") {
+      return "/#pdf-tools";
+    }
+
+    return `/?returnCategory=${encodeURIComponent(fromCategory)}#pdf-tools`;
+  }
+
+  return "/#pdf-tools";
+}
+
 export default function PdfEditor() {
+  const toolsBackHref = getPdfEditorBackHref();
   const [fileName, setFileName] = useState("");
   const [docKey, setDocKey] = useState<string | null>(null);
   const [buffer, setBuffer] = useState<ArrayBuffer | null>(null);
@@ -374,6 +415,7 @@ export default function PdfEditor() {
     return (
       <Dropzone
         loading={loading}
+        toolsBackHref={toolsBackHref}
         onFile={loadFile}
         onBlank={async () => {
           const { createBlankPdfFile } = await import("@/lib/pdfEditorLaunch");
@@ -388,14 +430,14 @@ export default function PdfEditor() {
       {/* HEADER */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#111113] px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Link
-            to="/"
+          <a
+            href={toolsBackHref}
             title="Back to tools"
             aria-label="Back to tools"
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-          </Link>
+          </a>
           <div className="h-7 w-px bg-white/10" />
           <div className="min-w-0">
             <input
@@ -918,10 +960,12 @@ function Dropzone({
   onFile,
   onBlank,
   loading,
+  toolsBackHref,
 }: {
   onFile: (f: File) => void;
   onBlank: () => void;
   loading: boolean;
+  toolsBackHref: string;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
   const [over, setOver] = useState(false);
@@ -933,13 +977,13 @@ function Dropzone({
       <div className="pointer-events-none absolute -right-40 bottom-10 h-80 w-80 rounded-full bg-fuchsia-600/10 blur-3xl" />
 
       <div className="relative z-10 mx-auto w-full max-w-[1400px]">
-        <Link
-          to="/"
+        <a
+          href={toolsBackHref}
           className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to tools
-        </Link>
+        </a>
         <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] shadow-2xl shadow-violet-950/20">
 
           {/* Editor header */}
