@@ -98,7 +98,7 @@ const PDFVERSE_SOURCE_CATEGORY_KEY = "returnCategory";
 
 function getPdfEditorBackHref() {
   if (typeof window === "undefined") {
-    return "/#pdf-tools";
+    return "/";
   }
 
   let fromCategory = new URLSearchParams(
@@ -126,13 +126,13 @@ function getPdfEditorBackHref() {
 
   if (fromCategory && validCategories.has(fromCategory)) {
     if (fromCategory === "all") {
-      return "/#pdf-tools";
+      return "/";
     }
 
-    return `/?returnCategory=${encodeURIComponent(fromCategory)}#pdf-tools`;
+    return `/?returnCategory=${encodeURIComponent(fromCategory)}`;
   }
 
-  return "/#pdf-tools";
+  return "/";
 }
 
 export default function PdfEditor() {

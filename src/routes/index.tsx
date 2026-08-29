@@ -91,20 +91,7 @@ function Home() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
-    let returnCategory = params.get("returnCategory");
-
-    // Session storage is a backup for router/browser implementations
-    // that may strip an unknown search parameter during navigation.
-    if (!returnCategory) {
-      try {
-        returnCategory = sessionStorage.getItem(
-          "pdfverse:return-category",
-        );
-      } catch {
-        // Ignore storage failures.
-      }
-    }
+    const returnCategory = params.get("returnCategory");
 
     const validCategories: Category[] = [
       "all",
@@ -115,51 +102,31 @@ function Home() {
       "security",
     ];
 
-    if (!returnCategory || !validCategories.includes(returnCategory as Category)) {
-      return;
+    const isValidCategory =
+      returnCategory &&
+      validCategories.includes(returnCategory as Category);
+
+    if (isValidCategory) {
+      setActiveCategory(returnCategory as Category);
     }
 
-    const category = returnCategory as Category;
-
-    try {
-      sessionStorage.removeItem(
-        "pdfverse:return-category",
-      );
-    } catch {
-      // Ignore storage failures.
+    // Keep the real homepage URL clean.
+    // The hash/query are only temporary navigation state.
+    if (window.location.hash === "#pdf-tools" || isValidCategory) {
+      window.history.replaceState(null, "", "/");
     }
 
-    setActiveCategory(category);
-
-    // Remove the temporary return parameter immediately.
-    // A later refresh of the normal home URL therefore starts at ALL.
-    window.history.replaceState(
-      null,
-      "",
-      "/#pdf-tools",
-    );
-
-    // Wait for the filtered cards to render before scrolling.
-    requestAnimationFrame(() => {
+    if (isValidCategory) {
       requestAnimationFrame(() => {
-        document.getElementById("pdf-tools")?.scrollIntoView({
-          behavior: "auto",
-          block: "start",
+        requestAnimationFrame(() => {
+          document.getElementById("pdf-tools")?.scrollIntoView({
+            behavior: "auto",
+            block: "start",
+          });
         });
       });
-    });
-  }, []);
-
-  function rememberCategoryBeforeTool() {
-    try {
-      sessionStorage.setItem(
-        "pdfverse:return-category",
-        activeCategory,
-      );
-    } catch {
-      // The URL parameter below remains the primary navigation state.
     }
-  }
+  }, []);
 
   const visibleTools = useMemo(() => {
     if (activeCategory === "all") {
@@ -182,11 +149,6 @@ function Home() {
     storePdfForEditor(await createBlankPdfFile());
     navigate({ to: "/pdf-editor" });
   }
-
-  const activeCategoryLabel =
-    categoryTabs.find(
-      (tab) => tab.id === activeCategory,
-    )?.label ?? "ALL";
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-slate-950">
@@ -352,31 +314,16 @@ function Home() {
               ISSUE #2 FIX:
               Better visibility for tool count and filter status.
               =================================================== */}
-          <div
-            className="mt-5 flex justify-center"
+          <p
+            className="mt-5 text-left text-sm text-slate-500"
             aria-live="polite"
             aria-atomic="true"
           >
-            <p className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-slate-200 shadow-sm">
-              <span>
-                {visibleTools.length}{" "}
-                {visibleTools.length === 1
-                  ? "PDF tool"
-                  : "PDF tools"}
-              </span>
-
-              <span
-                className="mx-2 text-slate-500"
-                aria-hidden="true"
-              >
-                ·
-              </span>
-
-              <span className="text-violet-300">
-                {activeCategoryLabel}
-              </span>
-            </p>
-          </div>
+            {visibleTools.length}{" "}
+            {visibleTools.length === 1
+              ? "PDF tool shown"
+              : "PDF tools shown"}
+          </p>
 
           {/* ===================================================
               DESKTOP / TABLET TOOL GRID
@@ -403,7 +350,6 @@ function Home() {
                       : `/pdf/${tool.slug}?returnCategory=${encodeURIComponent(activeCategory)}`
                   }
                   aria-label={`${tool.title}: ${tool.description}`}
-                  onClick={rememberCategoryBeforeTool}
                   className={`group flex h-[210px] min-w-0 self-stretch flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${style.hoverBorder}`}
                 >
                   {/* Category-colored icon */}
@@ -466,7 +412,6 @@ function Home() {
                       : `/pdf/${tool.slug}?returnCategory=${encodeURIComponent(activeCategory)}`
                   }
                   aria-label={`${tool.title}: ${tool.description}`}
-                  onClick={rememberCategoryBeforeTool}
                   className="group flex w-full min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-white/20 hover:bg-white/[0.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
                   <div

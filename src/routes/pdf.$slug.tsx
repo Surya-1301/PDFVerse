@@ -167,7 +167,7 @@ function PdfToolPage() {
   // main page afterwards starts from ALL.
   const toolsBackHref = (() => {
     if (typeof window === "undefined") {
-      return "/#pdf-tools";
+      return "/";
     }
 
     let returnCategory = new URLSearchParams(
@@ -194,11 +194,11 @@ function PdfToolPage() {
     ]);
 
     if (returnCategory && validCategories.has(returnCategory)) {
-      return `/?returnCategory=${encodeURIComponent(returnCategory)}#pdf-tools`;
+      return `/?returnCategory=${encodeURIComponent(returnCategory)}`;
     }
 
     // Direct visits/bookmarks fall back to the tool's normal category.
-    return `/?returnCategory=${encodeURIComponent(backCategory)}#pdf-tools`;
+    return `/?returnCategory=${encodeURIComponent(backCategory)}`;
   })();
 
   return (
