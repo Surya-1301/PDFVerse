@@ -1,8 +1,7 @@
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FilePlus2, Upload } from "lucide-react";
-
+import {FilePlus2, MessageCircle, Upload,} from "lucide-react";
 import { Container } from "@/components/site/Container";
 import { categoryTabs, pdfTools, type Category } from "@/lib/pdfTools";
 import {
@@ -437,7 +436,20 @@ function Home() {
               );
             })}
           </div>
-        </div>
+                </div>
+
+        {/* Floating AI Chat */}
+        <a
+          href="/pdf/chat-with-pdf"
+          aria-label="Open PDFVerse AI chat"
+          title="Open PDFVerse AI chat"
+          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-xl shadow-violet-950/40 transition hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:bottom-6 sm:right-6"
+        >
+          <MessageCircle
+            className="h-6 w-6"
+            aria-hidden="true"
+          />
+        </a>
       </Container>
     </section>
   );
