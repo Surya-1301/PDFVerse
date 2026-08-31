@@ -197,9 +197,6 @@ None provided.
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-PDFVERSE ABUSE REPORT
-========================================
-
 Name: ${form.name.trim()}
 
 Email: ${form.email.trim()}
@@ -215,7 +212,7 @@ ${form.description.trim()}
 ${evidenceSection}
 
 ========================================
-Submitted from PDFVerse Report Abuse Page
+Submitted from PDFVerse Abuse Page
 `;
 
     const mailtoUrl =

@@ -117,9 +117,6 @@ function ContactPage() {
        ---------------------------------------------------------------------- */
 
     const emailBody = `
-PDFVerse Contact Request
-========================================
-
 Name: ${form.name.trim()}
 
 Email: ${form.email.trim()}
