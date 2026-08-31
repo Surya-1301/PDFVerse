@@ -42,12 +42,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-/**
- * Category-specific visual accents.
- *
- * The colors are intentionally subtle so the page does not become
- * visually noisy while still allowing users to recognize categories.
- */
 const categoryStyles: Record<
   Exclude<Category, "all">,
   {
@@ -172,7 +166,7 @@ function Home() {
           </p>
 
           <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">
-            PDF Editor tools
+            PDF Editor Tools
           </h1>
 
           <p className="mx-auto mt-8 max-w-5xl text-xl leading-9 text-slate-300 sm:text-2xl sm:leading-10">
@@ -194,7 +188,7 @@ function Home() {
                   ================================================= */}
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-                  Online PDF editor
+                  Online PDF Editor
                 </h2>
 
                 <span
@@ -216,7 +210,7 @@ function Home() {
               </p>
             </div>
 
-            <div className="flex flex-col items-center px-5 py-8 sm:px-8 sm:py-10">
+            <div className="flex flex-col items-center px-5 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-5">
               <input
                 ref={inputRef}
                 type="file"

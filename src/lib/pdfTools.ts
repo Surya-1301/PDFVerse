@@ -1,6 +1,7 @@
 import {
   Combine,
   Crop,
+  FileOutput,
   FileImage,
   FileSearch,
   FileText,
@@ -47,7 +48,7 @@ export const pdfTools: PdfTool[] = [
   { title: "Merge PDF", description: "Combine multiple PDFs into one file.", slug: "merge", category: "organize", icon: Combine },
   { title: "Split PDF", description: "Split a PDF by selected pages.", slug: "split", category: "organize", icon: Scissors },
   { title: "Remove pages", description: "Delete selected pages from a PDF.", slug: "remove-pages", category: "organize", icon: Trash2 },
-  { title: "Extract pages", description: "Extract selected pages into a new PDF.", slug: "extract-pages", category: "organize", icon: Scissors },
+  { title: "Extract pages", description: "Extract selected pages into a new PDF.", slug: "extract-pages", category: "organize", icon: FileOutput },
   { title: "Organize PDF", description: "Reorder PDF pages into a custom sequence.", slug: "organize", category: "organize", icon: FileText },
   { title: "Add Pages to PDF", description: "Insert pages from another PDF into an existing PDF.", slug: "add-pages", category: "organize", icon: Plus },
   { title: "Compare PDF", description: "Compare two PDFs and inspect differences.", slug: "compare", category: "organize", icon: FileSearch },

@@ -18,7 +18,7 @@ import {
    PDFVERSE SUPPORT EMAIL
    ========================================================================== */
 
-const CONTACT_EMAIL = "support.pdfverse@gmail.com";
+const CONTACT_EMAIL = "contact.pdfverse@gmail.com";
 
 /* ==========================================================================
    PAGE
