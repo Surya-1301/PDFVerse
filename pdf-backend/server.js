@@ -884,7 +884,215 @@ function pdfToPdfa(inputPath, outputPath) {
       resolve();
     });
   });
-  }
+}
+
+function unlockPdf(inputPath, outputPath, password) {
+  const pyScript = `
+import pikepdf
+import sys
+
+input_pdf = sys.argv[1]
+output_pdf = sys.argv[2]
+password = sys.argv[3]
+
+try:
+    with pikepdf.open(
+        input_pdf,
+        password=password,
+    ) as pdf:
+        pdf.save(output_pdf)
+
+except pikepdf.PasswordError:
+    raise Exception(
+        "The password is incorrect for this PDF."
+    )
+`.trim();
+
+  return runPythonScript(
+    pyScript,
+    [inputPath, outputPath, password],
+    "Could not unlock this PDF.",
+  );
+}
+
+function protectPdf(inputPath, outputPath, userPassword, ownerPassword) {
+  const pyScript = `
+import pikepdf
+import sys
+
+input_pdf = sys.argv[1]
+output_pdf = sys.argv[2]
+user_password = sys.argv[3]
+owner_password = sys.argv[4]
+
+with pikepdf.open(input_pdf) as pdf:
+    pdf.save(
+        output_pdf,
+        encryption=pikepdf.Encryption(
+            owner=owner_password,
+            user=user_password,
+            R=6,
+        ),
+    )
+`.trim();
+
+  return runPythonScript(
+    pyScript,
+    [inputPath, outputPath, userPassword, ownerPassword || userPassword],
+    "Could not protect this PDF.",
+  );
+}
+
+function redactPdf(inputPath, outputPath, terms) {
+  const pyScript = `
+import sys
+
+import fitz
+
+input_pdf = sys.argv[1]
+output_pdf = sys.argv[2]
+terms = [t for t in sys.argv[3].split("|") if t.strip()]
+
+doc = fitz.open(input_pdf)
+
+for page in doc:
+    for term in terms:
+        rects = page.search_for(term)
+        for rect in rects:
+            page.add_redact_annot(
+                rect,
+                fill=(0, 0, 0),
+            )
+    page.apply_redactions()
+
+
+doc.save(output_pdf)
+doc.close()
+print("Redacted PDF created.")
+`.trim();
+
+  return runPythonScript(
+    pyScript,
+    [inputPath, outputPath, terms],
+    "Could not redact this PDF.",
+  );
+}
+
+function comparePdfs(firstPath, secondPath) {
+  const pyScript = `
+import json
+import sys
+
+import fitz
+
+first_path = sys.argv[1]
+second_path = sys.argv[2]
+
+first_doc = fitz.open(first_path)
+second_doc = fitz.open(second_path)
+
+first_pages = [
+    page.get_text("text") or ""
+    for page in first_doc
+]
+second_pages = [
+    page.get_text("text") or ""
+    for page in second_doc
+]
+
+first_doc.close()
+second_doc.close()
+
+def diff_words(first, second):
+    import difflib
+    first_words = first.split()
+    second_words = second.split()
+    matcher = difflib.SequenceMatcher(
+        None,
+        first_words,
+        second_words,
+    )
+    added = []
+    removed = []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "insert":
+            added.extend(second_words[j1:j2])
+        elif tag == "delete":
+            removed.extend(first_words[i1:i2])
+        elif tag == "replace":
+            added.extend(second_words[j1:j2])
+            removed.extend(first_words[i1:i2])
+    return added, removed
+
+total_pages = max(
+    len(first_pages),
+    len(second_pages),
+)
+
+pages = []
+
+for index in range(total_pages):
+    first_text = first_pages[index] if index < len(first_pages) else ""
+    second_text = second_pages[index] if index < len(second_pages) else ""
+    added, removed = diff_words(
+        first_text,
+        second_text,
+    )
+    identical = first_text == second_text
+    first_words = len(first_text.split())
+    second_words = len(second_text.split())
+    similarity = (
+        1.0
+        if identical
+        else round(
+            max(first_words, second_words, 1)
+            - len(set(first_text.split()) | set(second_text.split())) / max(first_words, second_words, 1),
+            2,
+        )
+        if False
+        else 0.0
+    )
+    pages.append(
+        {
+            "page": index + 1,
+            "identical": identical,
+            "similarity": similarity,
+            "firstLength": len(first_text),
+            "secondLength": len(second_text),
+            "added": added,
+            "removed": removed,
+            "changed": [
+                word
+                for word in second_text.split()
+                if word not in first_text.split()
+            ],
+        }
+    )
+
+payload = json.dumps(
+    {"pages": pages},
+    ensure_ascii=False,
+)
+print(payload)
+`.trim();
+
+  return runPythonScript(
+    pyScript,
+    [firstPath, secondPath],
+    "Could not compare these PDFs.",
+  ).then((stdout) => {
+    const trimmed = String(stdout || "").trim();
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return {
+        pages: [],
+        error:
+          "The comparison returned an unexpected result.",
+      };
+    }
+  });
+}
 
 function createOutputDir(prefix) {
   return fsp.mkdtemp(
@@ -985,6 +1193,37 @@ function sendFileAndCleanup(
       }
     },
   );
+}
+
+function streamFile(
+  res,
+  filePath,
+  cleanup,
+) {
+  res.sendFile(
+    filePath,
+    {},
+    async (error) => {
+      if (typeof cleanup === "function") {
+        await cleanup();
+      } else {
+        await safeDelete(filePath);
+      }
+
+      if (error && !res.headersSent) {
+        res.status(500).json({
+          error:
+            error.message ||
+            "Could not send generated file.",
+        });
+      }
+    },
+  );
+}
+
+function getBaseName(name, fallback = "document") {
+  const safe = safeFileName(name, fallback || "document");
+  return safe.replace(/\.[^.]+$/u, "");
 }
 
 function formatBytes(bytes) {
@@ -2119,7 +2358,7 @@ function sendBatchZip(
         outputZip,
       );
 
-      await safeRemoveDir(
+      await safeRemoveDirectory(
         outputDir,
       );
     },
@@ -2200,7 +2439,7 @@ async function batchRoute(
       outputZip,
     );
 
-    await safeRemoveDir(
+    await safeRemoveDirectory(
       outputDir,
     );
 
@@ -2841,24 +3080,6 @@ app.get(
   },
 );
 
-
-/**
- * POST /api/chat-pdf/upload
- *
- * RAG indexing flow:
- *
- * PDF
- *  ↓
- * Extract text page-by-page
- *  ↓
- * Split into chunks
- *  ↓
- * Gemini embeddings
- *  ↓
- * Store vectors in RAG session
- *  ↓
- * Return fileId + fileToken
- */
 app.post(
   "/api/chat-pdf/upload",
   upload.single("file"),
