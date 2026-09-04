@@ -787,49 +787,74 @@ finally:
   );
 }
 
-function pdfToJpg(inputPath, outputDir) {
-  const outputPrefix = path.join(outputDir, "page");
-  const args = ["-jpeg", "-r", "180", inputPath, outputPrefix];
+function pdfToJpg(inputPath, outputPath, dpi, pages) {
+  const pyScript = `
+import os
+import sys
+import zipfile
 
-  return new Promise((resolve, reject) => {
-    execFile("pdftoppm", args, { timeout: 240000 }, (error, stdout, stderr) => {
-      if (error) {
-        reject(
-          new Error(
-            stderr ||
-              stdout ||
-              error.message ||
-              "PDF to JPG conversion failed.",
-          ),
-        );
-        return;
-      }
+import fitz
 
-      resolve();
-    });
-  });
-}
+input_path = sys.argv[1]
+output_zip = sys.argv[2]
+dpi = int(sys.argv[3]) if len(sys.argv) > 3 else 150
+pages_arg = sys.argv[4] if len(sys.argv) > 4 else ""
 
-function zipFiles(files, outputPath, cwd) {
-  return new Promise((resolve, reject) => {
-    execFile(
-      "zip",
-      ["-j", outputPath, ...files],
-      { timeout: 120000, cwd },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(
-            new Error(
-              stderr || stdout || error.message || "Could not create ZIP file.",
-            ),
-          );
-          return;
-        }
+def parse_pages(spec, total):
+    if not spec or spec.strip() == "":
+        return list(range(total))
+    result = []
+    for part in str(spec).split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, _, end_s = part.partition("-")
+            try:
+                start = int(start_s) - 1
+                end = int(end_s) - 1 if end_s else start
+            except ValueError:
+                continue
+            for p in range(max(start, 0), min(end, total - 1) + 1):
+                if p not in result:
+                    result.append(p)
+        else:
+            try:
+                p = int(part) - 1
+            except ValueError:
+                continue
+            if 0 <= p < total and p not in result:
+                result.append(p)
+    return sorted(result)
 
-        resolve();
-      },
-    );
-  });
+doc = fitz.open(input_path)
+total = doc.page_count
+selected = parse_pages(pages_arg, total)
+
+if not selected:
+    print("No JPG images were generated.", file=sys.stderr)
+    doc.close()
+    sys.exit(1)
+
+zoom = dpi / 72.0
+mat = fitz.Matrix(zoom, zoom)
+
+with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+    for i, page_index in enumerate(selected):
+        page = doc.load_page(page_index)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        data = pix.tobytes("jpeg", jpg_quality=90)
+        zf.writestr(f"page-{i + 1}.jpg", data)
+
+doc.close()
+print(f"Wrote {len(selected)} JPG image(s).")
+`.trim();
+
+  return runPythonScript(
+    pyScript,
+    [inputPath, outputPath, String(dpi || 150), String(pages || "")],
+    "PDF to JPG conversion failed.",
+  );
 }
 
 function pdfToPdfa(inputPath, outputPath) {
@@ -1498,47 +1523,17 @@ app.post(
           "pdf-to-jpg",
         );
 
-      await pdfToJpg(
-        inputPath,
-        outputDir,
-      );
-
-      const files =
-        (
-          await fsp.readdir(
-            outputDir,
-          )
-        )
-          .filter(
-            (name) =>
-              /\.(jpg|jpeg)$/i.test(
-                name,
-              ),
-          )
-          .map(
-            (name) =>
-              path.join(
-                outputDir,
-                name,
-              ),
-          );
-
-      if (files.length === 0) {
-        throw new Error(
-          "No JPG images were generated.",
-        );
-      }
-
       outputZip =
         path.join(
           outputDir,
           "pdf-pages.zip",
         );
 
-      await zipFiles(
-        files,
+      await pdfToJpg(
+        inputPath,
         outputZip,
-        outputDir,
+        req.body.dpi,
+        req.body.pages,
       );
 
       res.setHeader(
