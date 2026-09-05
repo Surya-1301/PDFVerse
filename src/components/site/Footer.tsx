@@ -10,19 +10,26 @@ const footerLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-slate-950/80">
-      <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+    <footer
+      className="border-t"
+      style={{
+        borderColor: "var(--border)",
+        background: "color-mix(in srgb, var(--surface) 70%, transparent)",
+      }}
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           {/* Brand */}
           <div>
             <Link
               to="/"
-              className="inline-flex items-center gap-3 text-base font-semibold tracking-tight text-white transition hover:text-violet-200"
+              className="inline-flex items-center gap-3 text-base font-semibold tracking-tight"
+              style={{ color: "var(--text-1)" }}
             >
               <span>PDFVerse</span>
             </Link>
 
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
               © {new Date().getFullYear()} PDFVerse. All rights reserved.
             </p>
           </div>
@@ -39,9 +46,10 @@ export default function Footer() {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className="group inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-violet-300 sm:gap-2 sm:text-sm"
+                  className="group inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:gap-2 sm:text-sm"
+                  style={{ color: "var(--text-2)" }}
                 >
-                  <Icon className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-violet-300 sm:h-4 sm:w-4" />
+                  <Icon className="h-4 w-4 shrink-0 transition-opacity group-hover:opacity-100 sm:h-4 sm:w-4" />
                   <span>{item.label}</span>
                 </Link>
               );

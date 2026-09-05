@@ -83,31 +83,42 @@ export function HowToUse({
         </div>
 
 
-        {/* Mobile only: icon on the left, title + description on the right */}
+        {/* Mobile only: icon on the left, title + description on the right — theme-aware like desktop */}
         <div className="grid gap-3 sm:hidden">
           {steps.map((step, index) => (
             <div
               key={`${step.title}-mobile-${index}`}
-              className="flex w-full items-center gap-4 rounded-2xl border border-cyan-400/10 bg-[#071522] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+              className="group flex w-full items-center gap-4 rounded-2xl border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--surface)',
+                boxShadow: '0 4px 12px -2px var(--accent-glow)',
+              }}
             >
-              {/* Cyan icon */}
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/10 bg-[#092B40] text-[#63E5F7] shadow-[0_0_18px_rgba(34,211,238,0.08)]">
+              {/* Accent-tinted icon (matches desktop StepCard) */}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition duration-300 group-hover:scale-105 group-hover:border-violet-400/30"
+                style={{
+                  borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                }}
+              >
                 {step.icon}
               </div>
 
               {/* Right-side content */}
               <div className="min-w-0 flex-1 pr-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-[14px] font-semibold leading-5 text-white">
+                  <h3 className="text-[14px] font-semibold leading-5" style={{ color: 'var(--text-1)' }}>
                     {step.title}
                   </h3>
 
-                  <span className="shrink-0 text-[11px] font-bold text-slate-600">
+                  <span className="shrink-0 text-[11px] font-bold" style={{ color: 'var(--text-3)' }}>
                     {String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
 
-                <p className="mt-1 text-[12px] leading-5 text-slate-400">
+                <p className="mt-1 text-[12px] leading-5" style={{ color: 'var(--text-2)' }}>
                   {step.description}
                 </p>
               </div>

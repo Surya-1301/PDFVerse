@@ -20,6 +20,7 @@ import { useEffect, useRef } from "react";
 
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
+import ThemeProvider from "@/components/theme/ThemeProvider";
 
 function NotFoundComponent() {
   return (
@@ -396,6 +397,27 @@ function RootComponent() {
   const router = useRouter();
   const previousPathRef =
     useRef<string | null>(null);
+
+  return (
+    <ThemeProvider>
+      <RootComponentInner
+        queryClient={queryClient}
+        router={router}
+        previousPathRef={previousPathRef}
+      />
+    </ThemeProvider>
+  );
+}
+
+function RootComponentInner({
+  queryClient,
+  router,
+  previousPathRef,
+}: {
+  queryClient: QueryClient;
+  router: ReturnType<typeof useRouter>;
+  previousPathRef: React.MutableRefObject<string | null>;
+}) {
 
   useEffect(() => {
     const syncToolCategory = () => {

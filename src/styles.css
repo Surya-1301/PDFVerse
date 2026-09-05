@@ -1,26 +1,257 @@
 @import "tailwindcss";
 
+/* ======================================================
+   TAILWIND v4 THEME — custom semantic tokens
+   ====================================================== */
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Semantic colors — overridden by [data-accent] and [data-theme] */
+  --color-primary: #7c3aed;
+  --color-primary-foreground: #ffffff;
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+  --color-surface-fg: #f8fafc;
+  --color-muted: #1e293b;
+  --color-muted-fg: #94a3b8;
+  --color-muted-fg-dim: #64748b;
+  --color-border-base: rgba(255, 255, 255, 0.10);
+  --color-bg-base: #020617;
+
+  /* Category icon colors */
+  --color-ci-edit-bg: #8b5cf61a;
+  --color-ci-edit-fg: #a78bfa;
+  --color-ci-org-bg: #3b82f61a;
+  --color-ci-org-fg: #60a5fa;
+  --color-ci-cvt-bg: #10b9811a;
+  --color-ci-cvt-fg: #34d399;
+  --color-ci-cfv-bg: #f59e0b1a;
+  --color-ci-cfv-fg: #fbbf24;
+  --color-ci-sec-bg: #ef44441a;
+  --color-ci-sec-fg: #f87171;
 }
 
+/* ======================================================
+   ACCENT THEMES — data-accent="violet|sky|emerald|amber|rose"
+   Violet is the default (:root).
+   ====================================================== */
+
+[data-accent="violet"],
 :root {
-  color-scheme: dark;
+  --accent: #7c3aed;
+  --accent-hover: #8b5cf6;
+  --accent-fg: #c4b5fd;
+  --accent-light: rgba(124, 58, 237, 0.12);
+  --accent-glow: rgba(124, 58, 237, 0.30);
+  --color-primary: #7c3aed;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: rgba(124, 58, 237, 0.10);
+  --color-primary-glow: rgba(124, 58, 237, 0.30);
 }
+
+[data-accent="sky"] {
+  --accent: #0284c7;
+  --accent-hover: #0ea5e9;
+  --accent-fg: #7dd3fc;
+  --accent-light: rgba(2, 132, 199, 0.12);
+  --accent-glow: rgba(2, 132, 199, 0.30);
+  --color-primary: #0284c7;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: rgba(2, 132, 199, 0.10);
+  --color-primary-glow: rgba(2, 132, 199, 0.30);
+}
+
+[data-accent="emerald"] {
+  --accent: #059669;
+  --accent-hover: #10b981;
+  --accent-fg: #6ee7b7;
+  --accent-light: rgba(5, 150, 105, 0.12);
+  --accent-glow: rgba(5, 150, 105, 0.30);
+  --color-primary: #059669;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: rgba(5, 150, 105, 0.10);
+  --color-primary-glow: rgba(5, 150, 105, 0.30);
+}
+
+[data-accent="amber"] {
+  --accent: #d97706;
+  --accent-hover: #f59e0b;
+  --accent-fg: #fde68a;
+  --accent-light: rgba(217, 119, 6, 0.12);
+  --accent-glow: rgba(217, 119, 6, 0.30);
+  --color-primary: #d97706;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: rgba(217, 119, 6, 0.10);
+  --color-primary-glow: rgba(217, 119, 6, 0.30);
+}
+
+[data-accent="rose"] {
+  --accent: #e11d48;
+  --accent-hover: #f43f5e;
+  --accent-fg: #fda4af;
+  --accent-light: rgba(225, 29, 72, 0.12);
+  --accent-glow: rgba(225, 29, 72, 0.30);
+  --color-primary: #e11d48;
+  --color-primary-foreground: #ffffff;
+  --color-primary-light: rgba(225, 29, 72, 0.10);
+  --color-primary-glow: rgba(225, 29, 72, 0.30);
+}
+
+/* ======================================================
+   DARK MODE — data-theme="dark" (default)
+   ====================================================== */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces — match original slate-950 */
+  --bg: #020617;
+  --surface: #0f172a;
+  --surface-hover: #1e293b;
+  --border: rgba(255, 255, 255, 0.10);
+
+  /* Text — match original slate-50 */
+  --text-1: #f8fafc;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+
+  /* Tailwind v4 theme tokens */
+  --color-bg-base: #020617;
+  --color-surface: #0f172a;
+  --color-surface-hover: #1e293b;
+  --color-surface-fg: #f8fafc;
+  --color-muted: #1e293b;
+  --color-muted-fg: #94a3b8;
+  --color-muted-fg-dim: #64748b;
+  --color-border-base: rgba(255, 255, 255, 0.10);
+
+  /* shadcn-style semantic tokens */
+  --background: #020617;
+  --foreground: #f8fafc;
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent-bg: var(--accent-light);
+  --accent-fg: var(--accent);
+  --border-color: var(--border);
+  --input: #1e293b;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --destructive: #ef4444;
+
+  /* Category icon backgrounds */
+  --ci-edit-bg: rgba(124, 58, 237, 0.12);
+  --ci-edit-fg: #a78bfa;
+  --ci-org-bg: rgba(59, 130, 246, 0.12);
+  --ci-org-fg: #60a5fa;
+  --ci-cvt-bg: rgba(16, 185, 129, 0.12);
+  --ci-cvt-fg: #34d399;
+  --ci-cfv-bg: rgba(245, 158, 11, 0.12);
+  --ci-cfv-fg: #fbbf24;
+  --ci-sec-bg: rgba(239, 68, 68, 0.12);
+  --ci-sec-fg: #f87171;
+
+  --color-ci-edit-bg: #7c3aed1a;
+  --color-ci-edit-fg: #a78bfa;
+  --color-ci-org-bg: #3b82f61a;
+  --color-ci-org-fg: #60a5fa;
+  --color-ci-cvt-bg: #10b9811a;
+  --color-ci-cvt-fg: #34d399;
+  --color-ci-cfv-bg: #f59e0b1a;
+  --color-ci-cfv-fg: #fbbf24;
+  --color-ci-sec-bg: #ef44441a;
+  --color-ci-sec-fg: #f87171;
+}
+
+/* ======================================================
+   LIGHT MODE — data-theme="light"
+   ====================================================== */
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: #e2e8f0;
+
+  /* Text */
+  --text-1: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+
+  /* Tailwind v4 theme tokens */
+  --color-bg-base: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-fg: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-fg: #475569;
+  --color-muted-fg-dim: #94a3b8;
+  --color-border-base: #e2e8f0;
+
+  /* shadcn-style semantic tokens */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent-bg: var(--accent-light);
+  --accent-fg: var(--accent);
+  --border-color: #e2e8f0;
+  --input: #e2e8f0;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --destructive: #dc2626;
+
+  /* Category icon backgrounds */
+  --ci-edit-bg: #f5f3ff;
+  --ci-edit-fg: #7c3aed;
+  --ci-org-bg: #eff6ff;
+  --ci-org-fg: #2563eb;
+  --ci-cvt-bg: #ecfdf5;
+  --ci-cvt-fg: #059669;
+  --ci-cfv-bg: #fffbeb;
+  --ci-cfv-fg: #d97706;
+  --ci-sec-bg: #fef2f2;
+  --ci-sec-fg: #dc2626;
+
+  --color-ci-edit-bg: #f5f3ff;
+  --color-ci-edit-fg: #7c3aed;
+  --color-ci-org-bg: #eff6ff;
+  --color-ci-org-fg: #2563eb;
+  --color-ci-cvt-bg: #ecfdf5;
+  --color-ci-cvt-fg: #059669;
+  --color-ci-cfv-bg: #fffbeb;
+  --color-ci-cfv-fg: #d97706;
+  --color-ci-sec-bg: #fef2f2;
+  --color-ci-sec-fg: #dc2626;
+}
+
+/* ======================================================
+   BASE STYLES
+   ====================================================== */
 
 html {
-  background: #020617;
+  background: var(--bg);
+  transition: background 0.3s, color 0.3s;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #020617;
-  color: #f8fafc;
+  background: var(--bg);
+  color: var(--text-1);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s, color 0.3s;
 }
 
 * {
@@ -45,3 +276,232 @@ canvas {
   display: block;
   max-width: 100%;
 }
+
+/* ======================================================
+   GLOBAL THEME OVERRIDES
+   Remap hardcoded Tailwind color classes to CSS vars so
+   they follow the active accent & dark/light mode.
+   Plain CSS (unlayered) beats Tailwind's @layer utilities,
+   while inline styles still win on top.
+   ====================================================== */
+
+/* --- Surface backgrounds --- */
+.bg-slate-950 { background-color: var(--bg); }
+
+/* Editor chrome stays flat & theme-aware; separate rules because
+   bracket-escaped hex classes can't share a selector list safely. */
+.bg-\[#09090b\],
+.bg-\[#111113\],
+.bg-\[#151517\],
+.bg-\[#1c1c1f\],
+.bg-\[#202124\],
+.bg-\[#0b0d18\],
+.bg-\[#171a22\] { background-color: var(--bg); }
+
+.bg-slate-900 { background-color: var(--surface); }
+.bg-slate-950\/70,
+.bg-slate-950\/80 { background-color: var(--surface); }
+.bg-slate-900\/40,
+.bg-slate-900\/60,
+.bg-slate-900\/80,
+.bg-slate-800,
+.bg-slate-700 { background-color: color-mix(in srgb, var(--surface) 70%, transparent); }
+.bg-white\/\[0\.035\],
+.bg-white\/\[0\.03\],
+.bg-white\/\[0\.025\] { background-color: var(--surface); }
+.bg-white\/\[0\.05\] { background-color: var(--surface-hover); }
+.bg-white\/5,
+.bg-white\/\[0\.025\] { background-color: color-mix(in srgb, var(--surface) 5%, transparent); }
+.bg-white\/\[0\.07\] { background-color: color-mix(in srgb, var(--surface) 7%, transparent); }
+.bg-black\/10 { background-color: color-mix(in srgb, var(--surface) 10%, transparent); }
+.bg-black\/60,
+.bg-black\/65 { background-color: color-mix(in srgb, var(--surface) 60%, transparent); }
+.hover\:bg-white\/\[0\.05\]:hover,
+.hover\:bg-white\/\[0\.07\]:hover,
+.hover\:bg-white\/10:hover { background-color: var(--surface-hover); }
+.hover\:bg-white\/\[0\.08\]:hover { background-color: color-mix(in srgb, var(--text-1) 8%, transparent); }
+
+/* --- Primary accent (violet → accent) --- */
+.bg-violet-600,
+.bg-violet-500,
+.bg-violet-400,
+.bg-gradient-to-r.from-violet-600.to-purple-600 {
+  background-color: var(--accent);
+  color: var(--primary-foreground);
+}
+.bg-violet-600\/25 { background-color: var(--accent-glow); }
+.bg-violet-600\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+.bg-violet-600\/15 { background-color: color-mix(in srgb, var(--accent) 15%, transparent); }
+.bg-violet-600\/10,
+.bg-violet-500\/25,
+.bg-violet-500\/10,
+.bg-violet-500\/\[0\.06\],
+.bg-fuchsia-600\/10 { background-color: var(--accent-light); }
+.hover\:bg-violet-500:hover,
+.hover\:bg-violet-500\/10:hover { background-color: var(--accent-hover); }
+.hover\:border-violet-500\/40:hover,
+.hover\:border-violet-400\/30:hover,
+.hover\:border-violet-500\/50:hover { border-color: var(--accent); }
+
+/* -- Accent gradients -- */
+.from-violet-600 { --tw-gradient-from: var(--accent); }
+.to-violet-600 { --tw-gradient-to: var(--accent); }
+.from-violet-600.to-purple-600 { color: var(--primary-foreground); }
+.to-purple-600 { --tw-gradient-to: var(--accent-hover); }
+
+/* --- Red (intentional support/error accents stay red, text white) --- */
+.bg-red-600,
+.bg-red-500 { background-color: var(--destructive); color: #fff; }
+.from-red-600 { --tw-gradient-from: var(--destructive); color: #fff; }
+.to-orange-500 { --tw-gradient-to: #f97316; color: #fff; }
+.bg-red-500\/10,
+.bg-red-500\/15 { background-color: color-mix(in srgb, var(--destructive) 12%, transparent); }
+.border-red-400\/50 { border-color: color-mix(in srgb, var(--destructive) 50%, transparent); }
+.border-red-500\/30 { border-color: color-mix(in srgb, var(--destructive) 30%, transparent); }
+.border-red-400\/20 { border-color: color-mix(in srgb, var(--destructive) 20%, transparent); }
+.border-red-500\/40 { border-color: color-mix(in srgb, var(--destructive) 40%, transparent); }
+.ring-red-400\/10 { --tw-ring-color: color-mix(in srgb, var(--destructive) 10%, transparent); }
+.ring-red-500 { --tw-ring-color: var(--destructive); }
+.hover\:bg-red-500\/10:hover { background-color: color-mix(in srgb, var(--destructive) 15%, transparent); }
+.hover\:bg-red-500\/15:hover { background-color: color-mix(in srgb, var(--destructive) 18%, transparent); }
+.hover\:border-red-400\/40:hover { border-color: color-mix(in srgb, var(--destructive) 40%, transparent); }
+
+/* --- Emerald / green (success states) --- */
+.bg-emerald-500,
+.bg-emerald-600 { background-color: #059669; color: #fff; }
+.bg-emerald-500\/10 { background-color: color-mix(in srgb, #059669 12%, transparent); }
+.text-emerald-300 { color: #059669; }
+.text-emerald-400 { color: #10b981; }
+.text-emerald-200,
+.text-emerald-200\/80 { color: #34d399; }
+.border-emerald-400\/20,
+.border-emerald-400\/15,
+.border-emerald-400\/10 { border-color: color-mix(in srgb, #059669 20%, transparent); }
+.hover\:bg-emerald-500\/10:hover { background-color: color-mix(in srgb, #059669 15%, transparent); }
+.shadow-emerald-950\/20 { box-shadow: 0 4px 14px 0 color-mix(in srgb, #059669 25%, transparent); }
+
+/* --- Amber / yellow (warning states) --- */
+.bg-amber-500 { background-color: #d97706; color: #fff; }
+.bg-amber-500\/10 { background-color: color-mix(in srgb, #d97706 12%, transparent); }
+.text-amber-300 { color: #d97706; }
+.text-amber-400 { color: #f59e0b; }
+.text-amber-200 { color: #fbbf24; }
+.border-amber-400\/10 { border-color: color-mix(in srgb, #d97706 12%, transparent); }
+
+/* --- Blue / cyan (info states) --- */
+.text-blue-400 { color: #0ea5e9; }
+.border-cyan-400\/10 { border-color: color-mix(in srgb, #0ea5e9 12%, transparent); }
+
+/* --- Violet /violet (accent text) --- */
+.text-violet-100 { color: var(--text-1); }
+.text-violet-200 { color: var(--text-2); }
+.text-violet-300 { color: var(--accent); }
+.text-violet-400 { color: var(--accent); }
+.hover\:text-violet-200:hover { color: var(--text-2); }
+.hover\:text-violet-300:hover { color: var(--accent); }
+
+/* --- Primary text: on light this is dark, on dark this is light --- */
+.text-white,
+.text-slate-100,
+.text-slate-200 { color: var(--text-1); }
+.text-white\/80 { color: color-mix(in srgb, var(--text-1) 80%, transparent); }
+.text-slate-300 { color: var(--text-2); }
+.text-slate-400 { color: var(--text-2); }
+.text-slate-500 { color: var(--text-3); }
+.text-slate-600 { color: var(--text-3); }
+.hover\:text-white:hover { color: var(--text-1); }
+.hover\:text-violet-200:hover { color: var(--text-2); }
+.hover\:text-violet-300:hover { color: var(--accent); }
+
+/* --- Primary foreground: always #fff for accent-colored surfaces --- */
+.text-primary-foreground,
+.text-primary-foreground\/80,
+button.bg-violet-600,
+button.bg-violet-500,
+button.bg-violet-400 {
+  color: var(--primary-foreground) !important;
+}
+
+/* --- Border colors --- */
+.border-white\/10,
+.border-white\/20,
+.border-white\/5,
+.border-white\/\[0\.08\],
+.border-white\/\[0\.07\],
+.border-white\/15,
+.border-white\/30 { border-color: var(--border); }
+.border-white { border-color: var(--text-1); }
+.border-violet-400\/30,
+.border-violet-400\/40,
+.border-violet-300\/60,
+.border-violet-500\/60,
+.border-violet-500\/50,
+.border-violet-500\/30,
+.border-violet-400,
+.border-violet-500 { border-color: var(--accent); }
+.hover\:border-white\/20:hover,
+.hover\:border-violet-500\/40:hover,
+.hover\:border-violet-500\/50:hover,
+.hover\:border-violet-500\/30:hover,
+.hover\:border-violet-400\/30:hover { border-color: var(--accent); }
+.border-red-400\/20 { border-color: color-mix(in srgb, var(--destructive) 20%, transparent); }
+.border-red-500\/30 { border-color: color-mix(in srgb, var(--destructive) 30%, transparent); }
+.border-red-400\/50 { border-color: color-mix(in srgb, var(--destructive) 50%, transparent); }
+.border-red-500\/40 { border-color: color-mix(in srgb, var(--destructive) 40%, transparent); }
+.border-emerald-400\/20,
+.border-emerald-400\/15,
+.border-emerald-400\/10 { border-color: color-mix(in srgb, #059669 20%, transparent); }
+.border-amber-400\/10 { border-color: color-mix(in srgb, #d97706 12%, transparent); }
+.border-cyan-400\/10 { border-color: color-mix(in srgb, #0ea5e9 12%, transparent); }
+.hover\:border-white\/20:hover { border-color: var(--accent); }
+.hover\:border-red-400\/40:hover { border-color: color-mix(in srgb, var(--destructive) 40%, transparent); }
+
+/* --- Ring / focus colors --- */
+.ring-violet-400 { --tw-ring-color: var(--accent); }
+.border-violet-400.ring-violet-400 { border-color: var(--accent); --tw-ring-color: var(--accent); }
+.focus-visible\:ring-violet-300:focus-visible { --tw-ring-color: var(--accent); }
+.focus\:border-violet-500\/60:focus,
+.focus\:border-violet-500\/60:focus-visible { border-color: var(--accent); }
+.focus\:ring-violet-500\/30:focus,
+.focus\:ring-violet-500\/30:focus-visible { --tw-ring-color: var(--accent); }
+.focus-visible\:ring-offset-slate-950:focus-visible { --tw-ring-offset-color: var(--bg); }
+.focus-visible\:ring-offset-slate-900:focus-visible { --tw-ring-offset-color: var(--surface); }
+.focus-visible\:ring-red-500:focus-visible { --tw-ring-color: var(--destructive); }
+.ring-red-400\/10 { --tw-ring-color: color-mix(in srgb, var(--destructive) 10%, transparent); }
+.ring-red-500 { --tw-ring-color: var(--destructive); }
+.ring-violet-500\/30 { --tw-ring-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.ring-violet-500\/60 { --tw-ring-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.hover\:ring-violet-400:hover { --tw-ring-color: var(--accent); }
+
+/* --- Shadow colors --- */
+.shadow-violet-950\/20,
+.shadow-violet-950\/30,
+.shadow-violet-950\/40,
+.shadow-violet-600\/10 { box-shadow: 0 4px 14px 0 var(--accent-glow); }
+.shadow-violet-950\/20 { box-shadow: 0 4px 14px 0 var(--accent-glow); }
+.shadow-red-500\/20 { box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--destructive) 20%, transparent); }
+.shadow-red-500\/30 { box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--destructive) 30%, transparent); }
+.shadow-emerald-950\/20 { box-shadow: 0 4px 14px 0 color-mix(in srgb, #059669 25%, transparent); }
+
+/* --- Placeholder colors --- */
+.placeholder\:text-slate-600::placeholder,
+.placeholder\:text-slate-500::placeholder { color: var(--text-3); }
+
+/* --- Miscellaneous glows/tints --- */
+.bg-fuchsia-600\/10 { background-color: var(--accent-light); }
+.bg-gradient-to-br.from-violet-600.to-purple-600,
+.bg-gradient-to-br.from-violet-600 { color: var(--primary-foreground); }
+.bg-violet-600\/25 { background-color: var(--accent-glow); }
+.bg-violet-600\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+.bg-violet-500\/5 { background-color: color-mix(in srgb, var(--accent) 5%, transparent); }
+.bg-violet-500\/10 { background-color: var(--accent-light); }
+.bg-violet-600\/15 { background-color: color-mix(in srgb, var(--accent) 15%, transparent); }
+.bg-violet-500\/10 { background-color: var(--accent-light); }
+.bg-violet-500\/25 { background-color: var(--accent-light); }
+
+/* --- Gradient hero surfaces (slate-900 → surface) --- */
+.from-slate-900 { --tw-gradient-from: var(--surface); }
+.via-slate-950 { --tw-gradient-via: var(--bg); }
+.to-slate-950 { --tw-gradient-to: var(--bg); }
+.from-red-600 { --tw-gradient-from: var(--destructive); color: var(--primary-foreground); }
+.to-orange-500 { --tw-gradient-to: #f97316; color: var(--primary-foreground); }

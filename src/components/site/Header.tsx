@@ -1,12 +1,19 @@
 import { Link } from "@tanstack/react-router";
+import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 
 export default function Header() {
   return (
-    <header className="border-b border-white/10 bg-slate-950/80">
-      <div className="mx-auto flex min-h-5 w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+    <header
+      className="relative z-50 border-b backdrop-blur-xl backdrop-saturate-150"
+      style={{
+        borderColor: "var(--border)",
+        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+      }}
+    >
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
-          className="group inline-flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           aria-label="PDFVerse Home"
         >
           <img
@@ -16,17 +23,22 @@ export default function Header() {
           />
         </Link>
 
-        <a
-          href="https://toolversee.pages.dev/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto shrink-0 rounded-lg px-2 py-2 text-sm font-medium text-violet-200 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-3"
-        >
-          Try Toolverse
-          <span className="ml-1.5" aria-hidden="true">
-            ↗
-          </span>
-        </a>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeSwitcher />
+          <a
+            href="https://toolversee.pages.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
+            style={{
+              background: "var(--accent-light)",
+              color: "var(--accent)",
+            }}
+          >
+            Try Toolverse
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
       </div>
     </header>
   );

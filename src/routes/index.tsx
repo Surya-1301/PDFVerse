@@ -42,36 +42,35 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+// Category icon styles use accent CSS variables so they adapt to the
+// selected accent colour AND dark / light mode automatically.
 const categoryStyles: Record<
   Exclude<Category, "all">,
-  {
-    icon: string;
-    hoverBorder: string;
-  }
+  React.CSSProperties
 > = {
   edit: {
-    icon: "bg-blue-600 group-hover:bg-blue-500",
-    hoverBorder: "hover:border-blue-500/50",
+    background: "var(--accent-light)",
+    color: "var(--accent)",
   },
 
   organize: {
-    icon: "bg-cyan-600 group-hover:bg-cyan-500",
-    hoverBorder: "hover:border-cyan-500/50",
+    background: "var(--accent-light)",
+    color: "var(--accent)",
   },
 
   convertToPdf: {
-    icon: "bg-emerald-600 group-hover:bg-emerald-500",
-    hoverBorder: "hover:border-emerald-500/50",
+    background: "var(--accent-light)",
+    color: "var(--accent)",
   },
 
   convertFromPdf: {
-    icon: "bg-sky-600 group-hover:bg-sky-500",
-    hoverBorder: "hover:border-sky-500/50",
+    background: "var(--accent-light)",
+    color: "var(--accent)",
   },
 
   security: {
-    icon: "bg-amber-600 group-hover:bg-amber-500",
-    hoverBorder: "hover:border-amber-500/50",
+    background: "var(--accent-light)",
+    color: "var(--accent)",
   },
 };
 
@@ -144,15 +143,15 @@ function Home() {
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-slate-950">
+    <section className="relative min-h-screen overflow-hidden bg-bg-base">
       {/* Background glow */}
       <div
-        className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/25 blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'var(--accent-glow)' }}
         aria-hidden="true"
       />
 
       <div
-        className="pointer-events-none absolute right-0 top-24 -z-0 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-3xl"
+        className="pointer-events-none absolute right-0 top-24 -z-0 h-72 w-72 rounded-full blur-3xl" style={{ background: 'var(--accent-light)' }}
         aria-hidden="true"
       />
 
@@ -161,15 +160,15 @@ function Home() {
             MAIN PAGE HEADER
             ===================================================== */}
         <div className="mx-auto max-w-5xl text-center">
-          <p className="mx-auto mb-6 inline-flex rounded-full border border-violet-400/30 bg-violet-500/10 px-5 py-2 text-base text-violet-100 shadow-lg shadow-violet-600/10">
+          <p className="mx-auto mb-6 inline-flex rounded-full border px-5 py-2 text-base shadow-lg" style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', background: 'var(--accent-light)', color: 'var(--text-1)', boxShadow: '0 4px 6px -1px var(--accent-glow)' }}>
             Fast, free PDF tools
           </p>
 
-          <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">
+          <h1 className="text-5xl font-black tracking-tight sm:text-7xl" style={{ color: 'var(--text-1)' }}>
             PDF Editor Tools
           </h1>
 
-          <p className="mx-auto mt-8 max-w-5xl text-xl leading-9 text-slate-300 sm:text-2xl sm:leading-10">
+          <p className="mx-auto mt-8 max-w-5xl text-xl leading-9 sm:text-2xl sm:leading-10" style={{ color: 'var(--text-2)' }}>
             Merge, split, compress, sign, protect, convert,
             organize, and repair PDF files in one clean workspace.
           </p>
@@ -179,32 +178,26 @@ function Home() {
             ONLINE PDF EDITOR
             ===================================================== */}
         <div className="mx-auto mt-10 max-w-5xl">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl shadow-violet-950/20">
+          <div className="relative overflow-hidden rounded-[2rem] border shadow-2xl" style={{ borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 60%, transparent)' }}>
             <div className="px-5 pt-8 text-center sm:px-8 sm:pt-10">
 
-              {/* =================================================
-                  ISSUE #4 FIX:
-                  More visible BETA badge.
-                  ================================================= */}
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                <h2 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-1)' }}>
                   Online PDF Editor
                 </h2>
 
                 <span
                   aria-label="Beta version"
-                  className="inline-flex items-center rounded-full border border-violet-300/60 bg-violet-500/25 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] text-violet-100 shadow-md shadow-violet-950/30"
+                  className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.12em] shadow-md" style={{ borderColor: 'color-mix(in srgb, var(--accent) 60%, transparent)', background: 'var(--accent-light)', color: 'var(--text-1)' }}
                 >
                   BETA
                 </span>
               </div>
 
               {/* =================================================
-                  ISSUE #1 FIX:
-                  Clarify that this CTA specifically opens
-                  the PDF editor.
+                  Clarify that this CTA specifically opens the PDF editor.
                   ================================================= */}
-              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+              <p className="mx-auto mt-3 max-w-2xl text-base leading-7 sm:text-lg" style={{ color: 'var(--text-2)' }}>
                 Edit PDF files for free. Add text, images,
                 shapes, signatures, and highlights.
               </p>
@@ -222,18 +215,21 @@ function Home() {
               />
 
               {/* =================================================
-                  ISSUE #1 FIX:
-                  More explicit CTA label.
-                  Functionality remains exactly the same.
+                  More explicit CTA label. Functionality remains exactly the same.
                   ================================================= */}
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 aria-label="Upload a PDF to edit it online"
-                className="inline-flex min-w-[280px] items-center justify-center gap-4 rounded-2xl bg-violet-600 px-7 py-4 text-lg font-bold text-white shadow-xl shadow-violet-950/30 transition hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:min-w-[360px] sm:px-9 sm:py-5 sm:text-xl"
+                className="inline-flex min-w-[280px] items-center justify-center gap-4 rounded-2xl px-7 py-4 text-lg font-bold transition hover:-translate-y-0.5"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--primary-foreground)',
+                  boxShadow: '0 4px 14px 0 var(--accent-glow)',
+                }}
               >
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent-foreground) 15%, transparent)' }}
                   aria-hidden="true"
                 >
                   <Upload className="h-6 w-6" />
@@ -245,7 +241,8 @@ function Home() {
               <button
                 type="button"
                 onClick={onBlank}
-                className="mt-5 inline-flex items-center gap-2 text-base font-medium text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                className="mt-5 inline-flex items-center gap-2 text-base font-medium transition hover:text-white focus-visible:outline-none focus-visible:ring-2"
+                style={{ color: 'var(--text-3)' }}
               >
                 <FilePlus2
                   className="h-5 w-5"
@@ -258,7 +255,7 @@ function Home() {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-white/5 bg-black/10 px-5 py-5 text-xs text-slate-500 sm:text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t px-5 py-5 text-xs sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', background: 'color-mix(in srgb, var(--surface) 10%, transparent)', color: 'var(--text-3)' }}>
               <span>✓ Edit existing text</span>
               <span>✓ Add text &amp; images</span>
               <span>✓ Sign &amp; annotate</span>
@@ -292,11 +289,12 @@ function Home() {
                 aria-pressed={
                   activeCategory === tab.id
                 }
-                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-5 sm:py-3 sm:tracking-[0.14em] ${
+                className="shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5 sm:py-3 sm:tracking-[0.14em]"
+                style={
                   activeCategory === tab.id
-                    ? "border-white bg-white text-slate-950"
-                    : "border-white/10 bg-white/[0.05] text-slate-400 hover:bg-white/[0.08] hover:text-white"
-                }`}
+                    ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#ffffff' }
+                    : { borderColor: 'var(--border)', background: 'transparent', color: 'var(--text-2)' }
+                }
               >
                 {tab.label}
               </button>
@@ -304,11 +302,10 @@ function Home() {
           </div>
 
           {/* ===================================================
-              ISSUE #2 FIX:
               Better visibility for tool count and filter status.
               =================================================== */}
           <p
-            className="mt-5 text-left text-sm text-slate-500"
+            className="mt-5 text-left text-sm" style={{ color: 'var(--text-3)' }}
             aria-live="polite"
             aria-atomic="true"
           >
@@ -318,15 +315,6 @@ function Home() {
               : "PDF tools shown"}
           </p>
 
-          {/* ===================================================
-              DESKTOP / TABLET TOOL GRID
-
-              ISSUE #3:
-              Consistent title + description dimensions.
-
-              ADDITIONAL DENSITY FIX:
-              4 columns instead of 5 at XL screens.
-              =================================================== */}
           <div className="mt-6 hidden grid-flow-row items-stretch gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {visibleTools.map((tool) => {
               const Icon = tool.icon;
@@ -343,40 +331,33 @@ function Home() {
                       : `/pdf/${tool.slug}?returnCategory=${encodeURIComponent(activeCategory)}`
                   }
                   aria-label={`${tool.title}: ${tool.description}`}
-                  className={`group flex h-[210px] min-w-0 self-stretch flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${style.hoverBorder}`}
+                  className="group flex h-[210px] min-w-0 self-stretch flex-col rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{
+                    borderColor: 'var(--border)',
+                    background: 'color-mix(in srgb, var(--surface) 55%, transparent)',
+                    boxShadow: 'none',
+                  }}
                 >
-                  {/* Category-colored icon */}
+                  {/* Accent-themed icon */}
                   <div
-                    className={`mb-5 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white transition ${style.icon}`}
+                    className="mb-5 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition"
+                    style={style}
                     aria-hidden="true"
                   >
                     <Icon className="h-5 w-5" />
                   </div>
 
-                  {/* =================================================
-                      ISSUE #3 FIX:
-                      Fixed title height + one-line presentation.
-
-                      This prevents:
-                      "Batch Header & Footer"
-                      from pushing its description down.
-                      ================================================= */}
                   <h2
-                    className="h-6 min-h-[24px] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold leading-6 text-white"
+                    className="h-6 min-h-[24px] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold leading-6"
+                    style={{ color: 'var(--text-1)' }}
                     title={tool.title}
                   >
                     {tool.title}
                   </h2>
 
-                  {/* =================================================
-                      ISSUE #3 FIX:
-                      Fixed three-line description area.
-
-                      Short descriptions still occupy the same
-                      visual space as long descriptions.
-                      ================================================= */}
                   <p
-                    className="mt-2 min-h-[72px] overflow-hidden text-sm leading-6 text-slate-400 line-clamp-3"
+                    className="mt-2 min-h-[72px] overflow-hidden text-sm leading-6 line-clamp-3"
+                    style={{ color: 'var(--text-2)' }}
                     title={tool.description}
                   >
                     {tool.description}
@@ -405,22 +386,25 @@ function Home() {
                       : `/pdf/${tool.slug}?returnCategory=${encodeURIComponent(activeCategory)}`
                   }
                   aria-label={`${tool.title}: ${tool.description}`}
-                  className="group flex w-full min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-white/20 hover:bg-white/[0.05] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                  className="group flex w-full min-w-0 items-center gap-4 rounded-2xl border p-4 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 55%, transparent)' }}
                 >
                   <div
-                    className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition ${style.icon}`}
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg transition"
+                    style={style}
                     aria-hidden="true"
                   >
                     <Icon className="h-6 w-6" />
                   </div>
 
                   <div className="min-w-0 flex-1 pr-1">
-                    <h2 className="truncate text-[15px] font-semibold leading-5 text-white">
+                    <h2 className="truncate text-[15px] font-semibold leading-5" style={{ color: 'var(--text-1)' }}>
                       {tool.title}
                     </h2>
 
                     <p
-                      className="mt-1 min-h-[40px] line-clamp-2 text-[12px] leading-5 text-slate-300/80"
+                      className="mt-1 min-h-[40px] line-clamp-2 text-[12px] leading-5"
+                      style={{ color: 'var(--text-2)', opacity: 0.8 }}
                       title={tool.description}
                     >
                       {tool.description}
@@ -437,7 +421,8 @@ function Home() {
           href="/pdf/chat-with-pdf"
           aria-label="Open PDFVerse AI chat"
           title="Open PDFVerse AI chat"
-          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-xl shadow-violet-950/40 transition hover:-translate-y-0.5 hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:bottom-6 sm:right-6"
+          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-xl transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 sm:bottom-6 sm:right-6"
+          style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
         >
           <MessageCircle
             className="h-6 w-6"
