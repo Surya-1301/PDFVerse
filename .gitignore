@@ -8,6 +8,9 @@ dist
 build
 .output/
 
+# Playwright browser binaries (downloaded test artifacts)
+pdf-backend/.playwright
+
 .env
 .env.local
 .env.*.local

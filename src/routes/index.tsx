@@ -278,7 +278,7 @@ function Home() {
               CATEGORY FILTERS
               =================================================== */}
           <div
-            className="flex flex-nowrap justify-center gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex flex-nowrap justify-start gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center"
             role="group"
             aria-label="Filter PDF tools by category"
           >
@@ -292,7 +292,7 @@ function Home() {
                 aria-pressed={
                   activeCategory === tab.id
                 }
-                className={`shrink-0 rounded-full border px-5 py-3 text-sm font-semibold tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-5 sm:py-3 sm:tracking-[0.14em] ${
                   activeCategory === tab.id
                     ? "border-white bg-white text-slate-950"
                     : "border-white/10 bg-white/[0.05] text-slate-400 hover:bg-white/[0.08] hover:text-white"
@@ -420,7 +420,7 @@ function Home() {
                     </h2>
 
                     <p
-                      className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-300/80"
+                      className="mt-1 min-h-[40px] line-clamp-2 text-[12px] leading-5 text-slate-300/80"
                       title={tool.description}
                     >
                       {tool.description}
