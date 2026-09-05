@@ -91,6 +91,56 @@ function getPreviewKind(
   return "generic";
 }
 
+export async function convertOfficeToPdfPreview(
+  file: File | Blob,
+  fileName: string,
+): Promise<PreviewDescriptor> {
+  const formData = new FormData();
+  formData.append("file", file, fileName);
+
+  const response = await fetch(
+    `${PDF_API_BASE_URL}/api/pdf/office-to-pdf`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+
+  if (!response.ok) {
+    let message = `Could not create a preview for ${fileName}.`;
+
+    try {
+      const payload =
+        (await response.json()) as {
+          error?: string;
+        };
+
+      if (payload?.error) {
+        message = payload.error;
+      }
+    } catch {
+      // Keep fallback message.
+    }
+
+    throw new Error(message);
+  }
+
+  const blob =
+    await response.blob();
+
+  if (!blob.size) {
+    throw new Error(
+      `Preview conversion returned an empty file for ${fileName}.`,
+    );
+  }
+
+  return {
+    url: URL.createObjectURL(blob),
+    type: "application/pdf",
+    kind: "pdf",
+  };
+}
+
 async function buildPreview(
   file: File,
 ): Promise<PreviewDescriptor> {
@@ -117,54 +167,10 @@ async function buildPreview(
   if (
     OFFICE_EXTENSIONS.test(file.name)
   ) {
-    const formData = new FormData();
-    formData.append(
-      "file",
+    return convertOfficeToPdfPreview(
       file,
       file.name,
     );
-
-    const response = await fetch(
-      `${PDF_API_BASE_URL}/api/pdf/office-to-pdf`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-    if (!response.ok) {
-      let message = `Could not create a preview for ${file.name}.`;
-
-      try {
-        const payload =
-          (await response.json()) as {
-            error?: string;
-          };
-
-        if (payload?.error) {
-          message = payload.error;
-        }
-      } catch {
-        // Keep fallback message.
-      }
-
-      throw new Error(message);
-    }
-
-    const blob =
-      await response.blob();
-
-    if (!blob.size) {
-      throw new Error(
-        `Preview conversion returned an empty file for ${file.name}.`,
-      );
-    }
-
-    return {
-      url: URL.createObjectURL(blob),
-      type: "application/pdf",
-      kind: "pdf",
-    };
   }
 
   return {
@@ -303,6 +309,159 @@ function InlineFilePreview({
   );
 }
 
+/** Desktop/tablet result preview. Office files are converted to PDF so the
+ *  preview renders directly in the box (no separate Preview button needed). */
+
+// Dedupe concurrent office→PDF conversions for the same result blob.
+// React StrictMode double-invokes effects in dev, which would otherwise
+// spawn two LibreOffice processes at once (profile lock → "Command failed").
+const officePreviewInFlight = new Map<
+  Blob,
+  Promise<PreviewDescriptor>
+>();
+
+function convertOfficeToPdfDeduped(
+  blob: Blob,
+  name: string,
+): Promise<PreviewDescriptor> {
+  const existing =
+    officePreviewInFlight.get(blob);
+
+  if (existing) {
+    return existing;
+  }
+
+  const promise = convertOfficeToPdfPreview(
+    blob,
+    name,
+  ).finally(() => {
+    officePreviewInFlight.delete(
+      blob,
+    );
+  });
+
+  officePreviewInFlight.set(
+    blob,
+    promise,
+  );
+
+  return promise;
+}
+
+function ResultFilePreview({
+  blob,
+  name,
+  url,
+}: {
+  blob: Blob;
+  name: string;
+  url: string;
+}) {
+  const kind = getPreviewKind(name, blob.type);
+  const office = kind === "generic" && OFFICE_EXTENSIONS.test(name);
+
+  const [converted, setConverted] = useState<
+    { url: string; error?: string } | null
+  >(null);
+  const convertedUrlRef = useRef("");
+
+  useEffect(() => {
+    return () => {
+      if (convertedUrlRef.current) {
+        URL.revokeObjectURL(convertedUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!office) {
+      setConverted(null);
+      return;
+    }
+
+    setConverted(null);
+    convertOfficeToPdfDeduped(blob, name)
+      .then((preview) => {
+        if (cancelled) return;
+
+        if (convertedUrlRef.current) {
+          URL.revokeObjectURL(convertedUrlRef.current);
+        }
+        convertedUrlRef.current = preview.url;
+        setConverted({ url: preview.url });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+
+        setConverted({
+          url: "",
+          error:
+            err instanceof Error
+              ? err.message
+              : `Could not create a preview for ${name}.`,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [blob, name, office]);
+
+  if (office) {
+    if (!converted) {
+      return (
+        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
+          <div className="flex h-[220px] w-full items-center justify-center gap-3 bg-[#171a22] sm:h-[280px] lg:h-[320px]">
+            <Loader2 className="h-6 w-6 animate-spin text-violet-300" />
+            <p className="text-sm font-medium text-slate-300">
+              Generating preview…
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (converted.error) {
+      return (
+        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
+          <div className="flex h-[220px] w-full flex-col items-center justify-center gap-2 bg-[#171a22] px-6 text-center sm:h-[280px] lg:h-[320px]">
+            <FileText className="h-9 w-9 text-violet-300" />
+            <p className="text-xs font-semibold text-slate-200">
+              Preview unavailable
+            </p>
+            <p className="max-w-[300px] text-[11px] leading-4 text-slate-500">
+              {converted.error}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
+        <div className="flex h-[220px] w-full items-center justify-center overflow-hidden bg-[#171a22] sm:h-[280px] lg:h-[320px]">
+          <PreviewContent
+            name={name}
+            type="application/pdf"
+            url={converted.url}
+            kind="pdf"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <InlineFilePreview
+      name={name}
+      type={blob.type}
+      url={url}
+    />
+  );
+}
+
 type ToolRunnerProps = {
   slug: string;
   title: string;
@@ -350,6 +509,62 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     setSelectedPreviewUrls(urls);
     setSelectedPreviewKinds(kinds);
     setPreviewLoading(loading);
+  };
+
+  const openResultPreview = async (
+    blob: Blob,
+    url: string,
+    name: string,
+  ) => {
+    const kind = getPreviewKind(
+      name,
+      blob.type,
+    );
+
+    // Office files can't be previewed directly — convert to PDF first.
+    if (
+      kind === "generic" &&
+      OFFICE_EXTENSIONS.test(name)
+    ) {
+      setBusy(true);
+      setMobilePreview({
+        name: `${name} (converting…)`,
+        url: "",
+        type: "application/pdf",
+        kind: "pdf",
+      });
+
+      try {
+        const preview = await convertOfficeToPdfPreview(
+          blob,
+          name,
+        );
+
+        setMobilePreview({
+          name,
+          url: preview.url,
+          type: preview.type,
+          kind: preview.kind,
+        });
+      } catch (err) {
+        setMobilePreview(null);
+        setError(
+          err instanceof Error
+            ? err.message
+            : `Could not create a preview for ${name}.`,
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    setMobilePreview({
+      name,
+      url,
+      type: blob.type,
+      kind,
+    });
   };
 
 
@@ -996,19 +1211,18 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
 
                           {file.blob.type.includes("pdf") ||
                           file.blob.type.startsWith("image/") ||
-                          /\.(pdf|png|jpe?g|webp)$/i.test(outputName) ? (
+                          file.blob.type.startsWith("text/") ||
+                          file.blob.type.includes("html") ||
+                          OFFICE_EXTENSIONS.test(outputName) ||
+                          /\.(pdf|png|jpe?g|webp|txt|csv|json|xml|html?|md|docx?|xlsx?|pptx?|zip)$/i.test(outputName) ? (
                             <button
                               type="button"
                               onClick={() =>
-                                setMobilePreview({
-                                  name: outputName,
-                                  url: file.url,
-                                  type: file.blob.type,
-                                  kind: getPreviewKind(
-                                    outputName,
-                                    file.blob.type,
-                                  ),
-                                })
+                                openResultPreview(
+                                  file.blob,
+                                  file.url,
+                                  outputName,
+                                )
                               }
                               className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-3.5 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
                             >
@@ -1038,9 +1252,9 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     return (
                       <li key={file.name} className="w-full">
                         <div className="mx-auto w-full max-w-[680px]">
-                          <InlineFilePreview
+                          <ResultFilePreview
+                            blob={file.blob}
                             name={outputName}
-                            type={file.blob.type}
                             url={file.url}
                           />
 
@@ -1130,13 +1344,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       </div>
 
       {mobilePreview ? (
-        <div className="fixed inset-0 z-[100] h-[100dvh] bg-[#202124] md:hidden">
-          <div className="flex h-full flex-col">
+        <div className="fixed inset-0 z-[100] h-[100dvh] bg-[#202124] md:bg-[#05070fCC] md:p-6 md:pt-20">
+          <div className="flex h-full flex-col md:mx-auto md:h-[calc(100dvh-6rem)] md:w-full md:max-w-5xl md:overflow-hidden md:rounded-2xl md:border md:border-white/10 md:bg-[#0b0d18] md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
             <div className="flex min-h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-[#0b0d18] px-3">
               <button
                 type="button"
                 onClick={() => setMobilePreview(null)}
-                className="absolute right-5 top-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/10"
+                className="absolute right-5 top-3 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/10"
                 aria-label="Close PDF preview"
               >
                 <X className="h-4 w-4" />
@@ -1152,7 +1366,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 bg-[#202124] p-1">
+            <div className="min-h-0 flex-1 bg-[#202124] p-1 md:bg-[#171a22] md:p-4">
               <PreviewContent
                 name={mobilePreview.name}
                 type={mobilePreview.type}
