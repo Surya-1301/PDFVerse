@@ -305,7 +305,7 @@ function Home() {
               Better visibility for tool count and filter status.
               =================================================== */}
           <p
-            className="mt-5 text-left text-sm" style={{ color: 'var(--text-3)' }}
+            className="mt-5 text-left text-sm" style={{ color: 'var(--text-2)' }}
             aria-live="polite"
             aria-atomic="true"
           >

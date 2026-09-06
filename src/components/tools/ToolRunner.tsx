@@ -1125,15 +1125,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             type="button"
             onClick={run}
             disabled={!canProcess}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
+            className="inline-flex min-h-11 flex-[1.6] items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400 sm:w-48 sm:flex-none"
             style={{
               backgroundColor: 'var(--accent)',
             }}
           >
             {busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
             ) : (
-              <FileText className="h-4 w-4" />
+              <FileText className="h-4 w-4 shrink-0" />
             )}
             {busy ? "Processing..." : impl.actionLabel ?? `Run ${title}`}
           </button>
@@ -1147,9 +1147,9 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               clearSelectedPreviews();
               clearResults();
             }}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+            className="inline-flex min-h-11 flex-1 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-500/30 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 sm:w-48 sm:flex-none"
           >
-            <Eraser className="h-4 w-4" />
+            <Eraser className="h-4 w-4 shrink-0" />
             Clear
           </button>
         </div>
@@ -1173,7 +1173,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
         <div className="flex items-start justify-between gap-3 sm:items-center">
           <div>
             <h2 className="text-base font-semibold text-white sm:text-lg">Result</h2>
-            <p className="mt-1 max-w-[240px] text-xs leading-4 text-slate-500 sm:max-w-none">
+            <p className="mt-1 text-xs leading-4 text-slate-500">
               Your processed file appears here, ready to download.
             </p>
           </div>
@@ -1358,29 +1358,63 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       </div>
 
       {mobilePreview ? (
-        <div className="fixed inset-0 z-[100] h-[100dvh] bg-[#202124] md:bg-[#05070fCC] md:p-6 md:pt-20">
-          <div className="flex h-full flex-col md:mx-auto md:h-[calc(100dvh-6rem)] md:w-full md:max-w-5xl md:overflow-hidden md:rounded-2xl md:border md:border-white/10 md:bg-[#0b0d18] md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
-            <div className="flex min-h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-[#0b0d18] px-3">
+        <div
+          className="fixed inset-0 z-[100] h-[100dvh] p-0 md:p-6 md:pt-20"
+          style={{
+            backgroundColor: 'var(--bg)',
+          }}
+        >
+          <div
+            className="flex h-full flex-col md:mx-auto md:h-[calc(100dvh-6rem)] md:w-full md:max-w-5xl md:overflow-hidden md:rounded-2xl md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
+            }}
+          >
+            <div
+              className="flex min-h-16 shrink-0 items-center gap-3 border-b px-3"
+              style={{
+                backgroundColor: 'var(--surface)',
+                borderColor: 'var(--border)',
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setMobilePreview(null)}
-                className="absolute right-5 top-3 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/10"
+                className="absolute right-5 top-3 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
                 aria-label="Close PDF preview"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface-hover)',
+                  color: 'var(--text-1)',
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">
+                <p
+                  className="truncate text-sm font-semibold"
+                  style={{ color: 'var(--text-1)' }}
+                >
                   {mobilePreview.name}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p
+                  className="text-xs"
+                  style={{ color: 'var(--text-3)' }}
+                >
                   File preview
                 </p>
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 bg-[#202124] p-1 md:bg-[#171a22] md:p-4">
+            <div
+              className="min-h-0 flex-1 p-1 md:p-4"
+              style={{
+                backgroundColor: 'var(--surface)',
+              }}
+            >
               <PreviewContent
                 name={mobilePreview.name}
                 type={mobilePreview.type}

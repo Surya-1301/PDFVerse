@@ -636,8 +636,11 @@ export function ComparePdf() {
           className="
             inline-flex
             min-h-11
+            flex-[1.6]
             items-center
+            justify-center
             gap-2
+            whitespace-nowrap
             rounded-xl
             px-5
             py-2.5
@@ -649,12 +652,14 @@ export function ComparePdf() {
             disabled:cursor-not-allowed
             disabled:opacity-40
             disabled:text-slate-400
+            sm:w-48
+            sm:flex-none
           "
           style={{
             backgroundColor: 'var(--accent)',
           }}
         >
-          <FileSearch className="h-4 w-4" />
+          <FileSearch className="h-4 w-4 shrink-0" />
 
           {busy
             ? "Comparing..."
@@ -667,8 +672,12 @@ export function ComparePdf() {
           className="
             inline-flex
             min-h-11
+            flex-1
+            shrink-0
             items-center
+            justify-center
             gap-2
+            whitespace-nowrap
             rounded-xl
             border
             border-red-500/30
@@ -679,6 +688,8 @@ export function ComparePdf() {
             text-red-300
             transition
             hover:bg-red-500/10
+            sm:w-48
+            sm:flex-none
           "
         >
           Clear

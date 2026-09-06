@@ -192,7 +192,7 @@
   /* Text */
   --text-1: #0f172a;
   --text-2: #475569;
-  --text-3: #94a3b8;
+  --text-3: #64748b;
 
   /* Tailwind v4 theme tokens */
   --color-bg-base: #f8fafc;
@@ -201,7 +201,7 @@
   --color-surface-fg: #0f172a;
   --color-muted: #f1f5f9;
   --color-muted-fg: #475569;
-  --color-muted-fg-dim: #94a3b8;
+  --color-muted-fg-dim: #64748b;
   --color-border-base: #e2e8f0;
 
   /* shadcn-style semantic tokens */
@@ -252,6 +252,9 @@
 [data-theme="light"] .hover\:text-slate-300:hover { color: var(--text-1); }
 [data-theme="light"] .hover\:text-slate-600:hover { color: var(--text-2); }
 [data-theme="light"] .hover\:text-slate-500:hover { color: var(--text-3); }
+/* red-300 (#fca5a5) is invisible on white — remap to a darker red for light mode */
+[data-theme="light"] .text-red-300 { color: #dc2626; }
+[data-theme="light"] .hover\:bg-red-500\/10:hover { background-color: rgba(220, 38, 38, 0.1); }
 [data-theme="light"] { --header-accent-link: var(--accent); }
 
 /* --- Header logo: dark version for dark mode, light version for light mode --- */
@@ -444,6 +447,16 @@ button.bg-violet-600,
 button.bg-violet-500,
 button.bg-violet-400 {
   color: var(--primary-foreground) !important;
+}
+
+/* Emerald status/action buttons keep white text (a/button) so the
+   global text-white remap doesn't turn them dark-on-green. */
+a.bg-emerald-600,
+button.bg-emerald-600,
+.bg-emerald-600.text-white,
+.bg-emerald-600 a,
+.bg-emerald-600 span {
+  color: #fff !important;
 }
 
 /* --- Border colors --- */
