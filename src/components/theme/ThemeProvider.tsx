@@ -80,38 +80,31 @@ export default function ThemeProvider({
 }: {
   children: ReactNode;
 }) {
-  // Always start with defaults (matches server render) to avoid hydration mismatch.
-  // localStorage values are applied in useEffect after mount.
-  const [accent, setAccentState] =
-    useState<AccentName>("violet");
-  const [mode, setMode] =
-    useState<ThemeMode>("dark");
-
-  // Apply to <html> on every change AND hydrate from localStorage on mount
-  useEffect(() => {
-    // Read stored values on first client render
+  // Read localStorage synchronously on first render so the correct theme
+  // is in state BEFORE the first paint — no dark→light flash.
+  function getInitialMode(): ThemeMode {
+    if (typeof localStorage === "undefined") return "dark";
     try {
-      const storedAccent = localStorage.getItem(
-        STORAGE_KEY_ACCENT,
-      );
-      if (
-        storedAccent &&
-        ACCENTS.includes(storedAccent as AccentName)
-      ) {
-        setAccentState(storedAccent as AccentName);
-      }
-      const storedMode = localStorage.getItem(
-        STORAGE_KEY_MODE,
-      );
-      if (
-        storedMode === "dark" ||
-        storedMode === "light"
-      ) {
-        setMode(storedMode);
-      }
+      const v = localStorage.getItem(STORAGE_KEY_MODE);
+      if (v === "light" || v === "dark") return v as ThemeMode;
     } catch {}
-  }, []);
+    return "dark";
+  }
+  function getInitialAccent(): AccentName {
+    if (typeof localStorage === "undefined") return "violet";
+    try {
+      const v = localStorage.getItem(STORAGE_KEY_ACCENT);
+      if (v && ACCENTS.includes(v as AccentName)) return v as AccentName;
+    } catch {}
+    return "violet";
+  }
 
+  const [accent, setAccentState] =
+    useState<AccentName>(getInitialAccent);
+  const [mode, setMode] =
+    useState<ThemeMode>(getInitialMode);
+
+  // Apply initial theme to <html> on mount (state is already correct)
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-accent", accent);
@@ -128,11 +121,31 @@ export default function ThemeProvider({
       );
     }
 
+    // Persist so other tabs stay in sync
     try {
-      localStorage.setItem(
-        STORAGE_KEY_ACCENT,
-        accent,
+      localStorage.setItem(STORAGE_KEY_ACCENT, accent);
+      localStorage.setItem(STORAGE_KEY_MODE, mode);
+    } catch {}
+  }, []);
+
+  // Handle user-triggered theme changes (theme switcher clicks)
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-accent", accent);
+    root.setAttribute("data-theme", mode);
+
+    const meta = document.querySelector(
+      'meta[name="theme-color"]',
+    );
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        mode === "dark" ? "#020617" : "#f8fafc",
       );
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEY_ACCENT, accent);
       localStorage.setItem(STORAGE_KEY_MODE, mode);
     } catch {}
   }, [accent, mode]);

@@ -740,6 +740,11 @@ export default function PdfEditor() {
                   bg-violet-500/5 py-3 text-sm font-medium text-violet-300
                   transition hover:bg-violet-500/10
                 "
+                style={{
+                  backgroundColor: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                }}
                 onClick={() => {
                   commit((s) => ({
                     ...s,
@@ -989,8 +994,11 @@ function Dropzone({
           {/* Editor header */}
           <div className="relative flex items-center justify-between border-b border-white/[0.07] px-7 py-5 sm:px-10">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10">
-                <ImagePlus className="h-6 w-6 text-violet-300" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10" style={{
+                backgroundColor: 'var(--accent-light)',
+                color: 'var(--accent)',
+              }}>
+                <ImagePlus className="h-6 w-6" style={{ color: 'var(--accent)' }} />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">PDF Editor</h2>
@@ -1053,7 +1061,7 @@ function Dropzone({
                   type="button"
                   onClick={() => input.current?.click()}
                   disabled={loading}
-                  className="inline-flex h-14 min-w-[220px] items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 px-8 text-base font-semibold text-white shadow-[0_15px_40px_rgba(124,58,237,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(124,58,237,0.38)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-14 min-w-[220px] items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 px-8 text-base font-semibold text-primary-foreground shadow-[0_15px_40px_rgba(124,58,237,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(124,58,237,0.38)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Upload className="h-5 w-5" />
                   {loading ? "Opening PDF..." : "Upload PDF File"}

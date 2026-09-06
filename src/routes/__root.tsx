@@ -493,6 +493,12 @@ function RootComponentInner({
   return (
     <html lang="en">
       <head>
+        {/* Prevent flash: apply saved theme BEFORE stylesheet loads */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('pv-mode'),a=localStorage.getItem('pv-accent'),r=document.documentElement;if(m==='light'||m==='dark')r.setAttribute('data-theme',m);if(a)r.setAttribute('data-accent',a)}catch(e){}})();`,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

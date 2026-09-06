@@ -274,7 +274,10 @@ export function ChatWithPdf() {
             if (dropped) void uploadPdf(dropped);
           }}
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600/15 text-violet-300">
+          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600/15 text-violet-300" style={{
+            backgroundColor: 'var(--accent-light)',
+            color: 'var(--accent)',
+          }}>
             <Upload className="h-7 w-7" />
           </span>
           <span className="mt-5 text-xl font-semibold text-white">
@@ -284,7 +287,7 @@ export function ChatWithPdf() {
             Ask questions, summarize the document, find dates and amounts, or
             explore specific sections.
           </span>
-          <span className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: 'var(--accent)' }}>
+          <span className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: 'var(--accent)' }}>
             <Upload className="h-4 w-4" />
             Choose PDF
           </span>
@@ -368,7 +371,10 @@ export function ChatWithPdf() {
           >
             {messages.length === 0 ? (
               <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600/15 text-violet-300">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600/15 text-violet-300" style={{
+                  backgroundColor: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                }}>
                   <Sparkles className="h-6 w-6" />
                 </span>
                 <h2 className="mt-4 text-lg font-semibold text-white">
@@ -402,7 +408,10 @@ export function ChatWithPdf() {
                   }`}
                 >
                   {message.role === "assistant" ? (
-                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600/15 text-violet-300">
+                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600/15 text-violet-300" style={{
+                      backgroundColor: 'var(--accent-light)',
+                      color: 'var(--accent)',
+                    }}>
                       <Bot className="h-4 w-4" />
                     </span>
                   ) : null}
@@ -420,7 +429,9 @@ export function ChatWithPdf() {
                   </div>
 
                   {message.role === "user" ? (
-                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-slate-400">
+                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-slate-400" style={{
+                      color: 'var(--text-2)',
+                    }}>
                       <User className="h-4 w-4" />
                     </span>
                   ) : null}
@@ -430,7 +441,10 @@ export function ChatWithPdf() {
 
             {asking ? (
               <div className="flex gap-3">
-                <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600/15 text-violet-300">
+                <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600/15 text-violet-300" style={{
+                  backgroundColor: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                }}>
                   <Bot className="h-4 w-4" />
                 </span>
                 <div className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-500">
@@ -467,7 +481,7 @@ export function ChatWithPdf() {
               <button
                 type="submit"
                 disabled={!fileId || !question.trim() || uploading || asking}
-                className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
+                className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-violet-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
                 style={{
                   backgroundColor: 'var(--accent)',
                 }}

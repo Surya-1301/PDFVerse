@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Prevent flash: apply saved theme before React hydrates -->
+    <script>
+      (function() {
+        try {
+          var mode = JSON.parse(localStorage.getItem('pv-mode'));
+          var accent = JSON.parse(localStorage.getItem('pv-accent'));
+          var root = document.documentElement;
+          if (mode === 'light' || mode === 'dark') root.setAttribute('data-theme', mode);
+          if (accent) root.setAttribute('data-accent', accent);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      /* Prevent transition flash on initial load */
+      html:not([data-theme]) * { transition: none !important; }
+    </style>
     <title>PDFVerse — Free Online PDF Editor & PDF Tools</title>
     <meta
       name="description"

@@ -14,7 +14,7 @@ export default function Footer() {
       className="border-t"
       style={{
         borderColor: "var(--border)",
-        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+        background: "var(--bg-base)",
       }}
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -29,7 +29,7 @@ export default function Footer() {
               <span>PDFVerse</span>
             </Link>
 
-            <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
+            <p className="mt-1 text-xs" style={{ color: "var(--text-2)" }}>
               © {new Date().getFullYear()} PDFVerse. All rights reserved.
             </p>
           </div>

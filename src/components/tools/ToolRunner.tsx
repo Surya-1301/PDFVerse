@@ -766,7 +766,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       {/* ============ TOOL PANEL ============ */}
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-primary-foreground">
             {icon ?? <FileText className="h-4 w-4" />}
           </div>
           <div>
@@ -800,8 +800,16 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             void onPick(event.dataTransfer.files);
           }}
           className="flex w-full flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-slate-950 px-6 py-10 text-center transition hover:border-violet-500/50 hover:bg-violet-500/[0.06]"
+          style={{
+            backgroundColor: 'var(--surface)',
+            borderColor: 'var(--border)',
+            color: 'var(--text-1)',
+          } as React.CSSProperties}
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600/20 text-violet-300">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600/20 text-violet-300" style={{
+            backgroundColor: 'var(--accent-light)',
+            color: 'var(--accent)',
+          }}>
             <Upload className="h-4 w-4" />
           </span>
           <span className="text-base font-semibold text-white">
@@ -844,7 +852,10 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     </div>
 
                     {isLoadingPreview ? (
-                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-[11px] font-medium text-violet-200">
+                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-[11px] font-medium text-violet-200" style={{
+                        backgroundColor: 'var(--accent-light)',
+                        color: 'var(--accent)',
+                      }}>
                         Preparing…
                       </span>
                     ) : previewUrl ? (
@@ -1114,7 +1125,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             type="button"
             onClick={run}
             disabled={!canProcess}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
             style={{
               backgroundColor: 'var(--accent)',
             }}

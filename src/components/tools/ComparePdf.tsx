@@ -643,7 +643,7 @@ export function ComparePdf() {
             py-2.5
             text-sm
             font-semibold
-            text-white
+            text-primary-foreground
             transition
             hover:brightness-110
             disabled:cursor-not-allowed
@@ -1076,7 +1076,10 @@ function OverlayComparison({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200">
+          <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200" style={{
+            backgroundColor: 'var(--accent-light)',
+            color: 'var(--accent)',
+          }}>
             Version 2
           </span>
 

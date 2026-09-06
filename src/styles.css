@@ -45,6 +45,7 @@
   --accent-light: rgba(124, 58, 237, 0.12);
   --accent-glow: rgba(124, 58, 237, 0.30);
   --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 45%, #9333ea 100%);
+  --header-accent-link: #ddd6fe;
   --color-primary: #7c3aed;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(124, 58, 237, 0.10);
@@ -58,6 +59,7 @@
   --accent-light: rgba(2, 132, 199, 0.12);
   --accent-glow: rgba(2, 132, 199, 0.30);
   --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38bdf8 100%);
+  --header-accent-link: #7dd3fc;
   --color-primary: #0284c7;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(2, 132, 199, 0.10);
@@ -71,6 +73,7 @@
   --accent-light: rgba(5, 150, 105, 0.12);
   --accent-glow: rgba(5, 150, 105, 0.30);
   --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 55%, #34d399 100%);
+  --header-accent-link: #6ee7b7;
   --color-primary: #059669;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(5, 150, 105, 0.10);
@@ -84,6 +87,7 @@
   --accent-light: rgba(217, 119, 6, 0.12);
   --accent-glow: rgba(217, 119, 6, 0.30);
   --accent-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 55%, #fbbf24 100%);
+  --header-accent-link: #fde68a;
   --color-primary: #d97706;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(217, 119, 6, 0.10);
@@ -97,6 +101,7 @@
   --accent-light: rgba(225, 29, 72, 0.12);
   --accent-glow: rgba(225, 29, 72, 0.30);
   --accent-gradient: linear-gradient(135deg, #e11d48 0%, #f43f5e 55%, #fb7185 100%);
+  --header-accent-link: #fda4af;
   --color-primary: #e11d48;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(225, 29, 72, 0.10);
@@ -237,6 +242,22 @@
   --color-ci-sec-bg: #fef2f2;
   --color-ci-sec-fg: #dc2626;
 }
+
+/* Light-mode-only overrides: in dark mode the raw Tailwind slate colors
+   are used directly to match the deployed old theme exactly.  In light
+   mode those same raw values (e.g. slate-300 = #cbd5e1) are invisible on
+   white, so remap them to the adaptive text tokens. */
+[data-theme="light"] .text-slate-300 { color: var(--text-1); }
+[data-theme="light"] .text-slate-600 { color: var(--text-2); }
+[data-theme="light"] .hover\:text-slate-300:hover { color: var(--text-1); }
+[data-theme="light"] .hover\:text-slate-600:hover { color: var(--text-2); }
+[data-theme="light"] .hover\:text-slate-500:hover { color: var(--text-3); }
+[data-theme="light"] { --header-accent-link: var(--accent); }
+
+/* --- Header logo: dark version for dark mode, light version for light mode --- */
+.logo-light { display: none; }
+[data-theme="light"] .logo-dark { display: none; }
+[data-theme="light"] .logo-light { display: block; }
 
 /* ======================================================
    BASE STYLES
