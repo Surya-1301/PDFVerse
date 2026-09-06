@@ -289,11 +289,11 @@ function Home() {
                 aria-pressed={
                   activeCategory === tab.id
                 }
-                className="shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5 sm:py-3 sm:tracking-[0.14em]"
+                className="shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition [&:not([aria-pressed='true'])]:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5 sm:py-3 sm:tracking-[0.14em]"
                 style={
                   activeCategory === tab.id
-                    ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: '#ffffff' }
-                    : { borderColor: 'var(--border)', background: 'transparent', color: 'var(--text-2)' }
+                    ? { borderColor: 'var(--text-1)', background: 'var(--text-1)', color: 'var(--bg)' }
+                    : { borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 5%, transparent)', color: 'var(--text-3)' }
                 }
               >
                 {tab.label}

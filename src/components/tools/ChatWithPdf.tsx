@@ -284,7 +284,7 @@ export function ChatWithPdf() {
             Ask questions, summarize the document, find dates and amounts, or
             explore specific sections.
           </span>
-          <span className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white">
+          <span className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: 'var(--accent)' }}>
             <Upload className="h-4 w-4" />
             Choose PDF
           </span>
@@ -467,7 +467,10 @@ export function ChatWithPdf() {
               <button
                 type="submit"
                 disabled={!fileId || !question.trim() || uploading || asking}
-                className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-950/30 transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+                className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
+                style={{
+                  backgroundColor: 'var(--accent)',
+                }}
               >
                 <Send className="h-4 w-4" />
                 Ask

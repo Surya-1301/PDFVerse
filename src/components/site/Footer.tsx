@@ -14,7 +14,7 @@ export default function Footer() {
       className="border-t"
       style={{
         borderColor: "var(--border)",
-        background: "color-mix(in srgb, var(--surface) 70%, transparent)",
+        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
       }}
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">

@@ -4,7 +4,7 @@ import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 export default function Header() {
   return (
     <header
-      className="relative z-50 border-b backdrop-blur-xl backdrop-saturate-150"
+      className="relative z-50 border-b"
       style={{
         borderColor: "var(--border)",
         background: "color-mix(in srgb, var(--bg) 80%, transparent)",
@@ -29,14 +29,11 @@ export default function Header() {
             href="https://toolversee.pages.dev/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
-            style={{
-              background: "var(--accent-light)",
-              color: "var(--accent)",
-            }}
+            className="shrink-0 rounded-lg px-2 py-2 text-sm font-medium transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-3"
+            style={{ color: '#ddd6fe' }}
           >
             Try Toolverse
-            <span aria-hidden="true">↗</span>
+            <span className="ml-1.5" aria-hidden="true">↗</span>
           </a>
         </div>
       </div>

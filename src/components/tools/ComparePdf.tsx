@@ -639,18 +639,20 @@ export function ComparePdf() {
             items-center
             gap-2
             rounded-xl
-            bg-violet-600
             px-5
             py-2.5
             text-sm
             font-semibold
             text-white
             transition
-            hover:bg-violet-500
+            hover:brightness-110
             disabled:cursor-not-allowed
-            disabled:bg-slate-700
+            disabled:opacity-40
             disabled:text-slate-400
           "
+          style={{
+            backgroundColor: 'var(--accent)',
+          }}
         >
           <FileSearch className="h-4 w-4" />
 

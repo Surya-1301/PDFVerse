@@ -1114,7 +1114,10 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             type="button"
             onClick={run}
             disabled={!canProcess}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:hover:bg-slate-700"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:text-slate-400"
+            style={{
+              backgroundColor: 'var(--accent)',
+            }}
           >
             {busy ? (
               <Loader2 className="h-4 w-4 animate-spin" />

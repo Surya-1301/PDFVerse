@@ -44,6 +44,7 @@
   --accent-fg: #c4b5fd;
   --accent-light: rgba(124, 58, 237, 0.12);
   --accent-glow: rgba(124, 58, 237, 0.30);
+  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 45%, #9333ea 100%);
   --color-primary: #7c3aed;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(124, 58, 237, 0.10);
@@ -56,6 +57,7 @@
   --accent-fg: #7dd3fc;
   --accent-light: rgba(2, 132, 199, 0.12);
   --accent-glow: rgba(2, 132, 199, 0.30);
+  --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38bdf8 100%);
   --color-primary: #0284c7;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(2, 132, 199, 0.10);
@@ -68,6 +70,7 @@
   --accent-fg: #6ee7b7;
   --accent-light: rgba(5, 150, 105, 0.12);
   --accent-glow: rgba(5, 150, 105, 0.30);
+  --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 55%, #34d399 100%);
   --color-primary: #059669;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(5, 150, 105, 0.10);
@@ -80,6 +83,7 @@
   --accent-fg: #fde68a;
   --accent-light: rgba(217, 119, 6, 0.12);
   --accent-glow: rgba(217, 119, 6, 0.30);
+  --accent-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 55%, #fbbf24 100%);
   --color-primary: #d97706;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(217, 119, 6, 0.10);
@@ -92,6 +96,7 @@
   --accent-fg: #fda4af;
   --accent-light: rgba(225, 29, 72, 0.12);
   --accent-glow: rgba(225, 29, 72, 0.30);
+  --accent-gradient: linear-gradient(135deg, #e11d48 0%, #f43f5e 55%, #fb7185 100%);
   --color-primary: #e11d48;
   --color-primary-foreground: #ffffff;
   --color-primary-light: rgba(225, 29, 72, 0.10);
@@ -329,14 +334,14 @@ canvas {
   background-color: var(--accent);
   color: var(--primary-foreground);
 }
-.bg-violet-600\/25 { background-color: var(--accent-glow); }
+.bg-violet-600\/25 { background-color: #7c3aed40; }
 .bg-violet-600\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
 .bg-violet-600\/15 { background-color: color-mix(in srgb, var(--accent) 15%, transparent); }
 .bg-violet-600\/10,
 .bg-violet-500\/25,
 .bg-violet-500\/10,
 .bg-violet-500\/\[0\.06\],
-.bg-fuchsia-600\/10 { background-color: var(--accent-light); }
+.bg-fuchsia-600\/10 { background-color: #7c3aed1a; }
 .hover\:bg-violet-500:hover,
 .hover\:bg-violet-500\/10:hover { background-color: var(--accent-hover); }
 .hover\:border-violet-500\/40:hover,
@@ -347,7 +352,7 @@ canvas {
 .from-violet-600 { --tw-gradient-from: var(--accent); }
 .to-violet-600 { --tw-gradient-to: var(--accent); }
 .from-violet-600.to-purple-600 { color: var(--primary-foreground); }
-.to-purple-600 { --tw-gradient-to: var(--accent-hover); }
+.to-purple-600 { --tw-gradient-to: #9333ea; }
 
 /* --- Red (intentional support/error accents stay red, text white) --- */
 .bg-red-600,
@@ -405,10 +410,8 @@ canvas {
 .text-slate-100,
 .text-slate-200 { color: var(--text-1); }
 .text-white\/80 { color: color-mix(in srgb, var(--text-1) 80%, transparent); }
-.text-slate-300 { color: var(--text-2); }
 .text-slate-400 { color: var(--text-2); }
 .text-slate-500 { color: var(--text-3); }
-.text-slate-600 { color: var(--text-3); }
 .hover\:text-white:hover { color: var(--text-1); }
 .hover\:text-violet-200:hover { color: var(--text-2); }
 .hover\:text-violet-300:hover { color: var(--accent); }
@@ -491,13 +494,13 @@ button.bg-violet-400 {
 .bg-fuchsia-600\/10 { background-color: var(--accent-light); }
 .bg-gradient-to-br.from-violet-600.to-purple-600,
 .bg-gradient-to-br.from-violet-600 { color: var(--primary-foreground); }
-.bg-violet-600\/25 { background-color: var(--accent-glow); }
+.bg-violet-600\/25 { background-color: #7c3aed40; }
 .bg-violet-600\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
 .bg-violet-500\/5 { background-color: color-mix(in srgb, var(--accent) 5%, transparent); }
-.bg-violet-500\/10 { background-color: var(--accent-light); }
+.bg-violet-500\/10 { background-color: #7c3aed1a; }
 .bg-violet-600\/15 { background-color: color-mix(in srgb, var(--accent) 15%, transparent); }
-.bg-violet-500\/10 { background-color: var(--accent-light); }
-.bg-violet-500\/25 { background-color: var(--accent-light); }
+.bg-violet-500\/10 { background-color: #7c3aed1a; }
+.bg-violet-500\/25 { background-color: #7c3aed40; }
 
 /* --- Gradient hero surfaces (slate-900 → surface) --- */
 .from-slate-900 { --tw-gradient-from: var(--surface); }
