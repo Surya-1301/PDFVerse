@@ -267,13 +267,13 @@ function PreviewContent({
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-slate-950 px-6 text-center">
-      <FileText className="h-12 w-12 text-violet-300" />
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--surface)' }}>
+      <FileText className="h-12 w-12" style={{ color: 'var(--accent)' }} />
       <div>
-        <p className="font-semibold text-slate-100">
+        <p className="font-semibold" style={{ color: 'var(--text-1)' }}>
           Preview unavailable
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs" style={{ color: 'var(--text-3)' }}>
           {name} is ready to process.
         </p>
       </div>
@@ -296,8 +296,8 @@ function InlineFilePreview({
     kind ?? getPreviewKind(name, type);
 
   return (
-    <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
-      <div className="flex h-[220px] w-full items-center justify-center overflow-hidden bg-[#171a22] sm:h-[280px] lg:h-[320px]">
+    <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+      <div className="flex h-[220px] w-full items-center justify-center overflow-hidden sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
         <PreviewContent
           name={name}
           type={type}
@@ -309,16 +309,10 @@ function InlineFilePreview({
   );
 }
 
-/** Desktop/tablet result preview. Office files are converted to PDF so the
- *  preview renders directly in the box (no separate Preview button needed). */
-
-// Dedupe concurrent office→PDF conversions for the same result blob.
-// React StrictMode double-invokes effects in dev, which would otherwise
-// spawn two LibreOffice processes at once (profile lock → "Command failed").
 const officePreviewInFlight = new Map<
   Blob,
   Promise<PreviewDescriptor>
->();
+>();  
 
 function convertOfficeToPdfDeduped(
   blob: Blob,
@@ -412,10 +406,10 @@ function ResultFilePreview({
   if (office) {
     if (!converted) {
       return (
-        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
-          <div className="flex h-[220px] w-full items-center justify-center gap-3 bg-[#171a22] sm:h-[280px] lg:h-[320px]">
-            <Loader2 className="h-6 w-6 animate-spin text-violet-300" />
-            <p className="text-sm font-medium text-slate-300">
+        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <div className="flex h-[220px] w-full items-center justify-center gap-3 sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--accent)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>
               Generating preview…
             </p>
           </div>
@@ -425,13 +419,13 @@ function ResultFilePreview({
 
     if (converted.error) {
       return (
-        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
-          <div className="flex h-[220px] w-full flex-col items-center justify-center gap-2 bg-[#171a22] px-6 text-center sm:h-[280px] lg:h-[320px]">
-            <FileText className="h-9 w-9 text-violet-300" />
-            <p className="text-xs font-semibold text-slate-200">
+        <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <div className="flex h-[220px] w-full flex-col items-center justify-center gap-2 px-6 text-center sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
+            <FileText className="h-9 w-9" style={{ color: 'var(--accent)' }} />
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-2)' }}>
               Preview unavailable
             </p>
-            <p className="max-w-[300px] text-[11px] leading-4 text-slate-500">
+            <p className="max-w-[300px] text-[11px] leading-4" style={{ color: 'var(--text-3)' }}>
               {converted.error}
             </p>
           </div>
@@ -440,8 +434,8 @@ function ResultFilePreview({
     }
 
     return (
-      <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-[0_18px_45px_rgba(0,0,0,0.28)]">
-        <div className="flex h-[220px] w-full items-center justify-center overflow-hidden bg-[#171a22] sm:h-[280px] lg:h-[320px]">
+      <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+        <div className="flex h-[220px] w-full items-center justify-center overflow-hidden sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
           <PreviewContent
             name={name}
             type="application/pdf"
@@ -566,11 +560,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       kind,
     });
   };
-
-
-
-
-
 
   if (!impl) {
     return (
@@ -1188,7 +1177,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
         <div className="mt-5">
           {results.length > 0 ? (
             <>
-              <div className="rounded-xl border border-dashed border-white/10 bg-slate-900/40 p-2.5 sm:min-h-[420px] sm:p-5">
+              <div className="rounded-xl border border-dashed bg-slate-950 p-2.5 sm:min-h-[420px] sm:p-5" style={{ borderColor: 'var(--border)' }}>
                 {/* Mobile result: same compact file row style as the upload list. */}
                 <div className="space-y-2 md:hidden">
                   {results.map((file) => {
@@ -1201,7 +1190,8 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     return (
                       <div
                         key={`mobile-result-${file.name}`}
-                        className="rounded-xl border border-white/10 bg-slate-950/80 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.12)]"
+                        className="rounded-xl border border-white/10 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.12)]"
+                        style={{ backgroundColor: 'var(--surface-hover)', borderColor: 'var(--border)' }}
                       >
                         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                           <div className="min-w-0">
@@ -1341,13 +1331,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                   setStatus("");
                   setError("");
                 }}
-                className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-violet-500/30 hover:bg-white/10 sm:mt-5 sm:min-h-12"
+                className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition sm:mt-5 sm:min-h-12" style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text-1)' }}
               >
                 Process another file
               </button>
             </>
           ) : (
-            <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/40 px-5 py-10 text-center text-sm text-slate-500 sm:min-h-[420px]">
+            <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed bg-slate-950 px-5 py-10 text-center text-sm sm:min-h-[420px]" style={{ borderColor: 'var(--border)', color: 'var(--text-3)' }}>
               <div className="max-w-xs">
                 <FileText className="mx-auto mb-3 h-10 w-10" style={{ color: 'var(--accent)' }} />
                 <p className="font-medium" style={{ color: 'var(--text-2)' }}>No output yet</p>

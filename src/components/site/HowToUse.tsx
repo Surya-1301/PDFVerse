@@ -17,7 +17,6 @@ type HowToUseProps = {
 /* Theme-aware card styles used by both desktop and mobile */
 const cardBaseStyles: React.CSSProperties = {
   borderColor: 'var(--border)',
-  background: 'var(--surface)',
   boxShadow: '0 4px 12px -2px var(--accent-glow)',
 };
 
@@ -43,10 +42,9 @@ const progressFillStyles: React.CSSProperties = {
 function StepCard({ step, index }: { step: HowToUseStep; index: number }) {
   return (
     <div
-      className="how-to-use-card group relative rounded-2xl border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="how-to-use-card group relative rounded-2xl border bg-slate-950 p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
       style={{
         borderColor: 'var(--border)',
-        background: 'var(--surface)',
         boxShadow: '0 4px 12px -2px var(--accent-glow)',
       }}
     >
@@ -127,10 +125,9 @@ export function HowToUse({
           {steps.map((step, index) => (
             <div
               key={`${step.title}-mobile-${index}`}
-              className="group flex w-full items-center gap-4 rounded-2xl border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+              className="group flex w-full items-center gap-4 rounded-2xl border bg-slate-950 p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-xl"
               style={{
                 borderColor: 'var(--border)',
-                background: 'var(--surface)',
                 boxShadow: '0 4px 12px -2px var(--accent-glow)',
               }}
             >
