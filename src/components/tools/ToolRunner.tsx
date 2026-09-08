@@ -1179,7 +1179,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           </div>
 
           {results.length > 0 ? (
-            <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 sm:px-3 sm:text-xs">
+            <span className="shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold sm:px-3 sm:text-xs" style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', background: 'var(--accent-light)', color: 'var(--accent)' }}>
               Output ready
             </span>
           ) : null}
@@ -1299,7 +1299,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   <a
     href={file.url}
     download={outputName}
-    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 sm:mt-6 sm:w-auto sm:min-w-[170px]"
+    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 sm:mt-6 sm:w-auto sm:min-w-[170px]" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
   >
     <Download className="h-4 w-4" />
     Download
@@ -1323,7 +1323,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               const current = names[file.name] ?? base;
               return `${current || base}${ext}`;
             })()}
-            className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl bg-emerald-600 px-5 py-2.5 text-base font-semibold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 md:hidden"
+            className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-base font-semibold text-white shadow-lg transition md:hidden" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
           >
             <Download className="h-5 w-5" />
             Download
@@ -1349,8 +1349,8 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           ) : (
             <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/40 px-5 py-10 text-center text-sm text-slate-500 sm:min-h-[420px]">
               <div className="max-w-xs">
-                <FileText className="mx-auto mb-3 h-10 w-10" />
-                <p className="font-medium text-slate-300">No output yet</p>
+                <FileText className="mx-auto mb-3 h-10 w-10" style={{ color: 'var(--accent)' }} />
+                <p className="font-medium" style={{ color: 'var(--text-2)' }}>No output yet</p>
               </div>
             </div>
           )}

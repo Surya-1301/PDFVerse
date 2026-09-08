@@ -559,8 +559,9 @@ button.bg-emerald-600,
    NOT overridden here so the page honors the user's selected accent
    (rose/sky/emerald/amber/violet) in dark mode just like in light mode. */
 [data-theme="dark"] .pdfverse-exact-reference {
-  --surface: #0a0e1e;
-  --surface-hover: #12122c;
+  background-color: color-mix(in srgb, var(--accent) 4%, #020617) !important;
+  --surface: color-mix(in srgb, var(--accent) 8%, #0a0e1e);
+  --surface-hover: color-mix(in srgb, var(--accent) 10%, #12122c);
 }
 
 [data-theme="dark"] .pdfverse-exact-reference > .pointer-events-none.absolute {
@@ -573,9 +574,9 @@ button.bg-emerald-600,
   filter: blur(58px) !important;
   background: radial-gradient(
     ellipse at center,
-    rgba(104, 28, 205, 0.26) 0%,
-    rgba(71, 17, 145, 0.15) 36%,
-    rgba(41, 10, 86, 0.06) 59%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 15%, transparent) 36%,
+    color-mix(in srgb, var(--accent) 6%, transparent) 59%,
     transparent 78%
   ) !important;
 }
@@ -594,7 +595,7 @@ button.bg-emerald-600,
 [data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.03\],
 [data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.035\],
 [data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.025\] {
-  background-color: #12122c !important;
+  background-color: color-mix(in srgb, var(--accent) 8%, #0a0e1e) !important;
 }
 [data-theme="light"] .pdfverse-exact-reference .bg-white\/\[0\.03\],
 [data-theme="light"] .pdfverse-exact-reference .bg-white\/\[0\.035\],
@@ -602,11 +603,11 @@ button.bg-emerald-600,
   background-color: var(--surface) !important;
 }
 
-/* Upload/drop areas and controls use the darker reference surface ≈ #0a0e1e. */
+/* Upload/drop areas and controls use accent-tinted surface in dark mode. */
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-950,
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-950\/70,
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-950\/80 {
-  background-color: #0a0e1e !important;
+  background-color: color-mix(in srgb, var(--accent) 6%, #0a0e1e) !important;
 }
 [data-theme="light"] .pdfverse-exact-reference .bg-slate-950,
 [data-theme="light"] .pdfverse-exact-reference .bg-slate-950\/70,
@@ -614,19 +615,19 @@ button.bg-emerald-600,
   background-color: var(--surface) !important;
 }
 
-/* Empty result area: reference pixel ≈ #12122c (dark) / light surface. */
+/* Empty result area: accent-tinted in dark mode. */
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/40 {
-  background-color: #12122c !important;
+  background-color: color-mix(in srgb, var(--accent) 6%, #12122c) !important;
 }
 [data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/40 {
   background-color: var(--surface) !important;
 }
 
-/* Nested result controls remain on the darker surface (dark) / light surface. */
+/* Nested result controls accent-tinted in dark mode. */
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/60,
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/80,
 [data-theme="dark"] .pdfverse-exact-reference .bg-slate-900 {
-  background-color: #0a0e1e !important;
+  background-color: color-mix(in srgb, var(--accent) 8%, #0a0e1e) !important;
 }
 [data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/60,
 [data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/80,
