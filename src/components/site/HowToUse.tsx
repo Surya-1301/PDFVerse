@@ -16,7 +16,7 @@ type HowToUseProps = {
 
 function StepCard({ step, index }: { step: HowToUseStep; index: number }) {
   return (
-    <div className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-violet-400/30 hover:bg-white/[0.05] hover:shadow-xl hover:shadow-violet-950/20">
+    <div className="how-to-use-card group relative rounded-2xl border border-teal-400/20 bg-white/[0.03] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-teal-400/50 hover:bg-white/[0.05] hover:shadow-xl hover:shadow-teal-950/20">
       <div className="absolute right-4 top-4 text-xs font-bold text-slate-600">
         {String(index + 1).padStart(2, "0")}
       </div>

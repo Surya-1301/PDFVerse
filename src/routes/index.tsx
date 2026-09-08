@@ -42,8 +42,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-// Category icon styles use accent CSS variables so they adapt to the
-// selected accent colour AND dark / light mode automatically.
 const categoryStyles: Record<
   Exclude<Category, "all">,
   React.CSSProperties
@@ -102,8 +100,6 @@ function Home() {
       setActiveCategory(returnCategory as Category);
     }
 
-    // Keep the real homepage URL clean.
-    // The hash/query are only temporary navigation state.
     if (window.location.hash === "#pdf-tools" || isValidCategory) {
       window.history.replaceState(null, "", "/");
     }
@@ -143,14 +139,24 @@ function Home() {
   }
 
   return (
-    <section className="pdfverse-violet-page relative min-h-screen overflow-hidden">
+    <section className="relative min-h-screen overflow-hidden bg-bg-base">
+      {/* Background glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'var(--accent-glow)' }}
+        aria-hidden="true"
+      />
+
+      <div
+        className="pointer-events-none absolute right-0 top-24 -z-0 h-72 w-72 rounded-full blur-3xl" style={{ background: 'var(--accent-light)' }}
+        aria-hidden="true"
+      />
 
       <Container className="relative py-12 sm:py-16">
         {/* =====================================================
             MAIN PAGE HEADER
             ===================================================== */}
         <div className="mx-auto max-w-5xl text-center">
-          <p className="mx-auto mb-6 inline-flex rounded-full border px-5 py-2 text-base shadow-lg" style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', background: 'var(--accent-light)', color: 'var(--text-1)', boxShadow: '0 4px 6px -1px var(--accent-glow)' }}>
+          <p className="mx-auto mb-5 inline-flex rounded-full border px-5 py-2 text-base shadow-lg" style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', background: 'var(--accent-light)', color: 'var(--text-1)', boxShadow: '0 4px 6px -1px var(--accent-glow)' }}>
             Fast, free PDF tools
           </p>
 
@@ -282,7 +288,7 @@ function Home() {
                 className="shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold tracking-[0.1em] transition [&:not([aria-pressed='true'])]:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5 sm:py-3 sm:tracking-[0.14em]"
                 style={
                   activeCategory === tab.id
-                    ? { borderColor: 'var(--text-1)', background: 'var(--text-1)', color: 'var(--bg)' }
+                    ? { borderColor: 'var(--accent)', background: 'var(--accent)', color: 'var(--primary-foreground)' }
                     : { borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 5%, transparent)', color: 'var(--text-3)' }
                 }
               >

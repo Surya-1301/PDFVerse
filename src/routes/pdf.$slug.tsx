@@ -202,7 +202,9 @@ function PdfToolPage() {
   })();
 
   return (
-    <section className="pdfverse-violet-page relative min-h-screen overflow-hidden">
+    <section className="pdfverse-exact-reference relative min-h-screen overflow-hidden bg-bg-base">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'var(--accent-glow)' }} />
 
       <Container className="relative py-12 sm:py-16">
 
@@ -228,7 +230,7 @@ function PdfToolPage() {
           <a
             href={toolsBackHref}
             className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-semibold shadow-sm transition-all duration-200 active:scale-[0.98]"
-            style={{ borderColor: 'var(--border)', background: '#0a0e1e', color: 'var(--text-2)' }}
+            style={{ borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 55%, transparent)', color: 'var(--text-2)' }}
           >
             <ArrowLeft className="h-4 w-4" />
             Back to tools
@@ -250,7 +252,7 @@ function PdfToolPage() {
              PDF EDITOR
           ======================================================== */
           ) : isEditor ? (
-            <div className="overflow-hidden rounded-[2rem] border shadow-2xl" style={{ borderColor: 'var(--border)', background: '#0a0e1e' }}>
+            <div className="overflow-hidden rounded-[2rem] border shadow-2xl" style={{ borderColor: 'var(--border)', background: 'color-mix(in srgb, var(--surface) 60%, transparent)' }}>
 
               <div className="flex flex-col items-center px-5 py-10 sm:px-8">
 
@@ -319,7 +321,7 @@ function PdfToolPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t px-5 py-5 text-xs sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', background: '#0c1124', color: 'var(--text-3)' }}>
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t px-5 py-5 text-xs sm:text-sm" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', background: 'color-mix(in srgb, var(--surface) 10%, transparent)', color: 'var(--text-3)' }}>
                 <span>
                   ✓ Edit existing text
                 </span>

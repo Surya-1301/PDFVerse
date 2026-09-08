@@ -39,17 +39,17 @@
 
 [data-accent="violet"],
 :root {
-  --accent: #8023ff;
-  --accent-hover: #8b2bff;
-  --accent-fg: #dccbff;
-  --accent-light: rgba(128, 35, 255, 0.12);
-  --accent-glow: rgba(128, 35, 255, 0.30);
-  --accent-gradient: linear-gradient(135deg, #8023ff 0%, #8b2bff 45%, #9333ea 100%);
+  --accent: #7c3aed;
+  --accent-hover: #8b5cf6;
+  --accent-fg: #c4b5fd;
+  --accent-light: rgba(124, 58, 237, 0.12);
+  --accent-glow: rgba(124, 58, 237, 0.30);
+  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 45%, #9333ea 100%);
   --header-accent-link: #ddd6fe;
-  --color-primary: #8023ff;
+  --color-primary: #7c3aed;
   --color-primary-foreground: #ffffff;
-  --color-primary-light: rgba(128, 35, 255, 0.10);
-  --color-primary-glow: rgba(128, 35, 255, 0.30);
+  --color-primary-light: rgba(124, 58, 237, 0.10);
+  --color-primary-glow: rgba(124, 58, 237, 0.30);
 }
 
 [data-accent="sky"] {
@@ -118,8 +118,8 @@
 
   /* Surfaces — match original slate-950 */
   --bg: #020617;
-  --surface: #0b0f1f;
-  --surface-hover: #0e1428;
+  --surface: #0f172a;
+  --surface-hover: #1e293b;
   --border: rgba(255, 255, 255, 0.10);
 
   /* Text — match original slate-50 */
@@ -304,73 +304,6 @@ video,
 canvas {
   display: block;
   max-width: 100%;
-}
-
-/* ======================================================
-   PDFVERSE TOOL-PAGE BACKGROUND — matched to reference screenshot
-   ====================================================== */
-
-.pdfverse-violet-page {
-  position: relative;
-  isolation: isolate;
-  min-height: 100vh;
-  overflow: hidden;
-
-  /* Reference base: deep navy */
-  background-color: #020617 !important;
-
-  /* Reference: restrained, pure-violet glow centered behind the title.
-     The glow stays inside the hero area instead of washing the cards. */
-  background-image:
-    radial-gradient(
-      ellipse 460px 330px at 50% 27%,
-      rgba(110, 28, 220, 0.30) 0%,
-      rgba(82, 19, 172, 0.16) 38%,
-      rgba(52, 12, 112, 0.06) 62%,
-      transparent 80%
-    );
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-attachment: local;
-
-  /* Tool-page semantic colors — reference screenshot */
-  --bg: #020617;
-  --surface: #0a0e1e;
-  --surface-hover: #0d1224;
-  --border: rgba(148, 163, 184, 0.15);
-  --text-1: #f8fafc;
-  --text-2: #94a3b8;
-  --text-3: #64748b;
-  --card: #0a0e1e;
-  --color-surface: #0a0e1e;
-  --color-surface-hover: #0d1224;
-  --muted: #0d1224;
-  --input: #0a0e1e;
-}
-
-/* Prevent generic theme utility overrides from changing the tool page. */
-.pdfverse-violet-page .bg-slate-950,
-.pdfverse-violet-page [class~="bg-slate-950"],
-.pdfverse-violet-page [class~="bg-slate-950/70"],
-.pdfverse-violet-page [class~="bg-slate-950/80"],
-.pdfverse-violet-page .bg-slate-900,
-.pdfverse-violet-page [class~="bg-slate-900"] {
-  background-color: #0a0e1e !important;
-}
-
-.pdfverse-violet-page [class~="bg-slate-900/40"],
-.pdfverse-violet-page [class~="bg-slate-900/60"],
-.pdfverse-violet-page [class~="bg-slate-900/80"],
-.pdfverse-violet-page [class~="bg-white/[0.03]"],
-.pdfverse-violet-page [class~="bg-white/[0.035]"],
-.pdfverse-violet-page [class~="bg-white/[0.05]"] {
-  background-color: #0c1124 !important;
-}
-
-html,
-body,
-#root {
-  background-color: #020617;
 }
 
 /* ======================================================
@@ -611,65 +544,117 @@ button.bg-emerald-600,
 .to-orange-500 { --tw-gradient-to: #f97316; color: var(--primary-foreground); }
 
 /* ======================================================
-   PDFVERSE VIOLET THEME — explicit page tokens
+   PDFVERSE MERGE PAGE — EXACT REFERENCE PALETTE
+   Scoped to the PDF tool route so the rest of the app is untouched.
+   The dark "reference" palette is applied ONLY in dark mode.
+   In light mode the page falls back to the standard light
+   palette so text (which uses --text-1 / --text-2) stays readable.
    ====================================================== */
-.pdfverse-violet-page {
-  --accent: #8023ff;
-  --accent-hover: #8b2bff;
-  --accent-fg: #dccbff;
-  --accent-light: rgba(128, 35, 255, 0.12);
-  --accent-glow: rgba(128, 35, 255, 0.30);
-  --surface: #0b0f1f;
-  --surface-hover: #0e1428;
-  --bg: #020617;
-  --text-1: #f8fafc;
-  --text-2: #94a3b8;
-  --text-3: #64748b;
+.pdfverse-exact-reference {
+  background-color: var(--bg) !important;
+  isolation: isolate;
+}
+
+/* Dark reference surfaces for the tool pages. Accent is intentionally
+   NOT overridden here so the page honors the user's selected accent
+   (rose/sky/emerald/amber/violet) in dark mode just like in light mode. */
+[data-theme="dark"] .pdfverse-exact-reference {
+  --surface: #0a0e1e;
+  --surface-hover: #12122c;
+}
+
+[data-theme="dark"] .pdfverse-exact-reference > .pointer-events-none.absolute {
+  width: 500px !important;
+  height: 340px !important;
+  top: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 9999px !important;
+  filter: blur(58px) !important;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(104, 28, 205, 0.26) 0%,
+    rgba(71, 17, 145, 0.15) 36%,
+    rgba(41, 10, 86, 0.06) 59%,
+    transparent 78%
+  ) !important;
+}
+
+/* Light mode: a delicate accent bloom instead of the dark one. */
+[data-theme="light"] .pdfverse-exact-reference > .pointer-events-none.absolute {
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--accent) 10%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 55%,
+    transparent 80%
+  ) !important;
+}
+
+/* Main left/right panels: reference pixel ≈ #12122c (dark) / light surfaces. */
+[data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.03\],
+[data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.035\],
+[data-theme="dark"] .pdfverse-exact-reference .bg-white\/\[0\.025\] {
+  background-color: #12122c !important;
+}
+[data-theme="light"] .pdfverse-exact-reference .bg-white\/\[0\.03\],
+[data-theme="light"] .pdfverse-exact-reference .bg-white\/\[0\.035\],
+[data-theme="light"] .pdfverse-exact-reference .bg-white\/\[0\.025\] {
+  background-color: var(--surface) !important;
+}
+
+/* Upload/drop areas and controls use the darker reference surface ≈ #0a0e1e. */
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-950,
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-950\/70,
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-950\/80 {
+  background-color: #0a0e1e !important;
+}
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-950,
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-950\/70,
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-950\/80 {
+  background-color: var(--surface) !important;
+}
+
+/* Empty result area: reference pixel ≈ #12122c (dark) / light surface. */
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/40 {
+  background-color: #12122c !important;
+}
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/40 {
+  background-color: var(--surface) !important;
+}
+
+/* Nested result controls remain on the darker surface (dark) / light surface. */
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/60,
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-900\/80,
+[data-theme="dark"] .pdfverse-exact-reference .bg-slate-900 {
+  background-color: #0a0e1e !important;
+}
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/60,
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-900\/80,
+[data-theme="light"] .pdfverse-exact-reference .bg-slate-900 {
+  background-color: var(--surface) !important;
+}
+
+/* Inline var(--surface) declarations follow the active theme's surface. */
+.pdfverse-exact-reference [style*="backgroundColor: var(--surface)"],
+.pdfverse-exact-reference [style*="background: var(--surface)"] {
+  background-color: var(--surface);
 }
 
 /* ======================================================
-   FINAL REFERENCE MATCH — first screenshot background
-   Keep the page base almost black/navy and place a restrained
-   violet bloom lower behind the title area.
+   HOW TO USE — FIXED TEAL BORDERS
+   Tablet + desktop only. Applies in every color theme.
+   Mobile (<640px) keeps the original theme-aware border.
    ====================================================== */
+@media (min-width: 768px) {
+  .how-to-use-card {
+    border: 1px solid #14b8a6 !important;
+    border-color: #14b8a6 !important;
+  }
 
-html:has(.pdfverse-violet-page),
-body:has(.pdfverse-violet-page),
-#root:has(.pdfverse-violet-page) {
-  background: #020617 !important;
-}
-
-.pdfverse-violet-page {
-  background-color: #020617 !important;
-  background-image:
-    radial-gradient(
-      ellipse 500px 330px at 50% 23%,
-      rgba(92, 24, 188, 0.19) 0%,
-      rgba(63, 16, 130, 0.10) 35%,
-      rgba(35, 10, 76, 0.045) 57%,
-      transparent 75%
-    ) !important;
-  background-repeat: no-repeat !important;
-  background-size: 100% 100% !important;
-  background-attachment: local !important;
-}
-
-/* Main tool/result cards: match the reference dark surface. */
-.pdfverse-violet-page .bg-white\/\[0\.03\],
-.pdfverse-violet-page .bg-white\/\[0\.035\],
-.pdfverse-violet-page .bg-slate-900,
-.pdfverse-violet-page .bg-slate-950,
-.pdfverse-violet-page [class~="bg-slate-900/80"],
-.pdfverse-violet-page [class~="bg-slate-900/60"],
-.pdfverse-violet-page [class~="bg-slate-900/40"],
-.pdfverse-violet-page [class~="bg-slate-950/80"],
-.pdfverse-violet-page [class~="bg-slate-950/70"] {
-  background-color: #0b0f1f !important;
-}
-
-/* Upload/result wells use a barely lighter navy, not slate #0f172a. */
-.pdfverse-violet-page [class~="bg-white/\[0.02\]"],
-.pdfverse-violet-page [class~="bg-white/\[0.025\]"],
-.pdfverse-violet-page [class~="bg-white/\[0.05\]"] {
-  background-color: #0c1124 !important;
+  .how-to-use-card:hover,
+  .how-to-use-card:focus,
+  .how-to-use-card:focus-within,
+  .how-to-use-card:active {
+    border-color: #14b8a6 !important;
+  }
 }
