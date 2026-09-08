@@ -975,11 +975,9 @@ function Dropzone({
   const input = useRef<HTMLInputElement | null>(null);
   const [over, setOver] = useState(false);
   return (
-    <section className="relative min-h-screen w-full overflow-hidden bg-slate-950 px-4 pb-16 pt-6 text-white sm:px-6 sm:pt-8">
+    <section className="pdfverse-exact-reference relative min-h-screen w-full overflow-hidden bg-bg-base px-4 pb-4 pt-6 text-white sm:px-6 sm:pt-8">
       {/* Background glow — matches the other PDFVerse tools */}
-      <div className="pointer-events-none absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/25 blur-3xl" />
-      <div className="pointer-events-none absolute -left-40 top-1/3 h-72 w-72 rounded-full bg-violet-600/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-40 bottom-10 h-80 w-80 rounded-full bg-fuchsia-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'var(--accent-glow)' }} />
 
       <div className="relative z-10 mx-auto w-full max-w-[1400px]">
         <a
@@ -1061,7 +1059,8 @@ function Dropzone({
                   type="button"
                   onClick={() => input.current?.click()}
                   disabled={loading}
-                  className="inline-flex h-14 min-w-[220px] items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 px-8 text-base font-semibold text-primary-foreground shadow-[0_15px_40px_rgba(124,58,237,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(124,58,237,0.38)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-14 min-w-[220px] items-center justify-center gap-3 rounded-2xl px-8 text-base font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
                 >
                   <Upload className="h-5 w-5" />
                   {loading ? "Opening PDF..." : "Upload PDF File"}

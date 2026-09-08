@@ -6,8 +6,8 @@ export default function Header() {
     <header
       className="relative z-50 border-b"
       style={{
-        borderColor: "var(--border)",
-        background: "color-mix(in srgb, var(--bg) 80%, transparent)",
+        borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+        background: "color-mix(in srgb, var(--accent) 4%, var(--bg))",
       }}
     >
       <div className="mx-auto flex h-15 w-full max-w-7xl items-center justify-between gap-3 py-0 pl-0 pr-0 lg:px-8">

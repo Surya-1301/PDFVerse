@@ -13,8 +13,8 @@ export default function Footer() {
     <footer
       className="border-t"
       style={{
-        borderColor: "var(--border)",
-        background: "var(--bg-base)",
+        borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+        background: "color-mix(in srgb, var(--accent) 4%, var(--bg))",
       }}
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">

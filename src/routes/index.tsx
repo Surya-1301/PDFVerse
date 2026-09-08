@@ -217,7 +217,7 @@ function Home() {
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 aria-label="Upload a PDF to edit it online"
-                className="inline-flex min-w-[280px] items-center justify-center gap-4 rounded-2xl px-7 py-4 text-lg font-bold transition hover:-translate-y-0.5"
+                className="inline-flex min-w-[280px] items-center justify-center gap-4 rounded-2xl px-7 py-4 text-lg font-bold transition hover:-translate-y-0.5 hover:brightness-110"
                 style={{
                   background: 'var(--accent)',
                   color: 'var(--primary-foreground)',
@@ -225,7 +225,7 @@ function Home() {
                 }}
               >
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent-foreground) 15%, transparent)' }}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--primary-foreground) 15%, transparent)' }}
                   aria-hidden="true"
                 >
                   <Upload className="h-6 w-6" />
@@ -271,7 +271,7 @@ function Home() {
               CATEGORY FILTERS
               =================================================== */}
           <div
-            className="flex flex-nowrap justify-start gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center"
+            className="flex flex-nowrap justify-start gap-2.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:justify-center"
             role="group"
             aria-label="Filter PDF tools by category"
           >

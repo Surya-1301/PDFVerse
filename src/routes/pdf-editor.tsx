@@ -28,10 +28,10 @@ export const Route = createFileRoute("/pdf-editor")({
 
 function EditorPage() {
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="pdfverse-exact-reference min-h-screen bg-bg-base">
       <PdfEditor />
 
-      <div className="relative z-10 border-t border-white/10 bg-slate-950 pb-20 pt-16 sm:pt-20 lg:pb-28 lg:pt-24">
+      <div className="relative z-10 bg-transparent pb-20 lg:pb-28 [&>section]:!mt-0">
         <HowToUse
           title="How to use PDF Editor"
           subtitle=""
