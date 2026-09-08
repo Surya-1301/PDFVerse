@@ -11,9 +11,7 @@ const footerLinks = [
 export default function Footer() {
   return (
     <footer
-      className="border-t"
       style={{
-        borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
         background: "color-mix(in srgb, var(--accent) 4%, var(--bg))",
       }}
     >

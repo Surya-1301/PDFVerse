@@ -4,9 +4,8 @@ import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 export default function Header() {
   return (
     <header
-      className="relative z-50 border-b"
+      className="relative z-50"
       style={{
-        borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
         background: "color-mix(in srgb, var(--accent) 4%, var(--bg))",
       }}
     >
