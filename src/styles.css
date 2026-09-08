@@ -39,17 +39,17 @@
 
 [data-accent="violet"],
 :root {
-  --accent: #7c3aed;
-  --accent-hover: #8b5cf6;
-  --accent-fg: #c4b5fd;
-  --accent-light: rgba(124, 58, 237, 0.12);
-  --accent-glow: rgba(124, 58, 237, 0.30);
-  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 45%, #9333ea 100%);
+  --accent: #8023ff;
+  --accent-hover: #8b2bff;
+  --accent-fg: #dccbff;
+  --accent-light: rgba(128, 35, 255, 0.12);
+  --accent-glow: rgba(128, 35, 255, 0.30);
+  --accent-gradient: linear-gradient(135deg, #8023ff 0%, #8b2bff 45%, #9333ea 100%);
   --header-accent-link: #ddd6fe;
-  --color-primary: #7c3aed;
+  --color-primary: #8023ff;
   --color-primary-foreground: #ffffff;
-  --color-primary-light: rgba(124, 58, 237, 0.10);
-  --color-primary-glow: rgba(124, 58, 237, 0.30);
+  --color-primary-light: rgba(128, 35, 255, 0.10);
+  --color-primary-glow: rgba(128, 35, 255, 0.30);
 }
 
 [data-accent="sky"] {
@@ -118,8 +118,8 @@
 
   /* Surfaces — match original slate-950 */
   --bg: #020617;
-  --surface: #0f172a;
-  --surface-hover: #1e293b;
+  --surface: #0b0f1f;
+  --surface-hover: #0e1428;
   --border: rgba(255, 255, 255, 0.10);
 
   /* Text — match original slate-50 */
@@ -304,6 +304,73 @@ video,
 canvas {
   display: block;
   max-width: 100%;
+}
+
+/* ======================================================
+   PDFVERSE TOOL-PAGE BACKGROUND — matched to reference screenshot
+   ====================================================== */
+
+.pdfverse-violet-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+
+  /* Reference base: deep navy */
+  background-color: #020617 !important;
+
+  /* Reference: restrained, pure-violet glow centered behind the title.
+     The glow stays inside the hero area instead of washing the cards. */
+  background-image:
+    radial-gradient(
+      ellipse 460px 330px at 50% 27%,
+      rgba(110, 28, 220, 0.30) 0%,
+      rgba(82, 19, 172, 0.16) 38%,
+      rgba(52, 12, 112, 0.06) 62%,
+      transparent 80%
+    );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-attachment: local;
+
+  /* Tool-page semantic colors — reference screenshot */
+  --bg: #020617;
+  --surface: #0a0e1e;
+  --surface-hover: #0d1224;
+  --border: rgba(148, 163, 184, 0.15);
+  --text-1: #f8fafc;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+  --card: #0a0e1e;
+  --color-surface: #0a0e1e;
+  --color-surface-hover: #0d1224;
+  --muted: #0d1224;
+  --input: #0a0e1e;
+}
+
+/* Prevent generic theme utility overrides from changing the tool page. */
+.pdfverse-violet-page .bg-slate-950,
+.pdfverse-violet-page [class~="bg-slate-950"],
+.pdfverse-violet-page [class~="bg-slate-950/70"],
+.pdfverse-violet-page [class~="bg-slate-950/80"],
+.pdfverse-violet-page .bg-slate-900,
+.pdfverse-violet-page [class~="bg-slate-900"] {
+  background-color: #0a0e1e !important;
+}
+
+.pdfverse-violet-page [class~="bg-slate-900/40"],
+.pdfverse-violet-page [class~="bg-slate-900/60"],
+.pdfverse-violet-page [class~="bg-slate-900/80"],
+.pdfverse-violet-page [class~="bg-white/[0.03]"],
+.pdfverse-violet-page [class~="bg-white/[0.035]"],
+.pdfverse-violet-page [class~="bg-white/[0.05]"] {
+  background-color: #0c1124 !important;
+}
+
+html,
+body,
+#root {
+  background-color: #020617;
 }
 
 /* ======================================================
@@ -542,3 +609,67 @@ button.bg-emerald-600,
 .to-slate-950 { --tw-gradient-to: var(--bg); }
 .from-red-600 { --tw-gradient-from: var(--destructive); color: var(--primary-foreground); }
 .to-orange-500 { --tw-gradient-to: #f97316; color: var(--primary-foreground); }
+
+/* ======================================================
+   PDFVERSE VIOLET THEME — explicit page tokens
+   ====================================================== */
+.pdfverse-violet-page {
+  --accent: #8023ff;
+  --accent-hover: #8b2bff;
+  --accent-fg: #dccbff;
+  --accent-light: rgba(128, 35, 255, 0.12);
+  --accent-glow: rgba(128, 35, 255, 0.30);
+  --surface: #0b0f1f;
+  --surface-hover: #0e1428;
+  --bg: #020617;
+  --text-1: #f8fafc;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+}
+
+/* ======================================================
+   FINAL REFERENCE MATCH — first screenshot background
+   Keep the page base almost black/navy and place a restrained
+   violet bloom lower behind the title area.
+   ====================================================== */
+
+html:has(.pdfverse-violet-page),
+body:has(.pdfverse-violet-page),
+#root:has(.pdfverse-violet-page) {
+  background: #020617 !important;
+}
+
+.pdfverse-violet-page {
+  background-color: #020617 !important;
+  background-image:
+    radial-gradient(
+      ellipse 500px 330px at 50% 23%,
+      rgba(92, 24, 188, 0.19) 0%,
+      rgba(63, 16, 130, 0.10) 35%,
+      rgba(35, 10, 76, 0.045) 57%,
+      transparent 75%
+    ) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  background-attachment: local !important;
+}
+
+/* Main tool/result cards: match the reference dark surface. */
+.pdfverse-violet-page .bg-white\/\[0\.03\],
+.pdfverse-violet-page .bg-white\/\[0\.035\],
+.pdfverse-violet-page .bg-slate-900,
+.pdfverse-violet-page .bg-slate-950,
+.pdfverse-violet-page [class~="bg-slate-900/80"],
+.pdfverse-violet-page [class~="bg-slate-900/60"],
+.pdfverse-violet-page [class~="bg-slate-900/40"],
+.pdfverse-violet-page [class~="bg-slate-950/80"],
+.pdfverse-violet-page [class~="bg-slate-950/70"] {
+  background-color: #0b0f1f !important;
+}
+
+/* Upload/result wells use a barely lighter navy, not slate #0f172a. */
+.pdfverse-violet-page [class~="bg-white/\[0.02\]"],
+.pdfverse-violet-page [class~="bg-white/\[0.025\]"],
+.pdfverse-violet-page [class~="bg-white/\[0.05\]"] {
+  background-color: #0c1124 !important;
+}

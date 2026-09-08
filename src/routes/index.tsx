@@ -143,17 +143,7 @@ function Home() {
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-bg-base">
-      {/* Background glow */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl" style={{ background: 'var(--accent-glow)' }}
-        aria-hidden="true"
-      />
-
-      <div
-        className="pointer-events-none absolute right-0 top-24 -z-0 h-72 w-72 rounded-full blur-3xl" style={{ background: 'var(--accent-light)' }}
-        aria-hidden="true"
-      />
+    <section className="pdfverse-violet-page relative min-h-screen overflow-hidden">
 
       <Container className="relative py-12 sm:py-16">
         {/* =====================================================
