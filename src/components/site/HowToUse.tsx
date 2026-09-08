@@ -14,23 +14,59 @@ type HowToUseProps = {
   desktopSteps?: HowToUseStep[];
 };
 
+/* Theme-aware card styles used by both desktop and mobile */
+const cardBaseStyles: React.CSSProperties = {
+  borderColor: 'var(--border)',
+  background: 'var(--surface)',
+  boxShadow: '0 4px 12px -2px var(--accent-glow)',
+};
+
+const iconBoxStyles: React.CSSProperties = {
+  borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+  background: 'var(--accent-light)',
+  color: 'var(--accent)',
+};
+
+const iconBoxHoverStyles: React.CSSProperties = {
+  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+  color: 'var(--accent)',
+};
+
+const progressBgStyles: React.CSSProperties = {
+  background: 'color-mix(in srgb, var(--text-1) 12%, transparent)',
+};
+
+const progressFillStyles: React.CSSProperties = {
+  background: 'var(--accent-gradient)',
+};
+
 function StepCard({ step, index }: { step: HowToUseStep; index: number }) {
   return (
-    <div className="how-to-use-card group relative rounded-2xl border border-teal-400/20 bg-white/[0.03] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-teal-400/50 hover:bg-white/[0.05] hover:shadow-xl hover:shadow-teal-950/20">
-      <div className="absolute right-4 top-4 text-xs font-bold text-slate-600">
+    <div
+      className="how-to-use-card group relative rounded-2xl border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+      style={{
+        borderColor: 'var(--border)',
+        background: 'var(--surface)',
+        boxShadow: '0 4px 12px -2px var(--accent-glow)',
+      }}
+    >
+      <div className="absolute right-4 top-4 text-xs font-bold" style={{ color: 'var(--text-3)' }}>
         {String(index + 1).padStart(2, "0")}
       </div>
 
-      <div className="relative z-10 mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/15 to-violet-500/15 text-cyan-300 shadow-lg shadow-cyan-950/20 transition duration-300 group-hover:scale-105 group-hover:border-violet-400/30 group-hover:text-violet-300">
+      <div
+        className="relative z-10 mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border transition duration-300 group-hover:scale-105"
+        style={iconBoxStyles}
+      >
         {step.icon}
       </div>
 
-      <h3 className="text-base font-semibold text-white">{step.title}</h3>
+      <h3 className="text-base font-semibold" style={{ color: 'var(--text-1)' }}>{step.title}</h3>
 
-      <p className="mt-2 text-sm leading-6 text-slate-400">{step.description}</p>
+      <p className="mt-2 text-sm leading-6" style={{ color: 'var(--text-2)' }}>{step.description}</p>
 
-      <div className="mt-5 h-1 w-10 overflow-hidden rounded-full bg-slate-800">
-        <div className="h-full w-full origin-left scale-x-0 rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 transition-transform duration-300 group-hover:scale-x-100" />
+      <div className="mt-5 h-1 w-10 overflow-hidden rounded-full" style={progressBgStyles}>
+        <div className="h-full w-full origin-left scale-x-0 rounded-full transition-transform duration-300 group-hover:scale-x-100" style={progressFillStyles} />
       </div>
     </div>
   );
@@ -49,12 +85,12 @@ export function HowToUse({
       <div className="mx-auto max-w-2xl text-center">
        
 
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--text-1)' }}>
           {title}
         </h2>
 
         {subtitle ? (
-          <p className="mx-auto mt-3 text-sm leading-6 text-slate-400 sm:text-base">
+          <p className="mx-auto mt-3 text-sm leading-6 sm:text-base" style={{ color: 'var(--text-2)' }}>
             {subtitle}
           </p>
         ) : null}
@@ -65,7 +101,10 @@ export function HowToUse({
         {/* Connecting line - desktop */}
         <div
           aria-hidden="true"
-          className="absolute left-[16.66%] right-[16.66%] top-7 hidden h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent lg:block"
+          className="absolute left-[16.66%] right-[16.66%] top-7 hidden h-px lg:block"
+          style={{
+            background: 'linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 30%, transparent), transparent)',
+          }}
         />
 
         {/* Tablet: original card layout */}

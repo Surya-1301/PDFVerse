@@ -641,20 +641,18 @@ button.bg-emerald-600,
 }
 
 /* ======================================================
-   HOW TO USE — FIXED TEAL BORDERS
-   Tablet + desktop only. Applies in every color theme.
-   Mobile (<640px) keeps the original theme-aware border.
+   HOW TO USE — theme-aware borders
+   Tablet + desktop only. Mobile (<640px) uses inline theme-aware styles.
    ====================================================== */
 @media (min-width: 768px) {
   .how-to-use-card {
-    border: 1px solid #14b8a6 !important;
-    border-color: #14b8a6 !important;
+    border-color: var(--border);
   }
 
   .how-to-use-card:hover,
   .how-to-use-card:focus,
   .how-to-use-card:focus-within,
   .how-to-use-card:active {
-    border-color: #14b8a6 !important;
+    border-color: var(--accent);
   }
 }
