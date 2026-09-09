@@ -262,6 +262,19 @@
 [data-theme="light"] .logo-dark { display: none; }
 [data-theme="light"] .logo-light { display: block; }
 
+/* --- Homepage floating AI chat button: white in light mode,
+   keeps the accent color for every color theme in dark mode --- */
+.home-chat-btn {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 4px 14px 0 var(--accent-glow);
+}
+[data-theme="light"] .home-chat-btn {
+  background: #ffffff;
+  color: var(--accent);
+  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.18);
+}
+
 /* ======================================================
    BASE STYLES
    ====================================================== */

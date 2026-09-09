@@ -9,6 +9,7 @@ import {
   Scripts,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
 } from "@tanstack/react-router";
 
 import {
@@ -21,6 +22,22 @@ import { useEffect, useRef } from "react";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import ThemeProvider from "@/components/theme/ThemeProvider";
+
+// Routes where the global site header is hidden (immersive workspaces).
+const HIDE_HEADER_ROUTES = new Set([
+  "/pdf-editor",
+]);
+
+function ConditionalHeader() {
+  const hide = useRouterState({
+    select: (s) =>
+      s.matches.some((m) =>
+        HIDE_HEADER_ROUTES.has(m.routeId),
+      ),
+  });
+
+  return hide ? null : <Header />;
+}
 
 function NotFoundComponent() {
   return (
@@ -514,7 +531,7 @@ function RootComponentInner({
           client={queryClient}
         >
           <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <Header />
+            <ConditionalHeader />
 
             <main className="flex-1">
               <Outlet />
