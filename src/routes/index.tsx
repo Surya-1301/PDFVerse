@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {FilePlus2, MessageCircle, Upload,} from "lucide-react";
 import { Container } from "@/components/site/Container";
+import { useTheme } from "@/components/theme/ThemeProvider";
 import { categoryTabs, pdfTools, type Category } from "@/lib/pdfTools";
 import {
   createBlankPdfFile,
@@ -73,6 +74,7 @@ const categoryStyles: Record<
 };
 
 function Home() {
+  const { mode } = useTheme();
   const [activeCategory, setActiveCategory] =
     useState<Category>("all");
 
@@ -417,8 +419,20 @@ function Home() {
           href="/pdf/chat-with-pdf"
           aria-label="Open PDFVerse AI chat"
           title="Open PDFVerse AI chat"
-          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-xl transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 sm:bottom-6 sm:right-6"
-          style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
+          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 sm:bottom-6 sm:right-6"
+          style={
+            mode === "light"
+              ? {
+                  background: "#ffffff",
+                  color: "var(--accent)",
+                  boxShadow: "0 4px 14px 0 rgba(0,0,0,0.18)",
+                }
+              : {
+                  background: "var(--accent)",
+                  color: "#ffffff",
+                  boxShadow: "0 4px 14px 0 var(--accent-glow)",
+                }
+          }
         >
           <MessageCircle
             className="h-6 w-6"

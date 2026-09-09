@@ -31,10 +31,11 @@ function EditorPage() {
     <div className="pdfverse-exact-reference min-h-screen bg-bg-base">
       <PdfEditor />
 
-      <div className="relative z-10 bg-transparent pb-20 lg:pb-28 [&>section]:!mt-0">
+<div className="relative z-10 bg-transparent pb-20 lg:pb-28">
         <HowToUse
           title="How to use PDF Editor"
           subtitle=""
+          className="mt-6 sm:-mt-4 lg:mt-0"
           steps={[
             {
               title: "Upload PDF",

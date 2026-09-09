@@ -12,6 +12,8 @@ type HowToUseProps = {
   steps: HowToUseStep[];
   /** Optional expanded step list shown only on desktop (lg and up). */
   desktopSteps?: HowToUseStep[];
+  /** Extra classes merged onto the root <section> (e.g. to override the default top margin). */
+  className?: string;
 };
 
 /* Theme-aware card styles used by both desktop and mobile */
@@ -72,13 +74,18 @@ function StepCard({ step, index }: { step: HowToUseStep; index: number }) {
 
 export function HowToUse({
   title = "How to use",
-  subtitle = "Follow these simple steps to use this tool.",
+  subtitle = "",
   steps,
   desktopSteps,
+  className = "",
 }: HowToUseProps) {
   const lgSteps = desktopSteps ?? steps;
+  const sectionClass = [
+    "mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8",
+    className ? className : "mt-15",
+  ].join(" ");
   return (
-    <section className="mx-auto mt-16 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+    <section className={sectionClass}>
       {/* Heading */}
       <div className="mx-auto max-w-2xl text-center">
        
