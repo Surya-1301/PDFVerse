@@ -165,11 +165,11 @@ Sent from PDFVerse Contact Page
     <main className="legal-page min-h-screen bg-bg-base text-surface-fg">
 
       {/* ================================================================ */}
-      {/* HERO                                                             */}
+      {/* CENTERED CONTACT CARD                                            */}
       {/* ================================================================ */}
-<section className="border-b border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
-        <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
 
+      <section className="px-5 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-5 lg:px-8">
+        <div className="mx-auto w-full max-w-4xl">
           <Link
             to="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white"
@@ -178,36 +178,23 @@ Sent from PDFVerse Contact Page
             Back to PDFVerse
           </Link>
 
-          <div className="mt-10 flex flex-col items-center text-center">
+          <article className="mt-5 rounded-3xl border border-white/10 bg-white/[0.025] p-6 shadow-2xl shadow-black/20 sm:p-8 lg:p-12">
 
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 shadow-xl shadow-red-500/20">
-              <MessageSquare className="h-8 w-8 text-white" />
+            {/* PDFVerse Contact & Support label with icon */}
+            <div className="flex flex-col items-center text-center mb-8">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 shadow-xl shadow-red-500/20">
+                <MessageSquare className="h-7 w-7 text-white" />
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.25em] text-red-400">
+                PDFVerse Contact & Support
+              </p>
             </div>
 
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.25em] text-red-400">
-              PDFVerse Support
-            </p>
+            {/* ========================================================== */}
+            {/* MAIN CONTENT                                               */}
+            {/* ========================================================== */}
 
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              Contact Us
-            </h1>
-
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* ================================================================ */}
-      {/* MAIN CONTENT                                                     */}
-      {/* ================================================================ */}
-
-      <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-
-        <div className="mx-auto w-full max-w-5xl">
-
-          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
 
             {/* ========================================================== */}
             {/* LEFT INFORMATION                                            */}
@@ -763,6 +750,8 @@ Sent from PDFVerse Contact Page
             </div>
 
           </div>
+
+          </article>
 
         </div>
 

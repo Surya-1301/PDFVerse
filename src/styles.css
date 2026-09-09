@@ -257,6 +257,32 @@
 [data-theme="light"] .hover\:bg-red-500\/10:hover { background-color: rgba(220, 38, 38, 0.1); }
 [data-theme="light"] { --header-accent-link: var(--accent); }
 
+/* --- Search trigger: white hover in dark mode, subtle dark hover in light mode --- */
+.search-trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="light"] .search-trigger {
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+[data-theme="light"] .search-trigger:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* --- Search modal: theme-aware hover states --- */
+.search-result-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme="light"] .search-result-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+[data-theme="light"] .search-clear-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* --- Header logo: dark version for dark mode, light version for light mode --- */
 .logo-light { display: none; }
 [data-theme="light"] .logo-dark { display: none; }
