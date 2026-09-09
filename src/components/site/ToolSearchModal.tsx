@@ -47,12 +47,29 @@ export default function ToolSearchModal({ open, onClose }: ToolSearchModalProps)
   const results = useMemo(() => {
     if (!query.trim()) return pdfTools;
     const q = query.toLowerCase();
-    return pdfTools.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-    );
+
+    // Score matches by relevance so typed letters surface the
+    // most appropriate tools first:
+    //   0 → title starts with the query
+    //   1 → title contains the query
+    //   2 → description / category contains the query
+    const scored = pdfTools
+      .map((t) => {
+        const title = t.title.toLowerCase();
+        const description = t.description.toLowerCase();
+        const category = t.category.toLowerCase();
+
+        let score = -1;
+        if (title.startsWith(q)) score = 0;
+        else if (title.includes(q)) score = 1;
+        else if (description.includes(q) || category.includes(q)) score = 2;
+
+        return { tool: t, score };
+      })
+      .filter((entry) => entry.score !== -1)
+      .sort((a, b) => a.score - b.score || a.tool.title.localeCompare(b.tool.title));
+
+    return scored.map((entry) => entry.tool);
   }, [query]);
 
   if (!open) return null;

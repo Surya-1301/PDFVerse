@@ -168,7 +168,7 @@ Sent from PDFVerse Contact Page
       {/* CENTERED CONTACT CARD                                            */}
       {/* ================================================================ */}
 
-      <section className="px-5 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-5 lg:px-8">
+      <section className="px-5 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-8 lg:px-8">
         <div className="mx-auto w-full max-w-4xl">
           <Link
             to="/"
