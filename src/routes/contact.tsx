@@ -162,7 +162,7 @@ Sent from PDFVerse Contact Page
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-bg-base text-surface-fg">
 
       {/* ================================================================ */}
       {/* HERO                                                             */}
@@ -192,11 +192,6 @@ Sent from PDFVerse Contact Page
               Contact Us
             </h1>
 
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-              Have a question, privacy request, security concern, or problem
-              with a PDF tool? Send us a message and provide enough detail for
-              us to understand your request.
-            </p>
 
           </div>
 

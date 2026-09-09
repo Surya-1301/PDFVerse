@@ -238,7 +238,7 @@ Submitted from PDFVerse Abuse Page
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-bg-base text-surface-fg">
 
       {/* ================================================================
           HERO
@@ -267,12 +267,6 @@ Submitted from PDFVerse Abuse Page
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Report Abuse
             </h1>
-
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-              Help us keep PDFVerse safe. Use this page to report
-              malicious files, security issues, unlawful activity,
-              privacy concerns, or other misuse of our services.
-            </p>
 
           </div>
 

@@ -15,7 +15,7 @@ import {
 
 function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-bg-base text-surface-fg">
       {/* ================================================================ */}
       {/* HERO                                                             */}
       {/* ================================================================ */}
@@ -45,12 +45,6 @@ function PrivacyPage() {
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Privacy Policy
             </h1>
-
-            {/* Description */}
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-              Learn how PDFVerse collects, uses, protects, retains, and
-              processes information when you use our website and PDF tools.
-            </p>
           </div>
         </div>
       </section>

@@ -16,7 +16,7 @@ import {
 
 function TermsPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-bg-base text-surface-fg">
       {/* ================================================================ */}
       {/* HERO                                                             */}
       {/* ================================================================ */}
@@ -46,13 +46,6 @@ function TermsPage() {
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
               Terms of Use
             </h1>
-
-            {/* Description */}
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-              These Terms explain the rules for using PDFVerse, including our
-              PDF tools, document processing features, uploaded files, and
-              related services.
-            </p>
           </div>
         </div>
       </section>
