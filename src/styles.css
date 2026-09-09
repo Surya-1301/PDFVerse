@@ -655,6 +655,28 @@ button.bg-emerald-600,
 }
 
 /* ======================================================
+   LEGAL PAGES — contact / terms / privacy / report-abuse
+   In dark mode the page background is tinted 4% toward the
+   active accent so it matches the site header/footer (which
+   use the same 4% accent tint over var(--bg)). This makes
+   the header and footer blend seamlessly with the page.
+   ====================================================== */
+[data-theme="dark"] .legal-page {
+  background-color: color-mix(in srgb, var(--accent) 4%, var(--bg)) !important;
+}
+
+/* The legal pages' hero gradient ends at the page background via
+   via-slate-950 / to-slate-950 (resolved to var(--bg)). In dark mode
+   that sink must be the same accent-tinted page background, otherwise
+   a hard seam appears between the hero and the tinted body. */
+[data-theme="dark"] .legal-page .to-slate-950 {
+  --tw-gradient-to: color-mix(in srgb, var(--accent) 4%, var(--bg));
+}
+[data-theme="dark"] .legal-page .via-slate-950 {
+  --tw-gradient-via: color-mix(in srgb, var(--accent) 4%, var(--bg));
+}
+
+/* ======================================================
    HOW TO USE — theme-aware borders
    Tablet + desktop only. Mobile (<640px) uses inline theme-aware styles.
    ====================================================== */

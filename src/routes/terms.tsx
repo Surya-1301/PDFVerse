@@ -16,7 +16,7 @@ import {
 
 function TermsPage() {
   return (
-    <main className="min-h-screen bg-bg-base text-surface-fg">
+    <main className="legal-page min-h-screen bg-bg-base text-surface-fg">
       {/* ================================================================ */}
       {/* HERO                                                             */}
       {/* ================================================================ */}
