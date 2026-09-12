@@ -20,6 +20,7 @@ import { ChatWithPdf } from "@/components/tools/ChatWithPdf";
 import { ComparePdf } from "@/components/tools/ComparePdf";
 import { HowToUse } from "@/components/site/HowToUse";
 import { Container } from "@/components/site/Container";
+import { RelatedTools } from "@/components/tools/RelatedTools";
 
 import {
   findTool,
@@ -74,6 +75,54 @@ export const Route = createFileRoute("/pdf/$slug")({
 
     const title =
       `${loaderData.title} Online — Free PDF Tool | PDFVerse`;
+    const url =
+      `https://pdfverse.pages.dev/pdf/${loaderData.slug}`;
+    const image =
+      "https://pdfverse.pages.dev/og-image.png";
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: title,
+      url,
+      description: loaderData.description,
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "Web",
+      browserRequirements: "Requires JavaScript",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "PDFVerse",
+        url: "https://pdfverse.pages.dev",
+        logo: {
+          "@type": "ImageObject",
+          url: image,
+        },
+      },
+    };
+
+    const breadcrumbJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: "https://pdfverse.pages.dev/",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: loaderData.title,
+          item: url,
+        },
+      ],
+    };
 
     return {
       meta: [
@@ -97,8 +146,39 @@ export const Route = createFileRoute("/pdf/$slug")({
           content: "website",
         },
         {
+          property: "og:url",
+          content: url,
+        },
+        {
+          property: "og:image",
+          content: image,
+        },
+        {
           name: "twitter:card",
           content: "summary_large_image",
+        },
+        {
+          name: "twitter:title",
+          content: title,
+        },
+        {
+          name: "twitter:description",
+          content: loaderData.description,
+        },
+        {
+          name: "twitter:image",
+          content: image,
+        },
+      ],
+      links: [{ rel: "alternate", hrefLang: "en", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(jsonLd),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(breadcrumbJsonLd),
         },
       ],
     };
@@ -713,6 +793,8 @@ function PdfToolPage() {
                     ]
           }
         />
+
+        <RelatedTools currentSlug={slug} />
 
       </Container>
     </section>

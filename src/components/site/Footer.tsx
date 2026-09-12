@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { FileText, Flag, Mail, ShieldCheck } from "lucide-react";
+import { BookOpen, FileText, Flag, Mail, ShieldCheck } from "lucide-react";
 
 const footerLinks = [
+  { label: "Blog", href: "/blog" as const, icon: BookOpen },
   { label: "Privacy", href: "/privacy" as const, icon: ShieldCheck },
   { label: "Terms", href: "/terms" as const, icon: FileText },
   { label: "Contact", href: "/contact" as const, icon: Mail },

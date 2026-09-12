@@ -296,12 +296,16 @@ export const Route =
             "width=device-width, initial-scale=1, viewport-fit=cover",
         },
         {
-          title: "PDFVerse — Free Online PDF Tools",
+          title: "PDFVerse — Free Online PDF Editor & PDF Tools",
         },
         {
           name: "description",
           content:
-            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+            "PDFVerse is a free online PDF editor and toolkit. Merge, split, compress, convert, protect, unlock, sign, OCR, rotate and organize PDF files.",
+        },
+        {
+          name: "robots",
+          content: "index, follow",
         },
 
         // PWA / mobile browser settings
@@ -329,12 +333,12 @@ export const Route =
         // Open Graph
         {
           property: "og:title",
-          content: "PDFVerse — Free Online PDF Tools",
+          content: "PDFVerse — Free Online PDF Editor & PDF Tools",
         },
         {
           property: "og:description",
           content:
-            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+            "PDFVerse is a free online PDF editor and toolkit. Merge, split, compress, convert, protect, unlock, sign, OCR, rotate and organize PDF files.",
         },
         {
           property: "og:type",
@@ -344,6 +348,10 @@ export const Route =
           property: "og:url",
           content: siteUrl,
         },
+        {
+          property: "og:image",
+          content: "https://pdfverse.pages.dev/logo.png",
+        },
 
         // Twitter
         {
@@ -352,16 +360,32 @@ export const Route =
         },
         {
           name: "twitter:title",
-          content: "PDFVerse — Free Online PDF Tools",
+          content: "PDFVerse — Free Online PDF Editor & PDF Tools",
         },
         {
           name: "twitter:description",
           content:
-            "Free online PDF tools to merge, split, compress, convert, edit, compare and manage PDF files.",
+            "PDFVerse is a free online PDF editor and toolkit. Merge, split, compress, convert, protect, unlock, sign, OCR, rotate and organize PDF files.",
+        },
+        {
+          name: "twitter:image",
+          content: "https://pdfverse.pages.dev/logo.png",
         },
       ],
 
       links: [
+        // Hreflang — English is the only language; x-default mirrors the canonical
+        {
+          rel: "alternate",
+          hrefLang: "en",
+          href: siteUrl,
+        },
+        {
+          rel: "alternate",
+          hrefLang: "x-default",
+          href: siteUrl,
+        },
+
         // PWA manifest
         {
           rel: "manifest",

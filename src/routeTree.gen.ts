@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PdfEditorRouteImport } from './routes/pdf-editor'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReportAbuseRouteImport } from './routes/report-abuse'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogPostSlugRouteImport } from './routes/blog.$postSlug'
 import { Route as PdfSlugRouteImport } from './routes/pdf.$slug'
 import { Route as ApiChatPdfAskRouteImport } from './routes/api.chat-pdf.ask'
 import { Route as ApiChatPdfUploadRouteImport } from './routes/api.chat-pdf.upload'
@@ -22,6 +25,11 @@ import { Route as ApiChatPdfUploadRouteImport } from './routes/api.chat-pdf.uplo
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -49,6 +57,16 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogPostSlugRoute = BlogPostSlugRouteImport.update({
+  id: '/$postSlug',
+  path: '/$postSlug',
+  getParentRoute: () => BlogRoute,
+} as any)
 const PdfSlugRoute = PdfSlugRouteImport.update({
   id: '/pdf/$slug',
   path: '/pdf/$slug',
@@ -67,12 +85,15 @@ const ApiChatPdfUploadRoute = ApiChatPdfUploadRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contact': typeof ContactRoute
   '/pdf-editor': typeof PdfEditorRoute
   '/privacy': typeof PrivacyRoute
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
+  '/blog/$postSlug': typeof BlogPostSlugRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
   '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
@@ -83,19 +104,24 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
+  '/blog/$postSlug': typeof BlogPostSlugRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/blog': typeof BlogIndexRoute
   '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
   '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contact': typeof ContactRoute
   '/pdf-editor': typeof PdfEditorRoute
   '/privacy': typeof PrivacyRoute
   '/report-abuse': typeof ReportAbuseRoute
   '/terms': typeof TermsRoute
+  '/blog/$postSlug': typeof BlogPostSlugRoute
   '/pdf/$slug': typeof PdfSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/api/chat-pdf/ask': typeof ApiChatPdfAskRoute
   '/api/chat-pdf/upload': typeof ApiChatPdfUploadRoute
 }
@@ -103,12 +129,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/blog'
     | '/contact'
     | '/pdf-editor'
     | '/privacy'
     | '/report-abuse'
     | '/terms'
+    | '/blog/$postSlug'
     | '/pdf/$slug'
+    | '/blog/'
     | '/api/chat-pdf/ask'
     | '/api/chat-pdf/upload'
   fileRoutesByTo: FileRoutesByTo
@@ -119,24 +148,30 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/report-abuse'
     | '/terms'
+    | '/blog/$postSlug'
     | '/pdf/$slug'
+    | '/blog'
     | '/api/chat-pdf/ask'
     | '/api/chat-pdf/upload'
   id:
     | '__root__'
     | '/'
+    | '/blog'
     | '/contact'
     | '/pdf-editor'
     | '/privacy'
     | '/report-abuse'
     | '/terms'
+    | '/blog/$postSlug'
     | '/pdf/$slug'
+    | '/blog/'
     | '/api/chat-pdf/ask'
     | '/api/chat-pdf/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BlogRoute: typeof BlogRouteWithChildren
   ContactRoute: typeof ContactRoute
   PdfEditorRoute: typeof PdfEditorRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -154,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -191,6 +233,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/$postSlug': {
+      id: '/blog/$postSlug'
+      path: '/$postSlug'
+      fullPath: '/blog/$postSlug'
+      preLoaderRoute: typeof BlogPostSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/pdf/$slug': {
       id: '/pdf/$slug'
       path: '/pdf/$slug'
@@ -215,8 +271,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BlogRouteChildren {
+  BlogPostSlugRoute: typeof BlogPostSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogPostSlugRoute: BlogPostSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BlogRoute: BlogRouteWithChildren,
   ContactRoute: ContactRoute,
   PdfEditorRoute: PdfEditorRoute,
   PrivacyRoute: PrivacyRoute,

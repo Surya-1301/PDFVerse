@@ -1,0 +1,40 @@
+# PDFVerse
+
+> Free online PDF editor and PDF toolkit. Merge, split, compress, convert, protect, unlock, sign, OCR, rotate and organize PDF files — entirely in your browser.
+
+PDFVerse is a browser-based PDF utility platform. All core editing tools run client-side (files never leave the user's device), and file conversions between Office/HTML and PDF are handled server-side with files deleted after processing.
+
+## Key pages
+
+- [PDFVerse Home](https://pdfverse.pages.dev/): PDF editor and all 42+ free PDF tools in one workspace.
+- [Online PDF Editor](https://pdfverse.pages.dev/pdf-editor): Edit existing PDF text, add text, images, shapes, highlights and signatures; reorder pages and download — free, in the browser.
+- [Merge PDF](https://pdfverse.pages.dev/pdf/merge): Combine multiple PDFs into one file.
+- [Split PDF](https://pdfverse.pages.dev/pdf/split): Split a PDF by selected pages.
+- [Compress PDF](https://pdfverse.pages.dev/pdf/compress): Reduce PDF file size.
+- [OCR PDF](https://pdfverse.pages.dev/pdf/ocr): Turn scanned PDFs into searchable PDFs and extract text with OCR.
+- [Chat with PDF](https://pdfverse.pages.dev/pdf/chat-with-pdf): Ask questions, summarize, and explore a PDF with AI.
+- [Sign PDF](https://pdfverse.pages.dev/pdf/sign): Type, upload, or draw a signature on a PDF.
+- [Protect PDF](https://pdfverse.pages.dev/pdf/protect): Add password protection to a PDF.
+- [Unlock PDF](https://pdfverse.pages.dev/pdf/unlock): Remove password protection from a PDF.
+- [Word to PDF](https://pdfverse.pages.dev/pdf/word-to-pdf): Convert DOC or DOCX files into PDF while preserving layout, tables, images, fonts, and page breaks.
+- [PDF to Word](https://pdfverse.pages.dev/pdf/pdf-to-word): Convert PDFs into editable DOCX files.
+- [JPG to PDF](https://pdfverse.pages.dev/pdf/jpg-to-pdf): Convert JPG, PNG, or WebP images into a PDF.
+
+## Full tool index
+
+All tools live at `https://pdfverse.pages.dev/pdf/<slug>`. The complete catalog (42 tools) includes:
+
+- **Edit**: pdf-editor, watermark, image-watermark, crop, forms, header-footer, compress, sign, repair, metadata-editor, chat-with-pdf, batch-compress, batch-watermark, batch-header-footer, batch-repair
+- **Organize**: merge, split, remove-pages, extract-pages, organize, add-pages, compare, ocr, rotate, add-page-numbers
+- **Security**: protect, unlock, redact, batch-protect, batch-unlock
+- **Convert to PDF**: jpg-to-pdf, scan-to-pdf, word-to-pdf, powerpoint-to-pdf, excel-to-pdf, html-to-pdf
+- **Convert from PDF**: pdf-to-jpg, pdf-to-word, pdf-to-text, extract-images, pdf-to-powerpoint, pdf-to-excel
+
+## Company
+
+- **Contact**: https://pdfverse.pages.dev/contact
+- **Privacy Policy**: https://pdfverse.pages.dev/privacy
+- **Terms of Use**: https://pdfverse.pages.dev/terms
+- **Report Abuse**: https://pdfverse.pages.dev/report-abuse
+
+PDFVerse is provided free of charge. Tools are ad-free and private — document processing happens locally in the browser wherever possible.

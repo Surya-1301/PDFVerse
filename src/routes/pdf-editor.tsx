@@ -4,6 +4,54 @@ import { Crop, Download, FileText, PenLine, Upload } from "lucide-react";
 import PdfEditor from "@/components/editor/PdfEditor";
 import { HowToUse } from "@/components/site/HowToUse";
 
+const EDITOR_URL = "https://pdfverse.pages.dev/pdf-editor";
+const EDITOR_IMAGE = "https://pdfverse.pages.dev/og-image.png";
+
+const editorJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "PDFVerse — Online PDF Editor",
+  url: EDITOR_URL,
+  description:
+    "Edit existing PDF text inline, add text, images, signatures, highlights and shapes, organize pages and download — free in your browser.",
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Web",
+  browserRequirements: "Requires JavaScript",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "PDFVerse",
+    url: "https://pdfverse.pages.dev",
+    logo: {
+      "@type": "ImageObject",
+      url: EDITOR_IMAGE,
+    },
+  },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://pdfverse.pages.dev/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "PDF Editor",
+      item: EDITOR_URL,
+    },
+  ],
+};
+
 export const Route = createFileRoute("/pdf-editor")({
   head: () => ({
     meta: [
@@ -20,7 +68,30 @@ export const Route = createFileRoute("/pdf-editor")({
           "Edit PDF text inline, sign, annotate and download. Free and private, right in your browser.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: EDITOR_URL },
+      { property: "og:image", content: EDITOR_IMAGE },
       { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: "PDF Editor — Edit PDF Text, Sign & Annotate | PDFVerse",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Edit PDF text inline, sign, annotate and download. Free and private, right in your browser.",
+      },
+      { name: "twitter:image", content: EDITOR_IMAGE },
+    ],
+    links: [{ rel: "alternate", hrefLang: "en", href: EDITOR_URL }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(editorJsonLd),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(breadcrumbJsonLd),
+      },
     ],
   }),
   component: EditorPage,

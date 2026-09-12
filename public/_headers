@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------------------
+# Cloudflare Pages Custom Headers
+# https://developers.cloudflare.com/pages/configuration/headers/
+# ---------------------------------------------------------------------------
+
+# -- Hashed assets (immutable) --
+# CSS/JS filenames include a content hash (e.g. index-5zFBP17H.js)
+# so they can be cached aggressively with no revalidation cost.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# -- Static root assets (no hash in filename) --
+# Favicons, logos, fonts, pdf worker — use moderate cache with revalidation.
+# ETags handle freshness automatically.
+/*.png
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.ico
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/*.mjs
+  Cache-Control: public, max-age=31536000, immutable
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+
+# -- Web manifest & service worker files --
+/manifest.webmanifest
+  Cache-Control: public, max-age=86400
+
+# -- XML / TXT crawlable resources --
+/sitemap.xml
+  Cache-Control: public, max-age=3600, must-revalidate
+/robots.txt
+  Cache-Control: public, max-age=86400
+/llms.txt
+  Cache-Control: public, max-age=86400
+
+# -- HTML pages --
+# Short-lived cache so crawlers see fresh content, but CDN edge still caches
+# to avoid serving a new request for every visitor.
+/*.html
+  Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+/
+  Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
