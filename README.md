@@ -1,18 +1,21 @@
 # PDFVerse
 
+[![GitHub release](https://img.shields.io/github/v/release/Surya-1301/PDFVerse)](https://github.com/Surya-1301/PDFVerse/releases)
+[![Live site](https://img.shields.io/website?url=https%3A%2F%2Fpdfverse.pages.dev&label=live%20site)](https://pdfverse.pages.dev)
+[![License](https://img.shields.io/github/license/Surya-1301/PDFVerse)](LICENSE)
+
 **Free online PDF tools — edit, organize, convert, compress, protect, and repair PDFs right in your browser.**
 
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
 🌐 **Live site:** https://pdfverse.pages.dev
-
 ⚙️ **Conversion API:** https://pdf-verse-api-uu40.onrender.com
 
 ---
 
 ## Screenshots
 
-| Home  | Tool page | PDF Editor |
+| Home — 42 tools | Tool page | PDF Editor |
 |---|---|---|
 | ![PDFVerse home page](docs/screenshots/home.png) | ![Merge PDF tool page](docs/screenshots/tool-page.png) | ![PDF Editor](docs/screenshots/pdf-editor.png) |
 
@@ -149,8 +152,8 @@ PDFVerse/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Surya-1301/PDF-Verse.git
-cd PDF-Verse
+git clone https://github.com/Surya-1301/PDFVerse.git
+cd PDFVerse
 ```
 
 ### 2. Install dependencies
@@ -272,7 +275,7 @@ All `POST` endpoints accept `multipart/form-data` with a `file` field and return
 
 ## License
 
-This project is private unless you choose to publish it with an open-source license.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
