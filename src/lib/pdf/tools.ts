@@ -570,14 +570,47 @@ export const toolImpls: Record<string, ToolImpl> = {
     accept: PDF,
     multiple: true,
     uploadLabel: "Select two or more PDFs",
+    fields: [
+      {
+        name: "fit",
+        label: "Page sizing",
+        type: "select",
+        default: "preserve",
+        options: [
+          { value: "preserve", label: "Preserve original page sizes" },
+          { value: "fit", label: "Fit each page to its content (rasterize)" },
+        ],
+      },
+    ],
     run: async (ctx) => {
       if (ctx.files.length < 2) throw new Error("Choose at least two PDFs to merge.");
+      const fitMode = str(ctx, "fit", "preserve");
       const out = await PDFDocument.create();
-      for (const [index, file] of ctx.files.entries()) {
-        ctx.progress(`Merging ${index + 1} of ${ctx.files.length}…`);
-        const doc = await loadPdf(file);
-        const pages = await out.copyPages(doc, doc.getPageIndices());
-        pages.forEach((page) => out.addPage(page));
+
+      if (fitMode === "fit") {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+
+        for (const [fileIndex, file] of ctx.files.entries()) {
+          ctx.progress(`Processing ${file.name} (${fileIndex + 1} of ${ctx.files.length})…`);
+          const src = await getPdfJsDoc(file);
+          for (let i = 1; i <= src.numPages; i += 1) {
+            ctx.progress(`  Rasterizing page ${i} of ${src.numPages}…`);
+            const page = await src.getPage(i);
+            const canvas = await renderPageToCanvas(page, 2);
+            const jpeg = await canvasToJpeg(canvas, 0.92);
+            const image = await out.embedJpg(await bytesOf(jpeg));
+            const newPage = out.addPage([canvas.width, canvas.height]);
+            newPage.drawImage(image, { x: 0, y: 0, width: canvas.width, height: canvas.height });
+          }
+        }
+      } else {
+        for (const [index, file] of ctx.files.entries()) {
+          ctx.progress(`Merging ${index + 1} of ${ctx.files.length}…`);
+          const doc = await loadPdf(file);
+          const pages = await out.copyPages(doc, doc.getPageIndices());
+          pages.forEach((page) => out.addPage(page));
+        }
       }
       return [await savePdf(out, "merged.pdf")];
     },
