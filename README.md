@@ -16,7 +16,7 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 
 ## Screenshots
 
-| Home — 42 tools | Tool page | PDF Editor |
+| Home | Tool page | PDF Editor |
 |---|---|---|
 | ![PDFVerse home page](docs/screenshots/home.png) | ![Merge PDF tool page](docs/screenshots/tool-page.png) | ![PDF Editor](docs/screenshots/pdf-editor.png) |
 
