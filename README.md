@@ -1,80 +1,82 @@
 # PDFVerse
 
-PDFVerse is a free online PDF editor toolkit built with Next.js. It provides browser-friendly PDF tools for organizing, editing, converting, compressing, protecting, and repairing PDF files.
+**Free online PDF tools — edit, organize, convert, compress, protect, and repair PDFs right in your browser.**
 
-Live site:
+No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
-```txt
-https://pdfverse.pages.dev
-```
+🌐 **Live site:** https://pdfverse.pages.dev
+⚙️ **Conversion API:** https://pdf-verse-api-uu40.onrender.com
 
-PDF backend:
+---
 
-```txt
-https://pdf-verse-api-uu40.onrender.com
-```
+## Screenshots
+
+| Home — 42 tools | Tool page | PDF Editor |
+|---|---|---|
+| ![PDFVerse home page](docs/screenshots/home.png) | ![Merge PDF tool page](docs/screenshots/tool-page.png) | ![PDF Editor](docs/screenshots/pdf-editor.png) |
 
 ---
 
 ## Features
 
-PDFVerse includes tools such as:
+42 tools across 6 categories. Every tool has its own page with step-by-step guidance and FAQs.
 
 ### Organize PDF
 
-- Merge PDF
-- Split PDF
-- Remove pages
-- Extract pages
-- Organize/Reorder PDF
-- Add Pages to PDF
-- Compare PDF
-- Rotate PDF
-- Add page numbers
+| Tool | What it does |
+|---|---|
+| Merge PDF | Combine multiple PDFs into one file |
+| Split PDF | Split by page ranges or every N pages |
+| Remove pages | Delete selected pages |
+| Extract pages | Pull selected pages into a new PDF |
+| Organize PDF | Reorder pages via drag & drop |
+| Add Pages to PDF | Insert pages from another PDF at any position |
+| Compare PDF | Page-by-page text & visual diff with report download |
+| OCR PDF | Turn scans into searchable PDFs (on-device OCR) |
+| Rotate PDF | Rotate all or selected pages |
+| Add page numbers | Stamp page numbers with custom position & start |
 
 ### Edit PDF
 
-- Compress PDF
-- Add watermark
-- Image watermark
-- Crop PDF
-- PDF Forms
-- Flatten PDF
-- Header & Footer
-- Sign PDF
-- Repair PDF
-- Metadata Editor
-- Batch Compress
-- Batch Watermark
-- Batch Header & Footer
-- Batch Repair
+| Tool | What it does |
+|---|---|
+| PDF Editor | Edit text, add text/images, annotate, sign |
+| Chat with PDF | Ask questions & summarize documents with AI |
+| Compress PDF | Reduce file size with quality control |
+| Add watermark | Text watermarks with opacity & rotation |
+| Image watermark | Logo watermarks (PNG transparency supported) |
+| Crop PDF | Trim page margins by percentage |
+| PDF Forms | Fill form fields, optionally flatten |
+| Header & Footer | Headers, footers, dates, filenames, page numbers |
+| Sign PDF | Type, draw, or upload a signature |
+| Repair PDF | Rebuild damaged/corrupted PDFs |
+| Metadata Editor | Edit or strip title, author, keywords |
+| Batch Compress · Batch Watermark · Batch Header & Footer · Batch Repair | Apply one operation to many files, download a ZIP |
 
 ### Convert to PDF
 
-- JPG to PDF
-- Scan to PDF
-- Word to PDF
-- PowerPoint to PDF
-- Excel to PDF
-- HTML to PDF
+JPG to PDF · Scan to PDF · Word to PDF · PowerPoint to PDF · Excel to PDF · HTML to PDF
 
 ### Convert from PDF
 
-- PDF to JPG
-- PDF to Word
-- PDF to Text
-- Extract Images
-- PDF to PowerPoint
-- PDF to Excel
-- PDF to PDF/A
+PDF to JPG · PDF to Word · PDF to Text · Extract Images · PDF to PowerPoint · PDF to Excel
 
 ### PDF Security
 
-- Protect PDF
-- Unlock PDF
-- Redact PDF
-- Batch Protect
-- Batch Unlock
+Protect PDF (password encryption) · Unlock PDF · Redact PDF (permanent) · Batch Protect · Batch Unlock
+
+---
+
+## How it works
+
+**Browser-first architecture.** The vast majority of tools run 100% client-side with `pdf-lib`, `pdfjs-dist`, and `tesseract.js` — files are never uploaded.
+
+**Server-side conversions.** 8 conversion tools need heavier engines (Office rendering, table extraction) and run on the PDFVerse conversion API:
+
+- Word / Excel / PowerPoint / HTML → PDF
+- PDF → JPG / Word / Excel / PowerPoint
+
+Files sent for conversion are transmitted securely, processed, and temporary copies are automatically deleted afterward (see `/privacy`).
 
 ---
 
@@ -82,78 +84,66 @@ PDFVerse includes tools such as:
 
 ### Frontend
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Lucide React icons
-- pdf-lib
-- pdfjs-dist
-- dnd-kit
+- **TanStack Start** (React 19, file-based routing) + **Vite 8**
+- **TypeScript** · **Tailwind CSS 4**
+- `pdf-lib` / `@cantoo/pdf-lib`, `@pdf-lib/fontkit` — PDF manipulation
+- `pdfjs-dist` — rendering & text extraction
+- `tesseract.js` — on-device OCR
+- `docx`, `jszip`, `lucide-react`
 
-### Backend
+### Backend (`pdf-backend/`)
 
-The PDF backend is deployed separately on Render.
+Deployed separately on Render (Docker).
 
-- Node.js
-- Express
-- Multer
-- Python PDF tooling
-- Ghostscript
-- PDF conversion utilities
-- ZIP processing
+- **Node.js + Express + Multer** — API & file intake
+- **Python** — PyMuPDF, pdf2docx, pikepdf, Pillow, python-pptx, OpenCV — heavy conversions
+- **RAG** (`rag.js`) — powers Chat with PDF
 
 ---
 
 ## Project Structure
 
 ```txt
-PDF-Verse/
-├─ app/
-│  ├─ page.tsx
-│  ├─ layout.tsx
-│  ├─ globals.css
-│  ├─ favicon.ico
-│  ├─ pdf-editor/
-│  │  └─ page.tsx
-│  ├─ privacy/
-│  │  └─ page.tsx
-│  ├─ terms/
-│  │  └─ page.tsx
-│  ├─ contact/
-│  │  └─ page.tsx
-│  └─ report-abuse/
-│     └─ page.tsx
-├─ components/
-│  ├─ Container.tsx
-│  ├─ Footer.tsx
-│  ├─ Header.tsx
-│  └─ HowToUse.tsx
-├─ lib/
-│  ├─ apiBase.ts
-│  ├─ apiError.ts
-│  └─ formatFileSize.ts
-├─ pdf-backend/
+PDFVerse/
+├─ src/
+│  ├─ routes/                  # File-based routes (TanStack Router)
+│  │  ├─ index.tsx             # Home + tool grid
+│  │  ├─ pdf.$slug.tsx         # Per-tool pages (42 tools)
+│  │  ├─ pdf-editor.tsx        # Full PDF editor
+│  │  ├─ api.chat-pdf.*.ts     # Chat-with-PDF API routes
+│  │  ├─ blog*.tsx             # Blog
+│  │  └─ privacy|terms|contact|report-abuse.tsx
+│  ├─ components/
+│  │  ├─ tools/                # ToolRunner, ToolFAQ, ChatWithPdf, ComparePdf
+│  │  ├─ editor/               # PdfEditor, SignaturePad
+│  │  ├─ site/                 # Header, Footer, HowToUse, Container
+│  │  └─ theme/
+│  ├─ lib/
+│  │  ├─ pdf/                  # Tool registry & implementations
+│  │  ├─ pdfTools.ts           # Catalog of all 42 tools
+│  │  └─ toolFaqs.ts           # Per-tool FAQ content
+│  ├─ router.tsx / client.tsx / start.ts / server.ts
+│  └─ styles.css
+├─ pdf-backend/                # Conversion API (Node + Python, Docker)
 │  ├─ server.js
-│  ├─ Dockerfile
-│  ├─ package.json
-│  └─ package-lock.json
-├─ public/
-│  ├─ sitemap.xml
-│  ├─ robots.txt
-│  ├─ manifest.webmanifest
-│  └─ logo.png
-├─ package.json
-├─ package-lock.json
-├─ next.config.ts
-├─ postcss.config.mjs
-├─ tsconfig.json
-└─ wrangler.json
+│  ├─ rag.js
+│  ├─ requirements.txt
+│  └─ Dockerfile
+├─ public/                     # sitemap.xml, robots.txt, PWA manifest,
+│                              # SEO assets, pdf.js worker
+├─ index.html
+├─ vite.config.ts
+├─ wrangler.json               # Cloudflare Pages config
+└─ package.json
 ```
 
 ---
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm
 
 ### 1. Clone the repository
 
@@ -168,321 +158,114 @@ cd PDF-Verse
 npm install
 ```
 
-### 3. Create environment file
+### 3. Configure environment
 
-Create:
-
-```txt
-.env.local
-```
-
-Add:
+Create a `.env` file in the project root:
 
 ```env
 VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
 ```
 
-### 4. Run development server
+> For local backend development, point this at your local server (default `http://localhost:4000`).
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
 ```
 
-Open:
-
-```txt
-http://localhost:3000
-```
+Open http://localhost:3000
 
 ---
 
 ## Environment Variables
 
-### Frontend
-
-```env
-VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
-```
-
-This tells the frontend where to send server-side PDF processing requests.
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_PDF_API_BASE_URL` | Yes | Base URL of the PDF conversion API (server-side tools + Chat with PDF) |
 
 ---
 
-## Frontend Deployment
+## Available Scripts
 
-The frontend is deployed on Cloudflare Pages.
-
-### Cloudflare Pages settings
-
-```txt
-Framework preset: Next.js
-Build command: npm run build
-Build output directory: out
-Root directory: /
-```
-
-### Required environment variable
-
-```txt
-VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
-```
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview the production build |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Format with Prettier |
+| `npm run deploy` | Build and deploy to Cloudflare Pages |
 
 ---
 
-## Static Export Configuration
+## Deployment
 
-For Cloudflare Pages static deployment, `next.config.ts` should use:
+### Frontend — Cloudflare Pages
 
-```ts
-import type { NextConfig } from "next";
+- **Build command:** `npm run build`
+- **Build output directory:** `dist/client` (see `wrangler.json`)
+- **Environment variable:** `VITE_PDF_API_BASE_URL`
 
-const nextConfig: NextConfig = {
-  output: "export",
-  images: {
-    unoptimized: true,
-  },
-};
+Or deploy via CLI: `npm run deploy` (requires `wrangler` login).
 
-export default nextConfig;
-```
+### Backend — Render
 
----
+- **Service type:** Web Service
+- **Environment:** Docker
+- **Root directory:** `pdf-backend`
+- **Dockerfile path:** `./Dockerfile`
 
-## Backend Deployment
+Docker is recommended because the Python PDF tooling needs system-level packages.
 
-The PDF backend is deployed on Render.
-
-Backend URL:
-
-```txt
-https://pdf-verse-api-uu40.onrender.com
-```
-
-### Render settings
-
-```txt
-Service type: Web Service
-Environment: Docker
-Root directory: pdf-backend
-Dockerfile path: ./Dockerfile
-```
-
-If not using Docker:
-
-```txt
-Build command: npm install
-Start command: npm start
-Root directory: pdf-backend
-```
-
-Docker is recommended because the PDF backend may need PDF processing system packages.
-
----
-
-## Backend API
-
-The frontend calls backend routes through:
-
-```ts
-fetchPdfApi()
-```
-
-Defined in:
-
-```txt
-lib/apiBase.ts
-```
-
-Common backend routes include:
-
-```txt
-GET  /health
-POST /api/pdf/compress
-POST /api/pdf/protect
-POST /api/pdf/unlock
-POST /api/pdf/repair
-POST /api/pdf/to-jpg
-POST /api/pdf/to-word
-POST /api/pdf/to-excel
-POST /api/pdf/to-powerpoint
-POST /api/pdf/to-pdfa
-POST /api/pdf/extract-images
-POST /api/pdf/batch/compress
-POST /api/pdf/batch/protect
-POST /api/pdf/batch/unlock
-POST /api/pdf/batch/watermark
-POST /api/pdf/batch/header-footer
-POST /api/pdf/batch/repair
-```
-
----
-
-## File Handling and Privacy
-
-PDFVerse uses two types of PDF processing:
-
-### Browser-side processing
-
-Many tools run directly in the browser using `pdf-lib` and `pdfjs-dist`. These files do not need to be uploaded to the backend.
-
-Examples:
-
-- Merge PDF
-- Split PDF
-- Remove pages
-- Reorder PDF
-- Add Pages to PDF
-- Add page numbers
-- Text watermark
-- Image watermark
-- PDF Forms
-- Flatten PDF
-- Metadata Editor
-- PDF to Text
-
-### Backend-side processing
-
-Some advanced tools require server-side processing and upload files temporarily to the Render backend.
-
-Examples:
-
-- Compress PDF
-- PDF to Word
-- PDF to Excel
-- PDF to PowerPoint
-- PDF to PDF/A
-- Protect PDF
-- Unlock PDF
-- Repair PDF
-- Redact PDF
-- Extract Images
-- Batch tools
-
-Uploaded files are intended to be processed temporarily and deleted after processing.
-
----
-
-## Sitemap
-
-Sitemap location:
-
-```txt
-public/sitemap.xml
-```
-
-Live sitemap URL:
-
-```txt
-https://pdfverse.pages.dev/sitemap.xml
-```
-
-Google Search Console should use:
-
-```txt
-https://pdfverse.pages.dev/sitemap.xml
-```
-
----
-
-## Robots
-
-Robots file:
-
-```txt
-public/robots.txt
-```
-
-Recommended content:
-
-```txt
-User-agent: *
-Allow: /
-
-Sitemap: https://pdfverse.pages.dev/sitemap.xml
-```
-
----
-
-## Useful Commands
-
-### Run locally
+To run the backend locally without Docker:
 
 ```bash
-npm run dev
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-### Lint
-
-```bash
-npm run lint
-```
-
-### Commit changes
-
-```bash
-git add .
-git commit -m "Update PDFVerse"
-git push origin main
+cd pdf-backend
+npm install
+npm start
 ```
 
 ---
 
-## GitHub Large File Notes
+## Backend API Overview
 
-Do not commit generated folders or large files.
+Base URL: `VITE_PDF_API_BASE_URL`
 
-Recommended `.gitignore`:
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `POST` | `/api/pdf/office-to-pdf` | Word/Excel/PowerPoint → PDF |
+| `POST` | `/api/pdf/html-to-pdf` | HTML → PDF |
+| `POST` | `/api/pdf-to-word` | PDF → DOCX |
+| `POST` | `/api/pdf-to-excel` | PDF → XLSX (table extraction) |
+| `POST` | `/api/pdf-to-powerpoint` | PDF → PPTX |
+| `POST` | `/api/pdf-to-jpg` | PDF pages → JPG (ZIP for multi-page) |
+| `POST` | `/api/compress` | Server-side PDF compression |
+| `POST` | `/api/pdf/protect` · `/api/pdf/unlock` · `/api/pdf/redact` | Security operations |
+| `POST` | `/api/pdf/compare` | Server-side PDF comparison |
+| `POST` | `/api/pdf/batch/*` | Batch protect / unlock / watermark / header-footer / repair |
+| `POST` | `/api/chat-pdf/upload` · `/api/chat-pdf/ask` | Chat with PDF (RAG) |
 
-```txt
-node_modules
-.next
-out
-.vercel
-.open-next
-.wrangler
-dist
-build
-
-.env
-.env.local
-.env.*.local
-
-.DS_Store
-
-uploads
-data/*.json
-
-*.zip
-*.pdf
-*.jpg
-*.jpeg
-*.webp
-*.gif
-
-!app/favicon.ico
-!public/logo.png
-```
-
-If GitHub rejects a push because of large files, remove build output from history before pushing.
+All `POST` endpoints accept `multipart/form-data` with a `file` field and return the processed file (or JSON for chat).
 
 ---
 
-## Support Pages
+## Privacy & File Handling
 
-PDFVerse includes basic legal/support routes:
+- **Browser tools:** files never leave the user's device. No upload, no tracking of document contents.
+- **Server conversions:** files are uploaded over HTTPS, processed, and temporary copies are automatically deleted. Uploaded documents are never used for advertising, profiling, or sale.
+- Full details: https://pdfverse.pages.dev/privacy
+- Report abuse: https://pdfverse.pages.dev/report-abuse
 
-```txt
-/privacy
-/terms
-/contact
-/report-abuse
-```
+---
+
+## SEO
+
+- `public/sitemap.xml` — submitted to Search Console
+- `public/robots.txt` — allows all, references sitemap
+- Per-tool pages emit Open Graph / Twitter cards, `WebApplication` + `BreadcrumbList` JSON-LD, and `FAQPage` schema from the on-page FAQs
+- `public/llms.txt` — LLM-friendly site summary
 
 ---
 

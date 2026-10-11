@@ -18,6 +18,7 @@ import {
 import { ToolRunner } from "@/components/tools/ToolRunner";
 import { ChatWithPdf } from "@/components/tools/ChatWithPdf";
 import { ComparePdf } from "@/components/tools/ComparePdf";
+import { ToolFAQ } from "@/components/tools/ToolFAQ";
 import { HowToUse } from "@/components/site/HowToUse";
 import { Container } from "@/components/site/Container";
 import { RelatedTools } from "@/components/tools/RelatedTools";
@@ -26,6 +27,8 @@ import {
   findTool,
   slugAliases,
 } from "@/lib/pdfTools";
+
+import { getToolFaqs } from "@/lib/toolFaqs";
 
 import {
   createBlankPdfFile,
@@ -124,6 +127,23 @@ export const Route = createFileRoute("/pdf/$slug")({
       ],
     };
 
+    const faqs = getToolFaqs(loaderData.slug);
+
+    const faqJsonLd = faqs.length
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: faq.answer,
+            },
+          })),
+        }
+      : null;
+
     return {
       meta: [
         {
@@ -180,6 +200,14 @@ export const Route = createFileRoute("/pdf/$slug")({
           type: "application/ld+json",
           children: JSON.stringify(breadcrumbJsonLd),
         },
+        ...(faqJsonLd
+          ? [
+              {
+                type: "application/ld+json",
+                children: JSON.stringify(faqJsonLd),
+              },
+            ]
+          : []),
       ],
     };
   },
@@ -201,6 +229,8 @@ function PdfToolPage() {
 
   const isEditor =
     slug === "pdf-editor";
+
+  const faqs = getToolFaqs(slug);
 
   const isChatWithPdf =
     slug === "chat-with-pdf";
@@ -792,6 +822,15 @@ function PdfToolPage() {
                       },
                     ]
           }
+        />
+
+        {/* =========================================================
+            FAQ
+        ========================================================== */}
+        <ToolFAQ
+          items={faqs}
+          title={`${title} FAQs`}
+          subtitle={`Answers to common questions about using the ${title} tool on PDFVerse.`}
         />
 
         <RelatedTools currentSlug={slug} />
