@@ -13,7 +13,7 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 
 | 🌐 Live site | 📱 Android app | ⚙️ Conversion API |
 |---|---|---|
-| [pdfverse.pages.dev](https://pdfverse.pages.dev) | [downloadpdfverse.dpdns.org](https://downloadpdfverse.dpdns.org) | [pdf-verse-api-uu40.onrender.com](https://pdf-verse-api-uu40.onrender.com) |
+| [pdfverse.pages.dev](https://pdfverse.pages.dev) | [downloadpdfverse.dpdns.org](https://downloadpdfverse.dpdns.org)
 
 </div>
 
