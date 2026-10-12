@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, FileText, Flag, Mail, ShieldCheck } from "lucide-react";
+import { BookOpen, Download, FileText, Flag, Mail, ShieldCheck } from "lucide-react";
+
+const DOWNLOAD_URL = "https://downloadpdfverse.dpdns.org/";
 
 const footerLinks = [
   { label: "Blog", href: "/blog" as const, icon: BookOpen },
@@ -7,6 +9,7 @@ const footerLinks = [
   { label: "Terms", href: "/terms" as const, icon: FileText },
   { label: "Contact", href: "/contact" as const, icon: Mail },
   { label: "Abuse", href: "/report-abuse" as const, icon: Flag },
+  { label: "Download app", href: DOWNLOAD_URL, icon: Download, external: true as const },
 ];
 
 export default function Footer() {
@@ -35,21 +38,41 @@ export default function Footer() {
 
           {/* Footer Navigation */}
           <nav
-            aria-label="Footer navigation"
-            className="flex w-full items-center justify-between gap-1 sm:w-auto sm:gap-x-6"
-          >
+              aria-label="Footer navigation"
+             className="grid w-full grid-cols-3 justify-items-center gap-x-2 gap-y-4 sm:flex sm:w-auto sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-0"
+>
+
             {footerLinks.map((item) => {
               const Icon = item.icon;
+              const className =
+                "group inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:gap-2 sm:text-sm";
+              const style = { color: "var(--text-2)" };
+              const content = (
+                <>
+                  <Icon className="h-4 w-4 shrink-0 transition-opacity group-hover:opacity-100 sm:h-4 sm:w-4" />
+                  <span>{item.label}</span>
+                </>
+              );
 
-              return (
+              return "external" in item && item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={className}
+                  style={style}
+                >
+                  {content}
+                </a>
+              ) : (
                 <Link
                   key={item.href}
                   to={item.href}
-                  className="group inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors sm:gap-2 sm:text-sm"
-                  style={{ color: "var(--text-2)" }}
+                  className={className}
+                  style={style}
                 >
-                  <Icon className="h-4 w-4 shrink-0 transition-opacity group-hover:opacity-100 sm:h-4 sm:w-4" />
-                  <span>{item.label}</span>
+                  {content}
                 </Link>
               );
             })}
