@@ -11,19 +11,17 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 🌐 Live site:- https://pdfverse.pages.dev
 ---
 
-## Screenshots
+## Android app
 
-### Home
+PDFVerse is also available as a native Android app — all 42 tools, wrapped with Capacitor.
 
-![PDFVerse home page](public/docs/screenshots/home.png)
+📥 **Download:** https://downloadpdfverse.dpdns.org
 
-### Tool page
+- Free forever, no account needed
+- Most tools work fully offline on your device
+- New releases are published on the [GitHub releases page](https://github.com/Surya-1301/PDFVerse/releases) — the download page always points to the latest APK
 
-![Merge PDF tool page](public/docs/screenshots/tool-page.png)
-
-### PDF Editor
-
-![PDF Editor](public/docs/screenshots/pdf-editor.png)
+> The APK is debug-signed, so Android will show an "unknown developer" warning during sideloading. This is expected for apps installed outside the Play Store.
 
 ---
 
