@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "dev.pages.pdfverse.twa",
-        "sha256_cert_fingerprints": ["56:B1:C4:0C:DA:FB:DE:EB:18:40:75:A5:04:7E:5A:DE:EB:DF:B6:CD:9D:B8:04:A9:CD:50:80:7F:4F:1C:AC:4B"]
-      }
-    }]
