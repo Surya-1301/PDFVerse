@@ -18,6 +18,11 @@ const PORT = process.env.PORT || 4000;
 function isAllowedOrigin(origin) {
   if (!origin) return true;
 
+  // Capacitor Android app shell
+  if (origin === "capacitor://localhost") {
+    return true;
+  }
+
   // Local development (allow any localhost or 127.0.0.1 port, such as 5173, 3000, etc.)
   if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
     return true;
