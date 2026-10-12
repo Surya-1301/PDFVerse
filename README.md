@@ -13,7 +13,7 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 
 ## Screenshots
 
-### Home — all 42 tools
+### Home
 
 ![PDFVerse home page](public/docs/screenshots/home.png)
 
@@ -285,6 +285,3 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-## Author
-
-Built by PDFVerse.
