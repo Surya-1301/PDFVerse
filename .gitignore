@@ -32,3 +32,4 @@ data/*.json
 
 !public/logo.png
 .vscode/
+.vscode/
