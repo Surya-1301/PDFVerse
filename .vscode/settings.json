@@ -1,5 +1,0 @@
-{
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "css.lint.unknownAtRules": "ignore",
-    "python-envs.defaultEnvManager": "ms-python.python:venv"
-}
