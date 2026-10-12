@@ -42,7 +42,7 @@ export function RelatedTools({
 
   return (
     <section
-      className="mx-auto mt-16 w-full max-w-4xl px-4 sm:px-6 lg:px-8"
+      className="mx-auto mt-16 w-full max-w-4xl px-2 sm:px-6 lg:px-8"
       aria-label={`Related PDF tools`}
     >
       <div
