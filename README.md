@@ -13,7 +13,7 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 ---
 
 ## Android app
-
+![PDFVerse Download](public/docs/screenshots/app.png)
 
 PDFVerse is also available as a native Android app — all 42 tools.
 
