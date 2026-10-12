@@ -9,11 +9,13 @@
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
 🌐 Live site:- https://pdfverse.pages.dev
+![PDFVerse home page](public/docs/screenshots/home.png)
 ---
 
 ## Android app
 
-PDFVerse is also available as a native Android app — all 42 tools, wrapped with Capacitor.
+
+PDFVerse is also available as a native Android app — all 42 tools.
 
 📥 **Download:** https://downloadpdfverse.dpdns.org
 
@@ -72,6 +74,22 @@ PDF to JPG · PDF to Word · PDF to Text · Extract Images · PDF to PowerPoint 
 ### PDF Security
 
 Protect PDF (password encryption) · Unlock PDF · Redact PDF (permanent) · Batch Protect · Batch Unlock
+
+---
+
+## Screenshots
+
+### Home
+
+![PDFVerse home page](public/docs/screenshots/home.png)
+
+### Tool page
+
+![Merge PDF tool page](public/docs/screenshots/tool-page.png)
+
+### PDF Editor
+
+![PDF Editor](public/docs/screenshots/pdf-editor.png)
 
 ---
 
