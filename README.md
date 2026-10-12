@@ -8,8 +8,23 @@
 
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
+<<<<<<< HEAD
 🌐 Live site:- https://pdfverse.pages.dev
 ![PDFVerse home page](public/docs/screenshots/home.png)
+=======
+<div align="center">
+
+
+| 🌐 Live site | 📱 Android app |
+|---|---|
+| [pdfverse.pages.dev](https://pdfverse.pages.dev) | [downloadpdfverse.dpdns.org](https://downloadpdfverse.dpdns.org) |
+
+
+</div>
+
+
+
+>>>>>>> 3243db6 (“Pdfverse”)
 ---
 
 ## Android app
@@ -299,4 +314,3 @@ All `POST` endpoints accept `multipart/form-data` with a `file` field and return
 MIT — see [LICENSE](LICENSE).
 
 ---
-
