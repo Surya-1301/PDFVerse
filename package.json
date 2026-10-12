@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.8.3",
+    "@capacitor/android": "^8.5.3",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@pdf-lib/fontkit": "^1.1.1",
