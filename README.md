@@ -8,7 +8,7 @@
 
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
-🌐 **Live site:- ** https://pdfverse.pages.dev
+🌐 Live site:- https://pdfverse.pages.dev
 ---
 
 ## Screenshots
