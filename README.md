@@ -9,7 +9,6 @@
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
 🌐 Live site:- https://pdfverse.pages.dev
-![PDFVerse home page](public/docs/screenshots/home.png)
 ---
 
 ## Android app
