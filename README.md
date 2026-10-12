@@ -9,13 +9,14 @@
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
 🌐 **Live site:** https://pdfverse.pages.dev
+
 ⚙️ **Conversion API:** https://pdf-verse-api-uu40.onrender.com
 
 ---
 
 ## Screenshots
 
-### Home — all 42 tools
+### Home 
 
 ![PDFVerse home page](docs/screenshots/home.png)
 
