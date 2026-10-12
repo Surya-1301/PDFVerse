@@ -9,11 +9,13 @@
 No sign-up. No watermarks on output. Most tools run entirely on your device, so your documents never leave your computer.
 
 🌐 **Live site:** https://pdfverse.pages.dev
+⚙️ **Conversion API:** https://pdf-verse-api-uu40.onrender.com
+
 ---
 
 ## Screenshots
 
-### Home 
+### Home — all 42 tools
 
 ![PDFVerse home page](docs/screenshots/home.png)
 
@@ -173,7 +175,7 @@ npm install
 Create a `.env` file in the project root:
 
 ```env
-VITE_PDF_API_BASE_URL=https://render.com
+VITE_PDF_API_BASE_URL=https://pdf-verse-api-uu40.onrender.com
 ```
 
 > For local backend development, point this at your local server (default `http://localhost:4000`).
