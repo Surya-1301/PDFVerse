@@ -4,6 +4,8 @@
 [![Live site](https://img.shields.io/website?url=https%3A%2F%2Fpdfverse.pages.dev&label=live%20site)](https://pdfverse.pages.dev)
 [![Android app](https://img.shields.io/badge/Android-APK_download-3DDC84?logo=android&logoColor=white)](https://downloadpdfverse.dpdns.org)
 [![License](https://img.shields.io/github/license/Surya-1301/PDFVerse)](LICENSE)
+ 
+ ![PDFVerse Home](public/home.png)
 
 **Free online PDF tools — edit, organize, convert, compress, protect, and repair PDFs right in your browser.**
 
