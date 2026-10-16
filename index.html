@@ -52,5 +52,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/client.tsx"></script>
+    <script>
+      // Register the PWA service worker (required for the install prompt).
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
+    </script>
   </body>
 </html>
