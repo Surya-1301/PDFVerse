@@ -1219,35 +1219,20 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                         className="rounded-xl border border-white/10 p-3 shadow-[0_6px_18px_rgba(0,0,0,0.12)]"
                         style={{ backgroundColor: 'var(--surface-hover)', borderColor: 'var(--border)' }}
                       >
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-                          <div className="min-w-0">
-                            <input
-                              type="text"
-                              value={current}
-                              spellCheck={false}
-                              aria-label={`File name for ${file.name}`}
-                              onChange={(event) =>
-                                setNames((prev) => ({
-                                  ...prev,
-                                  [file.name]: event.target.value,
-                                }))
-                              }
-                              className="min-h-10 w-full min-w-0 rounded-lg border border-white/10 bg-slate-900/80 px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-violet-500/60 focus:bg-slate-900"
-                            />
-                            <p className="mt-1 text-[11px] font-medium text-slate-500">
-                              {formatFileSize(file.blob.size)}{ext}
-                            </p>
-                            <button
-                              type="button"
-                              disabled={downloading === outputName}
-                              onClick={() => void handleDownload(file.blob, outputName)}
-                              className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
-                              style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
-                            >
-                              <Download className="h-4 w-4" />
-                              {downloading === outputName ? "Saving…" : "Download"}
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={current}
+                            spellCheck={false}
+                            aria-label={`File name for ${file.name}`}
+                            onChange={(event) =>
+                              setNames((prev) => ({
+                                ...prev,
+                                [file.name]: event.target.value,
+                              }))
+                            }
+                            className="min-h-10 w-full min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-900/80 px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-violet-500/60 focus:bg-slate-900"
+                          />
 
                           {file.blob.type.includes("pdf") ||
                           file.blob.type.startsWith("image/") ||
@@ -1264,17 +1249,30 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                                   outputName,
                                 )
                               }
-                              className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-3.5 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-3.5 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
                             >
                               <Eye className="h-4 w-4" />
                               Preview
                             </button>
                           ) : (
-                            <span className="inline-flex h-10 shrink-0 -translate-y-2.5 items-center rounded-lg border border-white/5 bg-slate-900/60 px-3 text-xs font-medium text-slate-500">
+                            <span className="inline-flex h-10 shrink-0 items-center rounded-lg border border-white/5 bg-slate-900/60 px-3 text-xs font-medium text-slate-500">
                               Preview unavailable
                             </span>
                           )}
                         </div>
+                        <p className="mt-1 text-[11px] font-medium text-slate-500">
+                          {formatFileSize(file.blob.size)}{ext}
+                        </p>
+                        <button
+                          type="button"
+                          disabled={downloading === outputName}
+                          onClick={() => void handleDownload(file.blob, outputName)}
+                          className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
+                          style={{ background: '#16a34a', boxShadow: '0 4px 14px 0 rgba(22,163,74,0.4)' }}
+                        >
+                          <Download className="h-4 w-4" />
+                          {downloading === outputName ? "Saving…" : "Download"}
+                        </button>
                       </div>
                     );
                   })}
@@ -1298,35 +1296,52 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                             url={file.url}
                           />
 
-                          <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-  <div className="min-w-0">
-    <label className="mb-2 block text-xs font-medium text-slate-400">
-      File name
-    </label>
+                          <div className="mt-3">
+  <label className="mb-2 block text-xs font-medium text-slate-400">
+    File name
+  </label>
 
+  <div className="flex items-center gap-2">
     <input
       type="text"
       value={current}
       spellCheck={false}
+      aria-label={`File name for ${file.name}`}
       onChange={(event) =>
         setNames((prev) => ({
           ...prev,
           [file.name]: event.target.value,
         }))
       }
-      className="min-h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
+      className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
     />
 
-    <p className="mt-1.5 text-xs font-medium text-slate-500">
-      {formatFileSize(file.blob.size)}{ext}
-    </p>
+    {file.blob.type.includes("pdf") ||
+    file.blob.type.startsWith("image/") ||
+    file.blob.type.startsWith("text/") ||
+    file.blob.type.includes("html") ||
+    OFFICE_EXTENSIONS.test(outputName) ||
+    /\.(pdf|png|jpe?g|webp|txt|csv|json|xml|html?|md|docx?|xlsx?|pptx?|zip)$/i.test(outputName) ? (
+      <button
+        type="button"
+        onClick={() => openResultPreview(file.blob, file.url, outputName)}
+        className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+      >
+        <Eye className="h-4 w-4" />
+        Preview
+      </button>
+    ) : null}
   </div>
+
+  <p className="mt-1.5 text-xs font-medium text-slate-500">
+    {formatFileSize(file.blob.size)}{ext}
+  </p>
 
   <button
     type="button"
     disabled={downloading === outputName}
     onClick={() => void handleDownload(file.blob, outputName)}
-    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60 sm:mt-6 sm:w-auto sm:min-w-[170px]" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
+    className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60" style={{ background: '#16a34a', boxShadow: '0 4px 14px 0 rgba(22,163,74,0.4)' }}
   >
     <Download className="h-4 w-4" />
     {downloading === outputName ? "Saving…" : "Download"}
@@ -1338,42 +1353,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                   })}
                 </ul>
               </div>
-
-                      {results.length > 0 && (
-          <button
-            type="button"
-            disabled={downloading !== null}
-            onClick={() => {
-              const file = results[0];
-              if (!file) return;
-              const dot = file.name.lastIndexOf(".");
-              const base = dot > 0 ? file.name.slice(0, dot) : file.name;
-              const ext = dot > 0 ? file.name.slice(dot) : ".pdf";
-              const current = names[file.name] ?? base;
-              void handleDownload(file.blob, `${current || base}${ext}`);
-            }}
-            className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-base font-semibold text-white shadow-lg transition disabled:opacity-60 md:hidden" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
-          >
-            <Download className="h-5 w-5" />
-            {downloading ? "Saving…" : "Download"}
-          </button>
-        )}
-
-<button
-                type="button"
-                onClick={() => {
-                  results.forEach((r) => URL.revokeObjectURL(r.url));
-                  setFiles([]);
-                  setResults([]);
-                  setNames({});
-                  clearSelectedPreviews();
-                  setStatus("");
-                  setError("");
-                }}
-                className="mt-1 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition sm:mt-5 sm:min-h-12" style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text-1)' }}
-              >
-                Process another file
-              </button>
             </>
           ) : (
             <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-dashed bg-slate-950 px-5 py-10 text-center text-sm sm:min-h-[420px]" style={{ borderColor: 'var(--border)', color: 'var(--text-3)' }}>
