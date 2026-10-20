@@ -829,12 +829,12 @@ function PdfToolPage() {
         ========================================================== */}
         <ToolFAQ
           items={faqs}
-          title={`${title} FAQs`}
-          subtitle={`Answers to common questions about using the ${title} tool on PDFVerse.`}
+          title={`Frequently asked questions `}
+          subtitle={``}
         />
 
         <RelatedTools currentSlug={slug} />
-
+₹
       </Container>
     </section>
   );

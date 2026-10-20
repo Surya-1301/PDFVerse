@@ -59,12 +59,21 @@ export function ToolFAQ({ items, title = "Frequently asked questions", subtitle 
 
   return (
     <section className="mx-auto mt-15 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--text-1)' }}>
+      <div className="mx-auto max-w-3xl text-center">
+        <p
+          className="text-xs font-bold uppercase tracking-[0.35em] sm:text-sm"
+          style={{ color: 'var(--text-3)' }}
+        >
+          FAQ
+        </p>
+        <h2
+          className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+          style={{ color: 'var(--text-1)' }}
+        >
           {title}
         </h2>
         {subtitle ? (
-          <p className="mx-auto mt-3 text-sm leading-6 sm:text-base" style={{ color: 'var(--text-2)' }}>
+          <p className="mx-auto mt-4 text-sm leading-6 sm:text-base" style={{ color: 'var(--text-2)' }}>
             {subtitle}
           </p>
         ) : null}
