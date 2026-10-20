@@ -13,6 +13,7 @@ import {
 import { getToolImpl, type Field, type ToolValues } from "@/lib/pdf/tools";
 import type { ToolFile } from "@/lib/pdf/toolkit";
 import { formatFileSize } from "@/lib/formatFileSize";
+import { downloadBlob, isNative } from "@/lib/native";
 
 
 function defaultValues(fields: Field[]): ToolValues {
@@ -29,7 +30,9 @@ const inputClass =
 
 const PDF_API_BASE_URL =
   import.meta.env.VITE_PDF_API_BASE_URL ||
-  "http://localhost:4000";
+  (isNative()
+    ? "https://pdf-verse-api-uu40.onrender.com"
+    : "http://localhost:4000");
 
 type PreviewDescriptor = {
   url: string;
@@ -104,7 +107,14 @@ export async function convertOfficeToPdfPreview(
       method: "POST",
       body: formData,
     },
-  );
+  ).catch((err: unknown) => {
+    if (isNative()) {
+      throw new Error(
+        `No connection — connect to the internet to preview ${fileName}.`,
+      );
+    }
+    throw err;
+  });
 
   if (!response.ok) {
     let message = `Could not create a preview for ${fileName}.`;
@@ -739,6 +749,22 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       ? String(values.html ?? "").trim()
       : "";
 
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  async function handleDownload(blob: Blob, outputName: string) {
+    setDownloading(outputName);
+    try {
+      const mode = await downloadBlob(blob, outputName);
+      if (mode === "shared" && isNative()) {
+        setStatus(`Saved — pick a location in the share sheet to keep ${outputName}.`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that file.");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
   const canProcess =
     !busy &&
     (files.length > 0 ||
@@ -1211,6 +1237,16 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                             <p className="mt-1 text-[11px] font-medium text-slate-500">
                               {formatFileSize(file.blob.size)}{ext}
                             </p>
+                            <button
+                              type="button"
+                              disabled={downloading === outputName}
+                              onClick={() => void handleDownload(file.blob, outputName)}
+                              className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60"
+                              style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
+                            >
+                              <Download className="h-4 w-4" />
+                              {downloading === outputName ? "Saving…" : "Download"}
+                            </button>
                           </div>
 
                           {file.blob.type.includes("pdf") ||
@@ -1286,14 +1322,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     </p>
   </div>
 
-  <a
-    href={file.url}
-    download={outputName}
-    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 sm:mt-6 sm:w-auto sm:min-w-[170px]" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
+  <button
+    type="button"
+    disabled={downloading === outputName}
+    onClick={() => void handleDownload(file.blob, outputName)}
+    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60 sm:mt-6 sm:w-auto sm:min-w-[170px]" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
   >
     <Download className="h-4 w-4" />
-    Download
-  </a>
+    {downloading === outputName ? "Saving…" : "Download"}
+  </button>
 </div>
                         </div>
                       </li>
@@ -1303,21 +1340,23 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
               </div>
 
                       {results.length > 0 && (
-          <a
-            href={results[0].url}
-            download={(() => {
+          <button
+            type="button"
+            disabled={downloading !== null}
+            onClick={() => {
               const file = results[0];
+              if (!file) return;
               const dot = file.name.lastIndexOf(".");
               const base = dot > 0 ? file.name.slice(0, dot) : file.name;
               const ext = dot > 0 ? file.name.slice(dot) : ".pdf";
               const current = names[file.name] ?? base;
-              return `${current || base}${ext}`;
-            })()}
-            className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-base font-semibold text-white shadow-lg transition md:hidden" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
+              void handleDownload(file.blob, `${current || base}${ext}`);
+            }}
+            className="mb-3 mt-4 flex min-h-11 w-full max-w-[340px] items-center justify-center gap-2 self-start rounded-xl px-5 py-2.5 text-base font-semibold text-white shadow-lg transition disabled:opacity-60 md:hidden" style={{ background: 'var(--accent)', boxShadow: '0 4px 14px 0 var(--accent-glow)' }}
           >
             <Download className="h-5 w-5" />
-            Download
-          </a>
+            {downloading ? "Saving…" : "Download"}
+          </button>
         )}
 
 <button

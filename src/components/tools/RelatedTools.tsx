@@ -58,47 +58,90 @@ export function RelatedTools({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {related.map((item) => (
-          <Link
-            key={item.slug}
-            to={toolHref(item.slug)}
-            className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            style={{
-              borderColor: "var(--border)",
-              background: "color-mix(in srgb, var(--bg) 60%, var(--bg-base))",
-            }}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                style={{
-                  background: "var(--accent-light)",
-                  color: "var(--accent)",
-                }}
-              >
-                <item.icon className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p
-                  className="truncate text-sm font-semibold transition-colors group-hover:underline"
-                  style={{ color: "var(--text-1)" }}
+        {related.map((item) =>
+          item.slug === "pdf-editor" ? (
+            <Link
+              key={item.slug}
+              to="/pdf-editor"
+              className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                borderColor: "var(--border)",
+                background: "color-mix(in srgb, var(--bg) 60%, var(--bg-base))",
+              }}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{
+                    background: "var(--accent-light)",
+                    color: "var(--accent)",
+                  }}
                 >
-                  {item.title}
-                </p>
-                <p
-                  className="truncate text-xs"
-                  style={{ color: "var(--text-2)" }}
-                >
-                  {item.description}
-                </p>
+                  <item.icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-sm font-semibold transition-colors group-hover:underline"
+                    style={{ color: "var(--text-1)" }}
+                  >
+                    {item.title}
+                  </p>
+                  <p
+                    className="truncate text-xs"
+                    style={{ color: "var(--text-2)" }}
+                  >
+                    {item.description}
+                  </p>
+                </div>
               </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
-              style={{ color: "var(--text-3)" }}
-            />
-          </Link>
-        ))}
+              <ArrowRight
+                className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                style={{ color: "var(--text-3)" }}
+              />
+            </Link>
+          ) : (
+            <Link
+              key={item.slug}
+              to="/pdf/$slug"
+              params={{ slug: item.slug }}
+              className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                borderColor: "var(--border)",
+                background: "color-mix(in srgb, var(--bg) 60%, var(--bg-base))",
+              }}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{
+                    background: "var(--accent-light)",
+                    color: "var(--accent)",
+                  }}
+                >
+                  <item.icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-sm font-semibold transition-colors group-hover:underline"
+                    style={{ color: "var(--text-1)" }}
+                  >
+                    {item.title}
+                  </p>
+                  <p
+                    className="truncate text-xs"
+                    style={{ color: "var(--text-2)" }}
+                  >
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight
+                className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                style={{ color: "var(--text-3)" }}
+              />
+            </Link>
+          ),
+        )}
       </div>
     </section>
   );

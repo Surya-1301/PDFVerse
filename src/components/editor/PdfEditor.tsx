@@ -24,6 +24,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { buildPdf } from "@/lib/pdf/export";
+import { assetUrl, downloadBlob } from "@/lib/native";
 import {
   extractLines,
   isExistingTextEdited,
@@ -42,7 +43,7 @@ import { SignaturePad } from "./SignaturePad";
 import { takePdfForEditor } from "@/lib/pdfEditorLaunch";
 
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = assetUrl("/pdf.worker.min.mjs");
 
 type PageMeta = { base: { w: number; h: number }; intrinsic: number };
 
@@ -373,12 +374,10 @@ export default function PdfEditor() {
       const blob = new Blob([bytes as unknown as BlobPart], {
         type: "application/pdf",
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName.replace(/\.pdf$/i, "") + "-edited.pdf";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      await downloadBlob(
+        blob,
+        fileName.replace(/\.pdf$/i, "") + "-edited.pdf",
+      );
     } finally {
       setBusy(false);
     }

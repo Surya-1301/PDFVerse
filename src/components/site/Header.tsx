@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 import ToolSearchModal from "@/components/site/ToolSearchModal";
+import { openExternal } from "@/lib/native";
 
 export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -46,7 +47,10 @@ export default function Header() {
             <ThemeSwitcher />
             <a
               href="https://toolversee.pages.dev/"
-              target="_blank"
+              onClick={(event) => {
+                event.preventDefault();
+                void openExternal("https://toolversee.pages.dev/");
+              }}
               rel="noopener noreferrer"
               className="shrink-0 rounded-lg px-2 py-2 text-sm font-medium transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:px-3"
               style={{ color: 'var(--header-accent-link)' }}

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Download, FileText, Flag, Mail, ShieldCheck } from "lucide-react";
+import { isNative, openExternal } from "@/lib/native";
 
 const DOWNLOAD_URL = "https://downloadpdfverse.dpdns.org/";
 
@@ -55,16 +56,23 @@ export default function Footer() {
               );
 
               return "external" in item && item.external ? (
+                // In the APK, "Download app" pointing at itself is useless —
+                // hide it; everywhere else open it in the system browser.
+                isNative() ? null : (
                 <a
                   key={item.href}
                   href={item.href}
-                  target="_blank"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void openExternal(item.href);
+                  }}
                   rel="noopener noreferrer"
                   className={className}
                   style={style}
                 >
                   {content}
                 </a>
+                )
               ) : (
                 <Link
                   key={item.href}

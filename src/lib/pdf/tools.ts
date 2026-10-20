@@ -1,4 +1,5 @@
 import fontkit from "@pdf-lib/fontkit";
+import { assetUrl, isNative } from "../native";
 
 import {
   applyGrayscale,
@@ -74,7 +75,9 @@ const IMAGES = "image/png,image/jpeg,image/webp";
 
 const PDF_API_BASE_URL =
   import.meta.env.VITE_PDF_API_BASE_URL ||
-  "http://localhost:4000";
+  (isNative()
+    ? "https://pdf-verse-api-uu40.onrender.com"
+    : "http://localhost:4000");
 
 async function runBackendConversion(
   endpoint: string,
@@ -94,6 +97,13 @@ async function runBackendConversion(
   const response = await fetch(`${PDF_API_BASE_URL}${endpoint}`, {
     method: "POST",
     body: form,
+  }).catch((err: unknown) => {
+    if (isNative()) {
+      throw new Error(
+        "No connection to the conversion server. Check your internet and try again — browser-only tools still work offline.",
+      );
+    }
+    throw err;
   });
 
   if (!response.ok) {
@@ -141,14 +151,14 @@ async function runBackendConversion(
 }
 
 const OCR_LANGUAGES: Array<{ value: string; label: string; font: string }> = [
-  { value: "eng", label: "English", font: "/NotoSans-Regular.ttf" },
-  { value: "hin", label: "Hindi", font: "/NotoSansDevanagari-Regular.ttf" },
-  { value: "spa", label: "Spanish", font: "/NotoSans-Regular.ttf" },
-  { value: "fra", label: "French", font: "/NotoSans-Regular.ttf" },
-  { value: "deu", label: "German", font: "/NotoSans-Regular.ttf" },
-  { value: "ita", label: "Italian", font: "/NotoSans-Regular.ttf" },
-  { value: "por", label: "Portuguese", font: "/NotoSans-Regular.ttf" },
-  { value: "rus", label: "Russian", font: "/NotoSans-Regular.ttf" },
+  { value: "eng", label: "English", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "hin", label: "Hindi", font: assetUrl("/NotoSansDevanagari-Regular.ttf") },
+  { value: "spa", label: "Spanish", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "fra", label: "French", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "deu", label: "German", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "ita", label: "Italian", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "por", label: "Portuguese", font: assetUrl("/NotoSans-Regular.ttf") },
+  { value: "rus", label: "Russian", font: assetUrl("/NotoSans-Regular.ttf") },
 ];
 
 const OCR_FIELDS: Field[] = [
@@ -180,6 +190,9 @@ async function runOcr(ctx: ToolContext): Promise<ToolFile[]> {
 
   ctx.progress("Loading OCR engine…");
 
+  // Tesseract WASM core + language packs load from CDN over HTTPS — works in
+  // the APK whenever there is a connection. First run downloads language
+  // data, so we surface a clear offline error for it below.
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker(language, 1, {
     logger: (message: { status?: string; progress?: number }) => {
@@ -187,6 +200,13 @@ async function runOcr(ctx: ToolContext): Promise<ToolFile[]> {
         ctx.progress(`Recognizing text… ${Math.round(message.progress * 100)}%`);
       }
     },
+  }).catch((err: unknown) => {
+    if (isNative()) {
+      throw new Error(
+        "Could not load the OCR engine. Connect to the internet and try again (first run downloads language data).",
+      );
+    }
+    throw err;
   });
 
   try {
@@ -589,7 +609,7 @@ export const toolImpls: Record<string, ToolImpl> = {
 
       if (fitMode === "fit") {
         const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        pdfjs.GlobalWorkerOptions.workerSrc = assetUrl("/pdf.worker.min.mjs");
 
         for (const [fileIndex, file] of ctx.files.entries()) {
           ctx.progress(`Processing ${file.name} (${fileIndex + 1} of ${ctx.files.length})…`);

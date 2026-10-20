@@ -18,6 +18,7 @@ import {
   getPdfJsDoc,
   renderPageToCanvas,
 } from "@/lib/pdf/toolkit";
+import { downloadBlob } from "@/lib/native";
 
 /* ==========================================================================
    TYPES
@@ -356,17 +357,8 @@ async function downloadComparisonReport(
     },
   );
 
-  const url = URL.createObjectURL(blob);
-
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = "pdfverse-comparison-report.pdf";
-
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-
-  URL.revokeObjectURL(url);
+  // Native APK: route through Filesystem + share sheet; web keeps <a download>.
+  await downloadBlob(blob, "pdfverse-comparison-report.pdf");
 }
 
 /* ==========================================================================

@@ -1,7 +1,9 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from "@cantoo/pdf-lib";
 import * as pdfjs from "pdfjs-dist";
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+import { assetUrl } from "../native";
+
+pdfjs.GlobalWorkerOptions.workerSrc = assetUrl("/pdf.worker.min.mjs");
 
 export type ToolFile = { name: string; blob: Blob };
 
