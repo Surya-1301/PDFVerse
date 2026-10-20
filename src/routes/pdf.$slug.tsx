@@ -834,7 +834,6 @@ function PdfToolPage() {
         />
 
         <RelatedTools currentSlug={slug} />
-₹
       </Container>
     </section>
   );

@@ -67,7 +67,7 @@ export function ToolFAQ({ items, title = "Frequently asked questions", subtitle 
           FAQ
         </p>
         <h2
-          className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+          className="mt-3 text-3xl font-bold tracking-tight whitespace-nowrap sm:whitespace-normal sm:text-4xl lg:text-5xl"
           style={{ color: 'var(--text-1)' }}
         >
           {title}
