@@ -152,11 +152,8 @@ function interceptExternalLinks() {
 export function initNative() {
   if (!isNative()) return;
 
-  // Show status bar in native and configure dark theme colors
-  StatusBar.show().catch(() => {});
-  StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-  StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-  StatusBar.setBackgroundColor({ color: "#020617" }).catch(() => {});
+  // Hide status bar in native
+  StatusBar.hide().catch(() => {});
 
   // Android hardware / gesture back button
   App.addListener("backButton", ({ canGoBack }) => {

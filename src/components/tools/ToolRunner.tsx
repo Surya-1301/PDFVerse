@@ -754,6 +754,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const [downloading, setDownloading] = useState<string | null>(null);
 
   async function handleDownload(blob: Blob, outputName: string) {
+    if (downloading) return;
     setDownloading(outputName);
     try {
       const mode = await downloadBlob(blob, outputName);

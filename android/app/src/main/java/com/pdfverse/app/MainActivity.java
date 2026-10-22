@@ -1,9 +1,13 @@
 package com.pdfverse.app;
 
 import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +19,12 @@ import android.webkit.JavascriptInterface;
 import android.webkit.URLUtil;
 import android.webkit.WebView;
 import android.widget.Toast;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -23,7 +32,53 @@ import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
 
+    public static final String CHANNEL_ID = "pdfverse_downloads_channel";
+
+    public static void createNotificationChannel(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "PDFVerse Downloads",
+                NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("Download progress and file opening notifications");
+            NotificationManager manager = context.getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    public static void hideStatusBar(MainActivity activity) {
+        WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
+        WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(activity.getWindow(), activity.getWindow().getDecorView());
+        if (insetsController != null) {
+            insetsController.hide(WindowInsetsCompat.Type.statusBars());
+            insetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        }
+    }
+
     public static void saveBytesToDownloads(Context context, byte[] bytes, String filename, String mimeType) throws Exception {
+        createNotificationChannel(context);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        int notificationId = (int) (System.currentTimeMillis() & 0xfffffff);
+
+        // 1. Show download progress notification in status bar
+        try {
+            NotificationCompat.Builder progressBuilder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setContentTitle("Downloading " + filename)
+                .setContentText("Saving file...")
+                .setProgress(0, 0, true)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW);
+
+            notificationManager.notify(notificationId, progressBuilder.build());
+        } catch (SecurityException ignored) {
+        }
+
+        Uri fileUri = null;
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
@@ -40,6 +95,7 @@ public class MainActivity extends BridgeActivity {
                         os.flush();
                     }
                 }
+                fileUri = uri;
             } else {
                 throw new Exception("Could not allocate file in MediaStore Downloads");
             }
@@ -54,6 +110,53 @@ public class MainActivity extends BridgeActivity {
                 fos.flush();
             }
             context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
+            try {
+                fileUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
+            } catch (Exception ex) {
+                fileUri = Uri.fromFile(file);
+            }
+        }
+
+        // 2. Intent to open the downloaded file when user clicks the notification
+        Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+        if (mimeType != null && !mimeType.isEmpty()) {
+            viewIntent.setDataAndType(fileUri, mimeType);
+        } else {
+            viewIntent.setDataAndType(fileUri, "application/octet-stream");
+        }
+        viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        PendingIntent viewPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId,
+            viewIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
+        );
+
+        // 3. Intent to open Downloads folder on the device
+        Intent openFolderIntent = new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS);
+        openFolderIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent folderPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId + 1,
+            openFolderIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
+        );
+
+        // 4. Update notification with Click-to-Open and Open Folder
+        try {
+            NotificationCompat.Builder completeBuilder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle(filename)
+                .setContentText("Download complete. Tap to open.")
+                .setContentIntent(viewPendingIntent)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .addAction(android.R.drawable.ic_menu_agenda, "Open Folder", folderPendingIntent);
+
+            notificationManager.notify(notificationId, completeBuilder.build());
+        } catch (SecurityException ignored) {
         }
     }
 
@@ -73,7 +176,14 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        hideStatusBar(this);
+
+        // Request notification permission on Android 13+ for download progress
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
 
         // Native download listener and blob downloader for Android WebView
         if (bridge != null && bridge.getWebView() != null) {
@@ -164,6 +274,14 @@ public class MainActivity extends BridgeActivity {
                     Toast.makeText(getApplicationContext(), "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 }
             });
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            hideStatusBar(this);
         }
     }
 }
