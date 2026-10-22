@@ -757,7 +757,9 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     setDownloading(outputName);
     try {
       const mode = await downloadBlob(blob, outputName);
-      if (mode === "shared" && isNative()) {
+      if (mode === "saved" && isNative()) {
+        setStatus(`Downloaded ${outputName} to your device's Documents folder.`);
+      } else if (mode === "shared" && isNative()) {
         setStatus(`Saved — pick a location in the share sheet to keep ${outputName}.`);
       }
     } catch (err) {

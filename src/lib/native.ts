@@ -35,12 +35,14 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-export async function downloadBlob(blob: Blob, fileName: string): Promise<"shared" | "web"> {
+export async function downloadBlob(blob: Blob, fileName: string): Promise<"saved" | "shared" | "web"> {
+  const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_") || "pdfverse-file";
+
   if (!isNative()) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = fileName;
+    anchor.download = safeName;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -48,10 +50,32 @@ export async function downloadBlob(blob: Blob, fileName: string): Promise<"share
     return "web";
   }
 
-  const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_") || "pdfverse-file";
   const base64 = await blobToBase64(blob);
-  const mimeType = blob.type || "application/octet-stream";
 
+  // In native Android APK, save the file directly to the device's public Documents directory
+  try {
+    try {
+      const perm = await Filesystem.checkPermissions();
+      if (perm.publicStorage !== "granted") {
+        await Filesystem.requestPermissions();
+      }
+    } catch {
+      // Ignore permission check error on Scoped Storage Android versions
+    }
+
+    await Filesystem.writeFile({
+      path: safeName,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+
+    return "saved";
+  } catch (writeErr) {
+    console.warn("[downloadBlob] Direct save to Documents failed, attempting share fallback:", writeErr);
+  }
+
+  // Fallback: If direct write was restricted, save to Cache and trigger Share/Save dialog
   const saved = await Filesystem.writeFile({
     path: safeName,
     data: base64,
@@ -70,7 +94,7 @@ export async function downloadBlob(blob: Blob, fileName: string): Promise<"share
     if (/cancel|canceled|cancelled|dismiss/i.test(message)) return "shared";
     throw err;
   }
-  void mimeType;
+
   return "shared";
 }
 
