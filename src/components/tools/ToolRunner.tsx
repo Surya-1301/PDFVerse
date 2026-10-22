@@ -96,7 +96,7 @@ function getPreviewKind(
   return "generic";
 }
 
-export async function convertOfficeToPdfPreview(
+async function convertOfficeToPdfPreview(
   file: File | Blob,
   fileName: string,
 ): Promise<PreviewDescriptor> {
@@ -868,66 +868,68 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                       </p>
                     </div>
 
-                    {isLoadingPreview ? (
-                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-[11px] font-medium text-violet-200" style={{
-                        backgroundColor: 'var(--accent-light)',
-                        color: 'var(--accent)',
-                      }}>
-                        Preparing…
-                      </span>
-                    ) : previewUrl ? (
+                    <div className="flex shrink-0 items-center gap-2 -translate-y-1">
+                      {isLoadingPreview ? (
+                        <span className="inline-flex h-9 items-center rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 text-[11px] font-medium text-violet-200" style={{
+                          backgroundColor: 'var(--accent-light)',
+                          color: 'var(--accent)',
+                        }}>
+                          Preparing…
+                        </span>
+                      ) : previewUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobilePreview({
+                              name: file.name,
+                              url: previewUrl,
+                              type: file.type,
+                              kind: previewKind,
+                            });
+                          }}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Preview
+                        </button>
+                      ) : (
+                        <span className="inline-flex h-9 items-center rounded-lg border border-white/5 bg-slate-900/60 px-2.5 text-[11px] font-medium text-slate-500">
+                          No preview
+                        </span>
+                      )}
+
                       <button
                         type="button"
+                        aria-label={`Remove ${file.name}`}
+                        title={`Remove ${file.name}`}
                         onClick={() => {
-                          setMobilePreview({
-                            name: file.name,
-                            url: previewUrl,
-                            type: file.type,
-                            kind: previewKind,
-                          });
+                          const url = selectedPreviewUrls[index];
+                          if (url) URL.revokeObjectURL(url);
+
+                          const nextUrls = selectedPreviewUrls.filter(
+                            (_, i) => i !== index,
+                          );
+                          const nextKinds =
+                            selectedPreviewKinds.filter(
+                              (_, i) => i !== index,
+                            );
+                          const nextLoading =
+                            previewLoading.filter(
+                              (_, i) => i !== index,
+                            );
+                          selectedPreviewUrlsRef.current = nextUrls;
+                          setSelectedPreviewUrls(nextUrls);
+                          setSelectedPreviewKinds(nextKinds);
+                          setPreviewLoading(nextLoading);
+
+                          setFiles((prev) => prev.filter((_, i) => i !== index));
+                          clearResults();
                         }}
-                        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/80 px-2.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-slate-900 text-slate-300 transition hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-300"
                       >
-                        <Eye className="h-4 w-4" />
-                        Preview
+                        <X className="h-4 w-4" />
                       </button>
-                    ) : (
-                      <span className="inline-flex h-9 shrink-0 items-center rounded-lg border border-white/5 bg-slate-900/60 px-2.5 text-[11px] font-medium text-slate-500">
-                        No preview
-                      </span>
-                    )}
-
-                    <button
-                      type="button"
-                      aria-label={`Remove ${file.name}`}
-                      title={`Remove ${file.name}`}
-                      onClick={() => {
-                        const url = selectedPreviewUrls[index];
-                        if (url) URL.revokeObjectURL(url);
-
-                        const nextUrls = selectedPreviewUrls.filter(
-                          (_, i) => i !== index,
-                        );
-                        const nextKinds =
-                          selectedPreviewKinds.filter(
-                            (_, i) => i !== index,
-                          );
-                        const nextLoading =
-                          previewLoading.filter(
-                            (_, i) => i !== index,
-                          );
-                        selectedPreviewUrlsRef.current = nextUrls;
-                        setSelectedPreviewUrls(nextUrls);
-                        setSelectedPreviewKinds(nextKinds);
-                        setPreviewLoading(nextLoading);
-
-                        setFiles((prev) => prev.filter((_, i) => i !== index));
-                        clearResults();
-                      }}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900 text-slate-300 transition hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-300"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    </div>
                   </div>
                 );
               })}

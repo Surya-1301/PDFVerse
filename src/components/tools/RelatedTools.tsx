@@ -63,7 +63,7 @@ export function RelatedTools({
             <Link
               key={item.slug}
               to="/pdf-editor"
-              className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              className="group flex min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
               style={{
                 borderColor: "var(--border)",
                 background: "color-mix(in srgb, var(--bg) 60%, var(--bg-base))",
@@ -79,7 +79,7 @@ export function RelatedTools({
                 >
                   <item.icon className="h-4 w-4" />
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p
                     className="truncate text-sm font-semibold transition-colors group-hover:underline"
                     style={{ color: "var(--text-1)" }}
@@ -104,7 +104,7 @@ export function RelatedTools({
               key={item.slug}
               to="/pdf/$slug"
               params={{ slug: item.slug }}
-              className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+              className="group flex min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border px-4 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
               style={{
                 borderColor: "var(--border)",
                 background: "color-mix(in srgb, var(--bg) 60%, var(--bg-base))",
@@ -120,7 +120,7 @@ export function RelatedTools({
                 >
                   <item.icon className="h-4 w-4" />
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p
                     className="truncate text-sm font-semibold transition-colors group-hover:underline"
                     style={{ color: "var(--text-1)" }}

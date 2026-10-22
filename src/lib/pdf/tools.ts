@@ -1463,7 +1463,7 @@ export const toolImpls: Record<string, ToolImpl> = {
         type: "text",
         placeholder: "all, e.g. 1-3,5",
         default: "",
-        help: "Leave empty for every page.",
+        help: "",
       },
     ],
     run: async (ctx) => {

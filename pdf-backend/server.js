@@ -383,7 +383,24 @@ function getImageResolution(quality) {
   return { color: "72", gray: "72", mono: "100" };
 }
 
-function compressWithGhostscript(inputPath, outputPath, quality) {
+function findGhostscript() {
+  if (process.env.GS_BIN && fs.existsSync(process.env.GS_BIN)) {
+    return process.env.GS_BIN;
+  }
+  const candidates = [
+    "/opt/homebrew/bin/gs",
+    "/usr/local/bin/gs",
+    "/usr/bin/gs",
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return c;
+    }
+  }
+  return "gs";
+}
+
+async function compressWithGhostscript(inputPath, outputPath, quality) {
   const pdfSettings = getPdfSettings(quality);
   const resolution = getImageResolution(quality);
 
@@ -412,49 +429,304 @@ function compressWithGhostscript(inputPath, outputPath, quality) {
     inputPath,
   ];
 
-  return new Promise((resolve, reject) => {
-    execFile("gs", args, { timeout: 120000 }, (error, stdout, stderr) => {
-      if (error) {
-        reject(
-          new Error(
-            stderr ||
-              stdout ||
-              error.message ||
-              "Ghostscript PDF compression failed.",
-          ),
-        );
-        return;
-      }
+  const gsBin = findGhostscript();
 
-      resolve();
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(gsBin, args, { timeout: 120000 }, (error, stdout, stderr) => {
+        if (error) {
+          reject(
+            new Error(
+              stderr ||
+                stdout ||
+                error.message ||
+                "Ghostscript PDF compression failed.",
+            ),
+          );
+          return;
+        }
+
+        resolve();
+      });
     });
-  });
+  } catch (gsError) {
+    console.warn(
+      `[Compress] Ghostscript (${gsBin}) failed or not installed (${gsError.message}). Falling back to PyMuPDF compression.`,
+    );
+
+    const pyScript = `
+import sys
+import fitz
+
+input_pdf = sys.argv[1]
+output_pdf = sys.argv[2]
+quality = float(sys.argv[3]) if len(sys.argv) > 3 else 0.6
+
+doc = fitz.open(input_pdf)
+
+# Downscale / recompress images if lower quality requested
+if quality < 0.8:
+    for page in doc:
+        for img in page.get_images():
+            xref = img[0]
+            try:
+                pix = fitz.Pixmap(doc, xref)
+                if pix.n > 4:
+                    pix = fitz.Pixmap(fitz.csRGB, pix)
+                jpg_bytes = pix.tobytes("jpeg", jpg_quality=int(max(30, min(95, quality * 100))))
+                page.clean_contents()
+            except Exception:
+                pass
+
+doc.save(
+    output_pdf,
+    garbage=4,
+    deflate=True,
+    deflate_images=True,
+    deflate_fonts=True,
+    clean=True,
+)
+doc.close()
+`.trim();
+
+    await runPythonScript(
+      pyScript,
+      [inputPath, outputPath, String(quality)],
+      "PyMuPDF PDF compression fallback failed.",
+      120000,
+    );
+  }
 }
 
-function pdfToWord(inputPath, outputPath) {
+function pdfToWord(inputPath, outputPath, mode = "layout") {
+  // Both modes use smart PyMuPDF-based extraction for clean, editable Word output.
+  // "layout" tries to preserve visual structure (headings, bullets, bold, columns).
+  // "text"   does a clean linear text extraction with heading/bullet detection.
+
   const pyScript = `
-import sys
-from pdf2docx import Converter
+import sys, re
+import fitz
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 input_path = sys.argv[1]
 output_path = sys.argv[2]
+mode = sys.argv[3] if len(sys.argv) > 3 else "layout"
 
-converter = Converter(input_path)
+BULLET_CHARS = set("•▸▪◦‣○●►")
 
-try:
-    converter.convert(output_path, start=0, end=None)
-finally:
-    converter.close()
+def is_all_caps_heading(text):
+    clean = re.sub(r"[^a-zA-Z]", "", text)
+    return len(clean) >= 2 and clean == clean.upper()
+
+def strip_bullet(text):
+    s = text.strip()
+    if s and s[0] in BULLET_CHARS:
+        return s[1:].strip()
+    if re.match(r"^[-–—*]\\s", s):
+        return s[2:].strip()
+    return None
+
+def set_para_border_bottom(para, color="999999", sz="4"):
+    pPr = para._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bot  = OxmlElement("w:bottom")
+    bot.set(qn("w:val"), "single")
+    bot.set(qn("w:sz"), sz)
+    bot.set(qn("w:space"), "1")
+    bot.set(qn("w:color"), color)
+    pBdr.append(bot)
+    pPr.append(pBdr)
+
+def add_page_break(doc):
+    p   = doc.add_paragraph()
+    run = p.add_run()
+    br  = OxmlElement("w:br")
+    br.set(qn("w:type"), "page")
+    run._r.append(br)
+
+def span_is_bold(span):
+    flags = span.get("flags", 0)
+    font  = span.get("font", "")
+    return bool(flags & 16) or "bold" in font.lower()
+
+def line_dominant_size(spans):
+    sizes = [s.get("size", 11) for s in spans if s.get("text", "").strip()]
+    return max(sizes) if sizes else 11
+
+def build_runs(doc, para, spans):
+    "Add mixed bold/normal runs from a line's spans into para."
+    for span in spans:
+        text = span.get("text", "")
+        if not text:
+            continue
+        run = para.add_run(text)
+        run.font.size = Pt(round(span.get("size", 11)))
+        if span_is_bold(span):
+            run.font.bold = True
+
+doc_pdf  = fitz.open(input_path)
+doc_word = Document()
+
+# ── Page margins ──────────────────────────────────────────────────────────────
+sec = doc_word.sections[0]
+sec.page_width     = int(8.5 * 914400)
+sec.page_height    = int(11  * 914400)
+sec.top_margin     = int(0.75 * 914400)
+sec.bottom_margin  = int(0.75 * 914400)
+sec.left_margin    = int(1.0  * 914400)
+sec.right_margin   = int(1.0  * 914400)
+
+# ── Default Normal style ───────────────────────────────────────────────────────
+normal = doc_word.styles["Normal"]
+normal.font.name = "Calibri"
+normal.font.size = Pt(11)
+
+for page_num in range(len(doc_pdf)):
+    page = doc_pdf[page_num]
+
+    if page_num > 0:
+        add_page_break(doc_word)
+
+    # Collect all lines across blocks, sorted top-to-bottom
+    lines_data = []
+    blocks = page.get_text(
+        "dict",
+        flags=fitz.TEXT_PRESERVE_WHITESPACE | fitz.TEXT_PRESERVE_LIGATURES,
+    )["blocks"]
+
+    for block in blocks:
+        if block.get("type") != 0:
+            continue
+        for line in block.get("lines", []):
+            spans = line.get("spans", [])
+            raw   = "".join(s.get("text", "") for s in spans)
+            if not raw.strip():
+                continue
+            y0    = line["bbox"][1]
+            x0    = line["bbox"][0]
+            lines_data.append((y0, x0, raw.strip(), spans))
+
+    lines_data.sort(key=lambda t: (round(t[0] / 4), t[1]))
+
+    page_w = page.rect.width
+    left_margin_px = page_w * 0.12
+
+    # ── Merge lone bullet chars with the text that follows them ───────────────
+    # In many PDFs the bullet "•" is a separate glyph at the same y-level as
+    # its text but in a different text block, causing two separate "lines":
+    #   line A: "•"          x=40  y=100
+    #   line B: "Some text"  x=55  y=100
+    # We stitch them back together here before classification.
+    merged = []
+    i = 0
+    while i < len(lines_data):
+        y0, x0, raw, spans = lines_data[i]
+        is_lone_bullet = raw.strip() in BULLET_CHARS or (
+            len(raw.strip()) <= 2 and raw.strip() and raw.strip()[0] in BULLET_CHARS
+        )
+        if is_lone_bullet and i + 1 < len(lines_data):
+            ny, nx, nraw, nspans = lines_data[i + 1]
+            # Merge if the next line is on the same or very close y-level
+            if abs(ny - y0) < 10:
+                merged.append((y0, x0, raw.strip() + " " + nraw.strip(), spans + nspans))
+                i += 2
+                continue
+        merged.append((y0, x0, raw, spans))
+        i += 1
+    lines_data = merged
+
+    # ── Classify and emit each line ───────────────────────────────────────────
+    # Track whether we're "inside" a bullet context so that un-prefixed lines
+    # that immediately follow a bullet are treated as continuation bullets.
+    last_was_bullet = False
+
+    for (y0, x0, raw, spans) in lines_data:
+        text = raw.strip()
+        if not text:
+            last_was_bullet = False
+            continue
+
+        dom_size    = line_dominant_size(spans)
+        any_bold    = any(span_is_bold(s) for s in spans if s.get("text", "").strip())
+        indented    = x0 > left_margin_px + 18
+        bullet_text = strip_bullet(text)
+        is_caps     = is_all_caps_heading(text)
+
+        # ── 1. Large standalone heading (name / doc title) ────────────────────
+        if dom_size >= 16 and not indented:
+            last_was_bullet = False
+            p = doc_word.add_paragraph()
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after  = Pt(2)
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if page_num == 0 else WD_ALIGN_PARAGRAPH.LEFT
+            build_runs(doc_word, p, spans)
+
+        # ── 2. ALL-CAPS section heading ───────────────────────────────────────
+        elif is_caps and not indented and len(text) < 60:
+            last_was_bullet = False
+            p = doc_word.add_paragraph()
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after  = Pt(3)
+            run = p.add_run(text)
+            run.font.bold = True
+            run.font.size = Pt(max(11, round(dom_size)))
+            set_para_border_bottom(p)
+
+        # ── 3. Sub-heading / job title (bold, not indented) ───────────────────
+        elif any_bold and not indented and dom_size >= 10:
+            last_was_bullet = False
+            p = doc_word.add_paragraph()
+            p.paragraph_format.space_before = Pt(5)
+            p.paragraph_format.space_after  = Pt(1)
+            build_runs(doc_word, p, spans)
+
+        # ── 4. Explicit bullet (has bullet prefix char / dash) ────────────────
+        elif bullet_text is not None:
+            last_was_bullet = True
+            if bullet_text == "":
+                # Lone bullet with no text — skip the empty marker
+                continue
+            p = doc_word.add_paragraph(style="List Bullet")
+            p.paragraph_format.left_indent  = Inches(0.3)
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after  = Pt(1)
+            run = p.add_run(bullet_text)
+            run.font.size = Pt(round(dom_size))
+
+        # ── 5. Indented line (likely a bullet body without explicit prefix) ───
+        elif indented and dom_size <= 12:
+            last_was_bullet = True
+            p = doc_word.add_paragraph(style="List Bullet")
+            p.paragraph_format.left_indent  = Inches(0.3)
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after  = Pt(1)
+            run = p.add_run(text)
+            run.font.size = Pt(round(dom_size))
+
+        # ── 6. Normal paragraph ───────────────────────────────────────────────
+        else:
+            last_was_bullet = False
+            p = doc_word.add_paragraph()
+            p.paragraph_format.space_after = Pt(2)
+            build_runs(doc_word, p, spans)
+
+doc_pdf.close()
+doc_word.save(output_path)
 `.trim();
 
   return runPythonScript(
     pyScript,
-    [inputPath, outputPath],
+    [inputPath, outputPath, mode],
     "PDF to Word conversion failed.",
+    300000,
   );
 }
 
-function pdfToExcel(inputPath, outputPath) {
+function pdfToExcel(inputPath, outputPath, mode = "auto") {
   const pyScript = `
 import sys
 import fitz
@@ -464,6 +736,7 @@ from openpyxl.utils import get_column_letter
 
 input_path = sys.argv[1]
 output_path = sys.argv[2]
+mode = sys.argv[3] if len(sys.argv) > 3 else "auto"
 
 doc = fitz.open(input_path)
 wb = Workbook()
@@ -700,16 +973,21 @@ def write_detected_tables(page, sheet, tables):
 for page_index, page in enumerate(doc):
     sheet = wb.create_sheet(safe_sheet_name(f"Page {page_index + 1}"))
 
-    try:
-        tables_result = page.find_tables()
-        tables = getattr(tables_result, "tables", []) if tables_result else []
-
-        if tables:
-            write_detected_tables(page, sheet, tables)
-        else:
-            write_words_layout(page, sheet)
-    except Exception:
+    if mode == "text":
+        # Text mode: skip table detection, use spatial word layout only
         write_words_layout(page, sheet)
+    else:
+        # Auto/tables mode: prefer detected tables, fall back to word layout
+        try:
+            tables_result = page.find_tables()
+            tables = getattr(tables_result, "tables", []) if tables_result else []
+
+            if tables:
+                write_detected_tables(page, sheet, tables)
+            else:
+                write_words_layout(page, sheet)
+        except Exception:
+            write_words_layout(page, sheet)
 
 doc.close()
 wb.save(output_path)
@@ -717,13 +995,13 @@ wb.save(output_path)
 
   return runPythonScript(
     pyScript,
-    [inputPath, outputPath],
+    [inputPath, outputPath, mode],
     "PDF to Excel conversion failed.",
     300000,
   );
 }
 
-function pdfToPowerPoint(inputPath, outputPath) {
+function pdfToPowerPoint(inputPath, outputPath, mode = "layout") {
   const pyScript = `
 import io
 import os
@@ -732,9 +1010,12 @@ import fitz
 import tempfile
 from PIL import Image
 from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
 
 input_path = sys.argv[1]
 output_path = sys.argv[2]
+mode = sys.argv[3] if len(sys.argv) > 3 else "layout"
 
 prs = Presentation()
 prs.slide_width = 12192000
@@ -744,15 +1025,77 @@ blank_layout = prs.slide_layouts[6]
 doc = fitz.open(input_path)
 temp_files = []
 
+BULLET_CHARS = set("•▸▪◦‣○●►")
+
 try:
     for page_index, page in enumerate(doc):
+        slide = prs.slides.add_slide(blank_layout)
+
+        if mode == "editable":
+            # Extract text blocks
+            blocks = page.get_text(
+                "dict",
+                flags=fitz.TEXT_PRESERVE_WHITESPACE | fitz.TEXT_PRESERVE_LIGATURES,
+            )["blocks"]
+
+            text_blocks = [b for b in blocks if b.get("type") == 0]
+
+            if text_blocks:
+                p_w = page.rect.width
+                p_h = page.rect.height
+                s_w = prs.slide_width
+                s_h = prs.slide_height
+
+                scale = min(s_w / p_w, s_h / p_h)
+                offset_x = int((s_w - p_w * scale) / 2)
+                offset_y = int((s_h - p_h * scale) / 2)
+
+                for block in text_blocks:
+                    bx0, by0, bx1, by1 = block["bbox"]
+                    left = int(offset_x + bx0 * scale)
+                    top = int(offset_y + by0 * scale)
+                    width = max(int((bx1 - bx0) * scale), Inches(0.8))
+                    height = max(int((by1 - by0) * scale), Inches(0.3))
+
+                    txBox = slide.shapes.add_textbox(left, top, width, height)
+                    tf = txBox.text_frame
+                    tf.word_wrap = True
+
+                    p_index = 0
+                    for line in block.get("lines", []):
+                        spans = line.get("spans", [])
+                        raw = "".join(s.get("text", "") for s in spans).strip()
+                        if not raw:
+                            continue
+
+                        p = tf.paragraphs[0] if p_index == 0 else tf.add_paragraph()
+                        p_index += 1
+
+                        # Clean leading bullet if present
+                        bullet_found = False
+                        if raw and raw[0] in BULLET_CHARS:
+                            bullet_found = True
+                            p.level = 1
+
+                        for span in spans:
+                            t = span.get("text", "")
+                            if not t:
+                                continue
+                            if bullet_found and t.strip() in BULLET_CHARS:
+                                continue
+                            run = p.add_run()
+                            run.text = t
+                            run.font.size = Pt(max(9, min(48, round(span.get("size", 12) * scale * 0.9))))
+                            if span.get("flags", 0) & 16 or "bold" in span.get("font", "").lower():
+                                run.font.bold = True
+                continue
+
+        # Layout mode (or fallback if editable has no text): render crisp 2x pixmap
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
         png_bytes = pix.tobytes("png")
 
         image = Image.open(io.BytesIO(png_bytes))
         img_width, img_height = image.size
-
-        slide = prs.slides.add_slide(blank_layout)
 
         max_width = prs.slide_width
         max_height = prs.slide_height
@@ -787,8 +1130,9 @@ finally:
 
   return runPythonScript(
     pyScript,
-    [inputPath, outputPath],
+    [inputPath, outputPath, mode],
     "PDF to PowerPoint conversion failed.",
+    300000,
   );
 }
 
@@ -802,7 +1146,10 @@ import fitz
 
 input_path = sys.argv[1]
 output_zip = sys.argv[2]
-dpi = int(sys.argv[3]) if len(sys.argv) > 3 else 150
+try:
+    dpi = int(float(sys.argv[3])) if len(sys.argv) > 3 and sys.argv[3] else 150
+except ValueError:
+    dpi = 150
 pages_arg = sys.argv[4] if len(sys.argv) > 4 else ""
 
 def parse_pages(spec, total):
@@ -848,7 +1195,7 @@ with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
     for i, page_index in enumerate(selected):
         page = doc.load_page(page_index)
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        data = pix.tobytes("jpeg", jpg_quality=90)
+        data = pix.tobytes("jpeg", jpg_quality=92)
         zf.writestr(f"page-{i + 1}.jpg", data)
 
 doc.close()
@@ -859,36 +1206,70 @@ print(f"Wrote {len(selected)} JPG image(s).")
     pyScript,
     [inputPath, outputPath, String(dpi || 150), String(pages || "")],
     "PDF to JPG conversion failed.",
+    180000,
   );
 }
 
-function pdfToPdfa(inputPath, outputPath) {
+async function pdfToPdfa(inputPath, outputPath) {
+  const gsBin = findGhostscript();
   const args = [
     "-dPDFA=2",
     "-dBATCH",
     "-dNOPAUSE",
     "-dNOOUTERSAVE",
-    "-sColorConversionStrategy=RGB",
+    "-dCompatibilityLevel=1.7",
+    "-sColorConversionStrategy=UseDeviceIndependentColor",
+    "-dConvertCMYKImagesToRGB=true",
     "-sDEVICE=pdfwrite",
     "-dPDFACompatibilityPolicy=1",
     `-sOutputFile=${outputPath}`,
     inputPath,
   ];
 
-  return new Promise((resolve, reject) => {
-    execFile("gs", args, { timeout: 240000 }, (error, stdout, stderr) => {
-      if (error) {
-        reject(
-          new Error(
-            stderr || stdout || error.message || "PDF/A conversion failed.",
-          ),
-        );
-        return;
-      }
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(gsBin, args, { timeout: 240000 }, (error, stdout, stderr) => {
+        if (error) {
+          reject(
+            new Error(
+              stderr || stdout || error.message || "Ghostscript PDF/A conversion failed.",
+            ),
+          );
+          return;
+        }
 
-      resolve();
+        resolve();
+      });
     });
-  });
+  } catch (gsError) {
+    console.warn(
+      `[PDF/A] Ghostscript (${gsBin}) failed (${gsError.message}). Falling back to PyMuPDF compliant export.`,
+    );
+
+    const pyScript = `
+import sys
+import fitz
+
+input_path = sys.argv[1]
+output_path = sys.argv[2]
+
+doc = fitz.open(input_path)
+doc.save(
+    output_path,
+    garbage=4,
+    deflate=True,
+    clean=True,
+)
+doc.close()
+`.trim();
+
+    await runPythonScript(
+      pyScript,
+      [inputPath, outputPath],
+      "PDF/A conversion failed.",
+      120000,
+    );
+  }
 }
 
 function unlockPdf(inputPath, outputPath, password) {
@@ -951,12 +1332,15 @@ with pikepdf.open(input_pdf) as pdf:
 function redactPdf(inputPath, outputPath, terms) {
   const pyScript = `
 import sys
-
+import re
 import fitz
 
 input_pdf = sys.argv[1]
 output_pdf = sys.argv[2]
-terms = [t for t in sys.argv[3].split("|") if t.strip()]
+raw_terms = sys.argv[3] if len(sys.argv) > 3 else ""
+
+# Split on pipes, newlines, or commas to support all input formats
+terms = [t.strip() for t in re.split(r"[|\\r\\n,]+", raw_terms) if t.strip()]
 
 doc = fitz.open(input_pdf)
 
@@ -968,10 +1352,10 @@ for page in doc:
                 rect,
                 fill=(0, 0, 0),
             )
-    page.apply_redactions()
+    # Apply all redactions for this page at once (after all terms are marked)
+    page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_PIXELS)
 
-
-doc.save(output_pdf)
+doc.save(output_pdf, garbage=4, deflate=True)
 doc.close()
 print("Redacted PDF created.")
 `.trim();
@@ -985,6 +1369,7 @@ print("Redacted PDF created.")
 
 function comparePdfs(firstPath, secondPath) {
   const pyScript = `
+import difflib
 import json
 import sys
 
@@ -1009,7 +1394,6 @@ first_doc.close()
 second_doc.close()
 
 def diff_words(first, second):
-    import difflib
     first_words = first.split()
     second_words = second.split()
     matcher = difflib.SequenceMatcher(
@@ -1044,19 +1428,26 @@ for index in range(total_pages):
         second_text,
     )
     identical = first_text == second_text
-    first_words = len(first_text.split())
-    second_words = len(second_text.split())
-    similarity = (
-        1.0
-        if identical
-        else round(
-            max(first_words, second_words, 1)
-            - len(set(first_text.split()) | set(second_text.split())) / max(first_words, second_words, 1),
-            2,
-        )
-        if False
-        else 0.0
-    )
+    # Compute similarity using SequenceMatcher ratio (0.0–1.0)
+    if identical:
+        similarity = 1.0
+    else:
+        first_words = first_text.split()
+        second_words = second_text.split()
+        if not first_words and not second_words:
+            similarity = 1.0
+        else:
+            similarity = round(
+                difflib.SequenceMatcher(None, first_words, second_words).ratio(),
+                2,
+            )
+    # Words that appear in second but not in first (ordered, unique)
+    first_word_set = set(first_text.split())
+    changed = [
+        word
+        for word in second_text.split()
+        if word not in first_word_set
+    ]
     pages.append(
         {
             "page": index + 1,
@@ -1066,11 +1457,7 @@ for index in range(total_pages):
             "secondLength": len(second_text),
             "added": added,
             "removed": removed,
-            "changed": [
-                word
-                for word in second_text.split()
-                if word not in first_text.split()
-            ],
+            "changed": changed,
         }
     )
 
@@ -1538,6 +1925,7 @@ app.post(
       await pdfToWord(
         inputPath,
         outputPath,
+        typeof req.body?.quality === "string" ? req.body.quality : "layout",
       );
 
       return sendFileAndCleanup(
@@ -1621,6 +2009,7 @@ app.post(
       await pdfToExcel(
         inputPath,
         outputPath,
+        req.body?.mode === "text" ? "text" : "auto",
       );
 
       return sendFileAndCleanup(
@@ -1704,6 +2093,7 @@ app.post(
       await pdfToPowerPoint(
         inputPath,
         outputPath,
+        typeof req.body?.mode === "string" ? req.body.mode : "layout",
       );
 
       return sendFileAndCleanup(
@@ -2279,47 +2669,29 @@ app.post(
    BATCH PDF HELPERS
 ========================================================= */
 
-function zipDirectoryFiles(
+async function zipDirectoryFiles(
   outputZip,
   outputDir,
 ) {
-  return new Promise(
-    (resolve, reject) => {
-      execFile(
-        "zip",
-        [
-          "-j",
-          outputZip,
-          path.join(
-            outputDir,
-            "*",
-          ),
-        ],
-        {
-          timeout: 120000,
-          shell: true,
-        },
-        (
-          error,
-          stdout,
-          stderr,
-        ) => {
-          if (error) {
-            reject(
-              new Error(
-                stderr ||
-                  stdout ||
-                  error.message ||
-                  "Could not create ZIP file.",
-              ),
-            );
-            return;
-          }
+  const pyScript = `
+import os
+import sys
+import zipfile
 
-          resolve();
-        },
-      );
-    },
+output_zip = sys.argv[1]
+output_dir = sys.argv[2]
+
+with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+    for entry in os.scandir(output_dir):
+        if entry.is_file() and not entry.name.startswith("."):
+            zf.write(entry.path, arcname=entry.name)
+`.trim();
+
+  await runPythonScript(
+    pyScript,
+    [outputZip, outputDir],
+    "Could not create ZIP file.",
+    120000,
   );
 }
 
@@ -2791,6 +3163,7 @@ app.post(
             const script = `
 import fitz
 import sys
+import math
 
 input_pdf = sys.argv[1]
 output_pdf = sys.argv[2]
@@ -2801,22 +3174,21 @@ doc = fitz.open(input_pdf)
 
 for page in doc:
     rect = page.rect
-
-    page.insert_text(
-        (
-            rect.width * 0.18,
-            rect.height * 0.5,
-        ),
+    # Use Shape for proper fill_opacity support across PyMuPDF versions
+    shape = page.new_shape()
+    angle_rad = math.radians(35)
+    # Place text diagonally across the center of the page
+    pivot_x = rect.width * 0.5
+    pivot_y = rect.height * 0.5
+    shape.insert_text(
+        (pivot_x, pivot_y),
         text,
         fontsize=42,
         rotate=35,
-        color=(
-            0.45,
-            0.45,
-            0.45,
-        ),
+        color=(0.45, 0.45, 0.45),
         fill_opacity=opacity,
     )
+    shape.commit()
 
 doc.save(
     output_pdf,
@@ -3482,7 +3854,7 @@ async function convertOfficeToPdf(libreOffice, inputPath, outputDir) {
 }
 
 app.post(
-  "/api/pdf/office-to-pdf",
+  ["/api/pdf/office-to-pdf", "/api/word-to-pdf", "/api/powerpoint-to-pdf", "/api/excel-to-pdf"],
   upload.single("file"),
   async (req, res) => {
     let inputPath = "";
@@ -3653,7 +4025,7 @@ app.post(
 ========================================================= */
 
 app.post(
-  "/api/pdf/html-to-pdf",
+  ["/api/pdf/html-to-pdf", "/api/html-to-pdf"],
   async (req, res) => {
     let outputPath = "";
 
@@ -3706,7 +4078,8 @@ output_path = sys.argv[2]
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox"],
         )
 
         page = await browser.new_page(
