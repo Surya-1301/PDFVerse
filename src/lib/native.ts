@@ -6,11 +6,20 @@ import { Share } from "@capacitor/share";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 export function isNative(): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    return Capacitor.isNativePlatform();
-  } catch {
-    return false;
-  }
+    if (Capacitor.isNativePlatform()) return true;
+    const win = window as any;
+    if (win.Capacitor?.isNativePlatform?.()) return true;
+    if (win.Capacitor?.getPlatform?.() && win.Capacitor.getPlatform() !== "web") return true;
+    if (win.androidBridge != null) return true;
+    if (win.PDFVerseBlobDownloader != null) return true;
+    if (win.webkit?.messageHandlers?.bridge != null) return true;
+    if (typeof navigator !== "undefined" && navigator.userAgent && /Android.*wv/i.test(navigator.userAgent)) {
+      return true;
+    }
+  } catch {}
+  return false;
 }
 
 export function assetUrl(path: string): string {
@@ -37,6 +46,18 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 export async function downloadBlob(blob: Blob, fileName: string): Promise<"saved" | "shared" | "web"> {
   const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_") || "pdfverse-file";
+  const win = typeof window !== "undefined" ? (window as any) : null;
+
+  // 1. Direct native download via Android Java bridge interface if available
+  if (win && win.PDFVerseBlobDownloader && typeof win.PDFVerseBlobDownloader.processBlobData === "function") {
+    try {
+      const base64 = await blobToBase64(blob);
+      win.PDFVerseBlobDownloader.processBlobData(base64, safeName, blob.type || "application/octet-stream");
+      return "saved";
+    } catch (bridgeErr) {
+      console.warn("[downloadBlob] PDFVerseBlobDownloader failed, trying filesystem fallback:", bridgeErr);
+    }
+  }
 
   if (!isNative()) {
     const url = URL.createObjectURL(blob);
