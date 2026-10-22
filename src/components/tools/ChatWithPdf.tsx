@@ -11,10 +11,13 @@ import {
   Upload,
   User,
 } from "lucide-react";
+import { isNative } from "@/lib/native";
 
 const API_BASE =
   import.meta.env.VITE_PDF_API_BASE_URL ||
-  "https://pdf-verse-api-uu40.onrender.com";
+  (isNative()
+    ? "https://pdf-verse-api-uu40.onrender.com"
+    : "http://localhost:4000");
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 120_000;
