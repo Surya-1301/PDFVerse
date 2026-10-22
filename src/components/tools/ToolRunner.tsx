@@ -15,7 +15,8 @@ import {
 import { getToolImpl, type Field, type ToolValues } from "@/lib/pdf/tools";
 import type { ToolFile } from "@/lib/pdf/toolkit";
 import { formatFileSize } from "@/lib/formatFileSize";
-import { downloadBlob, isNative } from "@/lib/native";
+import { assetUrl, downloadBlob, isNative } from "@/lib/native";
+import * as pdfjs from "pdfjs-dist";
 
 
 function defaultValues(fields: Field[]): ToolValues {
@@ -192,6 +193,214 @@ async function buildPreview(
   };
 }
 
+function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
+  const [page, setPage] = useState(1);
+  const [numPages, setNumPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [scale, setScale] = useState(1.0);
+  const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc = assetUrl("/pdf.worker.min.mjs");
+    } catch {}
+
+    const loadTask = pdfjs.getDocument({ url });
+    loadTask.promise
+      .then((loadedDoc) => {
+        if (cancelled) {
+          loadedDoc.destroy();
+          return;
+        }
+        setDoc(loadedDoc);
+        setNumPages(loadedDoc.numPages);
+        setPage(1);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Could not load PDF preview.");
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      loadTask.destroy().catch(() => {});
+    };
+  }, [url]);
+
+  useEffect(() => {
+    if (!doc || !canvasRef.current) return;
+    let cancelled = false;
+
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+      renderTaskRef.current = null;
+    }
+
+    doc
+      .getPage(page)
+      .then((pdfPage) => {
+        if (cancelled) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const container = canvas.parentElement;
+        const containerWidth = container ? container.clientWidth - 24 : 400;
+        const unscaledViewport = pdfPage.getViewport({ scale: 1 });
+        const baseScale = containerWidth > 0 ? containerWidth / unscaledViewport.width : 1;
+        const finalScale = baseScale * scale;
+
+        const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
+        const viewport = pdfPage.getViewport({ scale: finalScale * dpr });
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const renderTask = pdfPage.render({ canvasContext: ctx, viewport } as never);
+        renderTaskRef.current = renderTask;
+
+        renderTask.promise.catch(() => {
+          /* Render cancelled */
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [doc, page, scale]);
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 p-6 text-center">
+        <Loader2 className="h-7 w-7 animate-spin" style={{ color: "var(--accent)" }} />
+        <p className="text-xs font-medium text-slate-300">Loading {name}…</p>
+      </div>
+    );
+  }
+
+  if (error || !doc) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 p-6 text-center" style={{ background: "var(--surface)" }}>
+        <FileText className="h-10 w-10 text-slate-500" />
+        <p className="text-xs font-medium text-slate-300">{name}</p>
+        <p className="max-w-[280px] text-[11px] text-slate-500">{error ?? "Preview unavailable"}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col items-center overflow-hidden bg-slate-950">
+      {/* Universal Page & Zoom Controls */}
+      <div className="flex w-full shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs text-slate-200">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 disabled:opacity-30"
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+          <span className="min-w-14 text-center text-[11px] font-semibold text-slate-200">
+            {page} / {numPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= numPages}
+            onClick={() => setPage((p) => Math.min(numPages, p + 1))}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 disabled:opacity-30"
+            aria-label="Next page"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setScale((s) => Math.max(0.6, Math.round((s - 0.2) * 10) / 10))}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 text-xs"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <span className="min-w-10 text-center text-[11px] font-medium text-slate-400">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setScale((s) => Math.min(2.5, Math.round((s + 0.2) * 10) / 10))}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 text-xs"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas page render */}
+      <div className="flex flex-1 w-full items-center justify-center overflow-auto p-2">
+        <canvas ref={canvasRef} className="rounded shadow-lg max-w-full" />
+      </div>
+    </div>
+  );
+}
+
+function TextPreview({ url }: { url: string }) {
+  const [content, setContent] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url)
+      .then((res) => res.text())
+      .then((text) => {
+        if (!cancelled) {
+          setContent(text);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center p-6 text-slate-400">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full overflow-auto bg-slate-950 p-4 text-left font-mono text-xs leading-relaxed text-slate-200">
+      <pre className="whitespace-pre-wrap break-words">{content || "(Empty text file)"}</pre>
+    </div>
+  );
+}
+
 function PreviewContent({
   name,
   type,
@@ -203,25 +412,13 @@ function PreviewContent({
   url: string;
   kind: PreviewDescriptor["kind"];
 }) {
-  const pdfUrl =
-    kind === "pdf"
-      ? `${url}${url.includes("#") ? "&" : "#"}toolbar=0&navpanes=0&scrollbar=0&view=FitH`
-      : url;
-
   if (kind === "pdf") {
-    return (
-      <iframe
-        title={`Preview of ${name}`}
-        src={pdfUrl}
-        loading="lazy"
-        className="h-full w-full border-0 bg-white"
-      />
-    );
+    return <UniversalPdfPreview url={url} name={name} />;
   }
 
   if (kind === "image") {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-white p-3">
+      <div className="flex h-full w-full items-center justify-center bg-slate-950 p-3">
         <img
           src={url}
           alt={`Preview of ${name}`}
@@ -257,14 +454,7 @@ function PreviewContent({
   }
 
   if (kind === "text") {
-    return (
-      <iframe
-        title={`Text preview of ${name}`}
-        src={url}
-        className="h-full w-full border-0 bg-white p-2"
-        sandbox=""
-      />
-    );
+    return <TextPreview url={url} />;
   }
 
   if (kind === "html") {
@@ -282,11 +472,11 @@ function PreviewContent({
     <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--surface)' }}>
       <FileText className="h-12 w-12" style={{ color: 'var(--accent)' }} />
       <div>
-        <p className="font-semibold" style={{ color: 'var(--text-1)' }}>
-          Preview unavailable
+        <p className="font-semibold text-slate-100">
+          {name}
         </p>
-        <p className="mt-1 text-xs" style={{ color: 'var(--text-3)' }}>
-          {name} is ready to process.
+        <p className="mt-1 text-xs text-slate-400">
+          File is ready to process.
         </p>
       </div>
     </div>
