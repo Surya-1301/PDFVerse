@@ -3400,6 +3400,87 @@ function isOfficeFile(file) {
   );
 }
 
+/*
+ * LibreOffice conversion runner.
+ *
+ * Every conversion gets its OWN LibreOffice user profile. Sharing the
+ * default profile makes soffice fail silently (exit code with no output)
+ * whenever a previous process is still alive or two conversions overlap,
+ * because LibreOffice allows only one process per profile — one stuck
+ * conversion used to poison every later one until the server restarted.
+ * Conversions are also serialized: LibreOffice is heavy, and parallel
+ * instances exhaust memory on small instances.
+ */
+let officeQueue = Promise.resolve();
+
+function runSofficeOnce(libreOffice, inputPath, outputDir, profileDir) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      libreOffice,
+      [
+        `-env:UserInstallation=file://${profileDir}`,
+        "--headless",
+        "--nologo",
+        "--nofirststartwizard",
+        "--convert-to",
+        "pdf",
+        "--outdir",
+        outputDir,
+        inputPath,
+      ],
+      {
+        timeout: 300000,
+        maxBuffer: 20 * 1024 * 1024,
+        // A hung soffice must not survive to block the next conversion.
+        killSignal: "SIGKILL",
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const detail = (stderr || "").trim() || (stdout || "").trim();
+          console.error(
+            `[Office → PDF] soffice failed: ${detail || error.message}`,
+          );
+          reject(new Error("LibreOffice conversion failed."));
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+}
+
+async function convertOfficeToPdf(libreOffice, inputPath, outputDir) {
+  const run = async () => {
+    let lastError = null;
+    // One retry with a fresh profile covers transient profile corruption.
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const profileDir = await fsp.mkdtemp(
+        path.join(os.tmpdir(), "lo-profile-"),
+      );
+      try {
+        await runSofficeOnce(libreOffice, inputPath, outputDir, profileDir);
+        return;
+      } catch (err) {
+        lastError = err;
+        console.error(
+          `[Office → PDF] attempt ${attempt} failed${
+            attempt < 2 ? " — retrying with a fresh profile" : ""
+          }`,
+        );
+      } finally {
+        await fsp
+          .rm(profileDir, { recursive: true, force: true })
+          .catch(() => {});
+      }
+    }
+    throw lastError || new Error("LibreOffice conversion failed.");
+  };
+
+  const result = officeQueue.then(run, run);
+  officeQueue = result.catch(() => {});
+  return result;
+}
+
 app.post(
   "/api/pdf/office-to-pdf",
   upload.single("file"),
@@ -3442,48 +3523,7 @@ app.post(
         `[Office → PDF] LibreOffice: ${libreOffice}`,
       );
 
-      await new Promise(
-        (resolve, reject) => {
-          execFile(
-            libreOffice,
-            [
-              "--headless",
-              "--nologo",
-              "--nofirststartwizard",
-              "--convert-to",
-              "pdf",
-              "--outdir",
-              outputDir,
-              inputPath,
-            ],
-            {
-              timeout: 300000,
-              maxBuffer:
-                20 * 1024 * 1024,
-            },
-            (
-              error,
-              stdout,
-              stderr,
-            ) => {
-              if (error) {
-                reject(
-                  new Error(
-                    stderr?.trim() ||
-                      stdout?.trim() ||
-                      error.message ||
-                      "LibreOffice conversion failed.",
-                  ),
-                );
-
-                return;
-              }
-
-              resolve();
-            },
-          );
-        },
-      );
+      await convertOfficeToPdf(libreOffice, inputPath, outputDir);
 
       const generatedBase =
         path.basename(
