@@ -240,7 +240,6 @@ function PdfToolPage() {
 
   const backCategory =
     slug === "jpg-to-pdf" ||
-    slug === "scan-to-pdf" ||
     slug === "word-to-pdf" ||
     slug === "powerpoint-to-pdf" ||
     slug === "excel-to-pdf" ||
@@ -249,7 +248,6 @@ function PdfToolPage() {
       : slug === "pdf-to-jpg" ||
         slug === "pdf-to-word" ||
         slug === "pdf-to-text" ||
-        slug === "extract-images" ||
         slug === "pdf-to-powerpoint" ||
         slug === "pdf-to-excel"
         ? "convertFromPdf"

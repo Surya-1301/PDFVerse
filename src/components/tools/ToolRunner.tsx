@@ -6,6 +6,8 @@ import {
   Eye,
   FileText,
   Loader2,
+  RotateCcw,
+  RotateCw,
   Upload,
   X,
 } from "lucide-react";
@@ -1089,6 +1091,34 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     value={String(values[field.name] ?? "")}
                     onChange={(e) => setValue(field.name, e.target.value)}
                   />
+                ) : field.type === "rotate" ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      aria-label="Rotate all left"
+                      title="Rotate left"
+                      onClick={() =>
+                        setValue(field.name, (Number(values[field.name]) || 0) - 1)
+                      }
+                      className="flex h-12 flex-1 items-center justify-center rounded-xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-violet-400/40 hover:text-white"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Rotate all right"
+                      title="Rotate right"
+                      onClick={() =>
+                        setValue(field.name, (Number(values[field.name]) || 0) + 1)
+                      }
+                      className="flex h-12 flex-1 items-center justify-center rounded-xl border border-white/10 bg-slate-950 text-slate-200 transition hover:border-violet-400/40 hover:text-white"
+                    >
+                      <RotateCw className="h-5 w-5" />
+                    </button>
+                    <span className="min-w-14 text-center text-sm font-semibold text-slate-300">
+                      {((((Number(values[field.name]) || 0) % 4) + 4) % 4) * 90}°
+                    </span>
+                  </div>
                 ) : field.type === "file" ? (
                   <input
                     id={`field-${field.name}`}

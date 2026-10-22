@@ -2,24 +2,27 @@ import fontkit from "@pdf-lib/fontkit";
 import { assetUrl, isNative } from "../native";
 
 import {
-  applyGrayscale,
   baseName,
   bytesOf,
   canvasToJpeg,
-  canvasToPng,
+  decodeImageUpright,
   degrees,
   extractText,
   getPdfJsDoc,
   hexToRgb,
+  jpegOrientation,
   loadPdf,
   parseRanges,
   PDFDocument,
   rasterizePdf,
   renderPageToCanvas,
+  rotateImageTurns,
   rgb,
   savePdf,
+  sniffImageKind,
   StandardFonts,
   textToPdf,
+  winAnsiSafe,
   zipFiles,
   type ToolFile,
 } from "./toolkit";
@@ -27,7 +30,7 @@ import {
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file";
+  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file" | "rotate";
   default?: string | number | boolean;
   placeholder?: string;
   help?: string;
@@ -381,36 +384,46 @@ function placeXY(
 
 async function embedImage(doc: PDFDocument, file: File | Blob) {
   const bytes = await bytesOf(file);
-  const type = (file as File).type || "";
-  if (type.includes("png")) return doc.embedPng(bytes);
-  if (type.includes("jpeg") || type.includes("jpg")) return doc.embedJpg(bytes);
-  // Convert anything else (webp, gif…) through a canvas.
-  const bitmap = await createImageBitmap(file as Blob);
-  const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
-  const png = await canvasToPng(canvas);
-  return doc.embedPng(await bytesOf(png));
+  const kind = sniffImageKind(bytes);
+  // pdf-lib embeds raw bytes and ignores EXIF, so a rotated phone photo
+  // would come out sideways. Rotated JPEGs must be decoded and re-encoded.
+  const needsRotation = kind === "jpeg" && jpegOrientation(bytes) !== 1;
+  if (!needsRotation) {
+    try {
+      if (kind === "png") return await doc.embedPng(bytes);
+      if (kind === "jpeg") return await doc.embedJpg(bytes);
+    } catch {
+      // Mislabelled or unsupported file — fall through to the canvas decode.
+    }
+  }
+  // Decode upright (honours EXIF) and convert anything else (webp, gif,
+  // mislabelled files) into a safe format at the same time.
+  const decoded = await decodeImageUpright(file as Blob, kind);
+  return kind === "png"
+    ? doc.embedPng(await bytesOf(decoded))
+    : doc.embedJpg(await bytesOf(decoded));
 }
 
 async function imagesToPdf(
   files: File[],
-  opts: { pageSize: string; margin: number; grayscale?: boolean; progress: (m: string) => void },
+  opts: {
+    pageSize: string;
+    margin: number;
+    rotateAll?: number;
+    progress: (m: string) => void;
+  },
 ): Promise<PDFDocument> {
+  const turns = ((opts.rotateAll ?? 0) % 4 + 4) % 4;
   const doc = await PDFDocument.create();
   for (const [index, file] of files.entries()) {
     opts.progress(`Adding image ${index + 1} of ${files.length}…`);
     let source: File | Blob = file;
-    if (opts.grayscale) {
-      const bitmap = await createImageBitmap(file);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
-      applyGrayscale(canvas, 1.35);
-      source = await canvasToJpeg(canvas, 0.9);
-      Object.defineProperty(source, "type", { value: "image/jpeg" });
+    if (turns) {
+      // Rotate-all on top of the EXIF correction; the result is re-encoded,
+      // so embedImage below embeds it directly.
+      const kind = sniffImageKind(await bytesOf(file));
+      const upright = await decodeImageUpright(file, kind);
+      source = await rotateImageTurns(upright, kind, turns);
     }
     const image = await embedImage(doc, source);
     const a4 = { w: 595.28, h: 841.89 };
@@ -451,7 +464,7 @@ async function stampText(
   const targets = new Set(parseRanges(opts.pagesInput ?? "", pages.length));
   pages.forEach((page, index) => {
     if (!targets.has(index)) return;
-    const text = opts.text(index + 1, pages.length, baseName(file.name));
+    const text = winAnsiSafe(opts.text(index + 1, pages.length, baseName(file.name)));
     if (!text) return;
     const { width, height } = page.getSize();
     const textW = font.widthOfTextAtSize(text, opts.size);
@@ -499,10 +512,10 @@ async function applyHeaderFooter(ctx: ToolContext, file: File): Promise<ToolFile
     const headerParts = [str(ctx, "header")];
     if (bool(ctx, "date")) headerParts.push(new Date().toLocaleDateString());
     if (bool(ctx, "filename")) headerParts.push(baseName(file.name));
-    const header = headerParts.filter(Boolean).join("  •  ");
+    const header = winAnsiSafe(headerParts.filter(Boolean).join("  •  "));
     const footerParts = [str(ctx, "footer")];
     if (bool(ctx, "numbers")) footerParts.push(`Page ${index + 1} of ${pages.length}`);
-    const footer = footerParts.filter(Boolean).join("  •  ");
+    const footer = winAnsiSafe(footerParts.filter(Boolean).join("  •  "));
     if (header) {
       const w = font.widthOfTextAtSize(header, size);
       page.drawText(header, { x: (width - w) / 2, y: height - 28, size, font, color });
@@ -620,8 +633,11 @@ export const toolImpls: Record<string, ToolImpl> = {
             const canvas = await renderPageToCanvas(page, 2);
             const jpeg = await canvasToJpeg(canvas, 0.92);
             const image = await out.embedJpg(await bytesOf(jpeg));
-            const newPage = out.addPage([canvas.width, canvas.height]);
-            newPage.drawImage(image, { x: 0, y: 0, width: canvas.width, height: canvas.height });
+            // Page size is in points (the scale-1 viewport), NOT canvas
+            // pixels — using canvas.width here made every page 2x too big.
+            const base = page.getViewport({ scale: 1 });
+            const newPage = out.addPage([base.width, base.height]);
+            newPage.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
           }
         }
       } else {
@@ -685,6 +701,11 @@ export const toolImpls: Record<string, ToolImpl> = {
         const pages = await out.copyPages(src, group);
         pages.forEach((page) => out.addPage(page));
         parts.push(await savePdf(out, `${baseName(file.name)}-part-${index + 1}.pdf`));
+      }
+      if (parts.length === 0) {
+        throw new Error(
+          `None of those ranges matched this PDF's ${total} page${total === 1 ? "" : "s"}. Check the ranges and try again.`,
+        );
       }
       if (parts.length === 1) return parts;
       return [await zipFiles(parts, `${baseName(file.name)}-split.zip`)];
@@ -1112,7 +1133,7 @@ export const toolImpls: Record<string, ToolImpl> = {
         const spot = placeXY(str(ctx, "position", "bottom-right"), width, height, w, h);
         page.drawImage(image, { x: spot.x, y: spot.y, width: w, height: h });
       } else {
-        const text = str(ctx, "text").trim();
+        const text = winAnsiSafe(str(ctx, "text").trim());
         if (!text) throw new Error("Upload a signature image or type your name.");
         const font = await doc.embedFont(StandardFonts.HelveticaOblique);
         const w = font.widthOfTextAtSize(text, size);
@@ -1257,36 +1278,24 @@ export const toolImpls: Record<string, ToolImpl> = {
           { value: "fit", label: "Fit to image" },
         ],
       },
-      { name: "margin", label: "Margin (pt)", type: "number", default: 24 },
+      {
+        name: "rotate",
+        label: "Rotate all images",
+        type: "rotate",
+        default: 0,
+        help: "",
+      },
+
     ],
     run: async (ctx) => {
       if (ctx.files.length === 0) throw new Error("Choose at least one image.");
       const doc = await imagesToPdf(ctx.files, {
         pageSize: str(ctx, "pageSize", "a4"),
-        margin: num(ctx, "margin", 24),
+        margin: 24,
+        rotateAll: num(ctx, "rotate", 0),
         progress: ctx.progress,
       });
       return [await savePdf(doc, "images.pdf")];
-    },
-  },
-
-  "scan-to-pdf": {
-    accept: IMAGES,
-    multiple: true,
-    uploadLabel: "Select scanned images",
-    fields: [
-      { name: "grayscale", label: "Clean up as a grayscale scan", type: "checkbox", default: true },
-      { name: "margin", label: "Margin (pt)", type: "number", default: 0 },
-    ],
-    run: async (ctx) => {
-      if (ctx.files.length === 0) throw new Error("Choose at least one scan.");
-      const doc = await imagesToPdf(ctx.files, {
-        pageSize: "a4",
-        margin: num(ctx, "margin", 0),
-        grayscale: bool(ctx, "grayscale"),
-        progress: ctx.progress,
-      });
-      return [await savePdf(doc, "scan.pdf")];
     },
   },
 
@@ -1581,79 +1590,6 @@ export const toolImpls: Record<string, ToolImpl> = {
     },
   },
 
-  "extract-images": {
-    accept: PDF,
-    run: async (ctx) => {
-      const file = first(ctx);
-      const doc = await getPdfJsDoc(file);
-      const images: ToolFile[] = [];
-      for (let i = 1; i <= doc.numPages; i += 1) {
-        ctx.progress(`Scanning page ${i} of ${doc.numPages}…`);
-        const page = await doc.getPage(i);
-        const ops = await page.getOperatorList();
-        const names = new Set<string>();
-        ops.fnArray.forEach((fn, index) => {
-          if (fn === pdfjsOps.paintImageXObject || fn === pdfjsOps.paintJpegXObject) {
-            const arg = ops.argsArray[index]?.[0];
-            if (typeof arg === "string") names.add(arg);
-          }
-        });
-        for (const name of names) {
-          const img = await new Promise<{
-            width: number;
-            height: number;
-            data?: Uint8ClampedArray;
-            kind?: number;
-            bitmap?: ImageBitmap;
-          } | null>((resolve) => {
-            try {
-              page.objs.get(name, resolve as never);
-            } catch {
-              resolve(null);
-            }
-          });
-          if (!img) continue;
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const c2d = canvas.getContext("2d");
-          if (!c2d) continue;
-          if (img.bitmap) {
-            c2d.drawImage(img.bitmap, 0, 0);
-          } else if (img.data) {
-            const out = c2d.createImageData(img.width, img.height);
-            const src = img.data;
-            const channels = src.length / (img.width * img.height);
-            for (let p = 0, q = 0; p < out.data.length; p += 4, q += channels) {
-              if (channels >= 3) {
-                out.data[p] = src[q] ?? 0;
-                out.data[p + 1] = src[q + 1] ?? 0;
-                out.data[p + 2] = src[q + 2] ?? 0;
-                out.data[p + 3] = channels === 4 ? (src[q + 3] ?? 255) : 255;
-              } else {
-                const v = src[q] ?? 0;
-                out.data[p] = v;
-                out.data[p + 1] = v;
-                out.data[p + 2] = v;
-                out.data[p + 3] = 255;
-              }
-            }
-            c2d.putImageData(out, 0, 0);
-          } else {
-            continue;
-          }
-          images.push({
-            name: `page-${i}-${images.length + 1}.png`,
-            blob: await canvasToPng(canvas),
-          });
-        }
-      }
-      if (images.length === 0) throw new Error("No embedded images were found in this PDF.");
-      if (images.length === 1) return images;
-      return [await zipFiles(images, `${baseName(file.name)}-images.zip`)];
-    },
-  },
-
   /* --------------------------------------------------------------------- batch */
   "batch-compress": {
     accept: PDF,
@@ -1737,9 +1673,6 @@ export const toolImpls: Record<string, ToolImpl> = {
     run: (ctx) => batch(ctx, (file) => repairOne(file), "repaired-pdfs.zip"),
   },
 };
-
-// pdf.js op codes used by extract-images (imported lazily to keep the bundle lean).
-const pdfjsOps = { paintImageXObject: 85, paintJpegXObject: 82 };
 
 export function getToolImpl(slug: string): ToolImpl | undefined {
   return toolImpls[slug];

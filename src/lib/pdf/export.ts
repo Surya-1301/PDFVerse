@@ -8,6 +8,7 @@ import {
 } from "pdf-lib";
 import { hexToRgb, LINE_HEIGHT, type DocState, type Item } from "./types";
 import { isExistingTextEdited } from "./textlayer";
+import { decodeImageUpright, jpegOrientation, sniffImageKind, winAnsiSafe } from "./toolkit";
 
 
 /** Map a point in display space (top-left origin, page rotated by `rot`)
@@ -41,10 +42,23 @@ function mapPoint(
 }
 
 async function embedImage(pdf: PDFDocument, src: string) {
-  const bytes = await fetch(src).then((r) => r.arrayBuffer());
-  if (src.startsWith("data:image/jpeg") || src.startsWith("data:image/jpg"))
-    return pdf.embedJpg(bytes);
-  return pdf.embedPng(bytes);
+  const buffer = await fetch(src).then((r) => r.arrayBuffer());
+  const bytes = new Uint8Array(buffer);
+  // Decide from the actual bytes, not the data-URL label, and never embed
+  // a rotated phone photo raw — pdf-lib ignores EXIF orientation.
+  const kind = sniffImageKind(bytes);
+  const rotated = kind === "jpeg" && jpegOrientation(bytes) !== 1;
+  if (!rotated) {
+    try {
+      if (kind === "png") return await pdf.embedPng(buffer);
+      if (kind === "jpeg") return await pdf.embedJpg(buffer);
+    } catch {
+      // Unsupported or mislabelled bytes — decode below instead.
+    }
+  }
+  const upright = await decodeImageUpright(new Blob([bytes as BlobPart]), kind);
+  const buf = await upright.arrayBuffer();
+  return kind === "png" ? pdf.embedPng(buf) : pdf.embedJpg(buf);
 }
 
 export async function buildPdf(
@@ -136,8 +150,17 @@ export async function buildPdf(
         const c = hexToRgb(item.color);
         const lh = item.size * LINE_HEIGHT;
         const lines = item.text.split("\n");
-        lines.forEach((line, i) => {
-          const tw = font.widthOfTextAtSize(line, item.size);
+        lines.forEach((rawLine, i) => {
+          // Standard fonts are WinAnsi-only: one unsupported character
+          // (₹, emoji, Devanagari…) must not fail the whole export.
+          let line = rawLine;
+          let tw = 0;
+          try {
+            tw = font.widthOfTextAtSize(line, item.size);
+          } catch {
+            line = winAnsiSafe(line);
+            tw = font.widthOfTextAtSize(line, item.size);
+          }
           let offX = 0;
           if (item.align === "center") offX = (item.w - tw) / 2;
           else if (item.align === "right") offX = item.w - tw;

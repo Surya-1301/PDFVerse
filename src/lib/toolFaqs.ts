@@ -712,33 +712,6 @@ export const toolFaqs: Record<string, FaqItem[]> = {
     },
   ],
 
-  "scan-to-pdf": [
-    {
-      question: "How do I turn scans into a PDF?",
-      answer:
-        "Upload photos or scans of your documents, order the pages, and convert them into a single PDF file.",
-    },
-    {
-      question: "What's the difference between Scan to PDF and JPG to PDF?",
-      answer:
-        "Scan to PDF is optimized for document scans with A4 pages and cleanup options like grayscale, while JPG to PDF is a general image-to-PDF converter.",
-    },
-    {
-      question: "Can I make the scanned text searchable?",
-      answer:
-        "Yes. After creating the PDF, run it through the OCR PDF tool to add a searchable text layer.",
-    },
-    {
-      question: "How do I get the best scan quality?",
-      answer:
-        "Photograph pages straight-on in good light with the page filling the frame, then convert — cleaner input means a cleaner PDF.",
-    },
-    {
-      question: "Are my scans uploaded?",
-      answer:
-        "No. Everything is processed locally in your browser.",
-    },
-  ],
 
   "word-to-pdf": [
     {
@@ -938,33 +911,6 @@ export const toolFaqs: Record<string, FaqItem[]> = {
     },
   ],
 
-  "extract-images": [
-    {
-      question: "How do I extract images from a PDF?",
-      answer:
-        "Upload your PDF and extract — all embedded images are pulled out and delivered as a single ZIP file.",
-    },
-    {
-      question: "What image quality will I get?",
-      answer:
-        "Images are extracted at their original embedded resolution — no recompression or quality loss.",
-    },
-    {
-      question: "Does it extract vector graphics too?",
-      answer:
-        "It extracts embedded raster images (photos, logos saved as images). Vector drawings that are part of the page design aren't extracted as separate files.",
-    },
-    {
-      question: "Can I extract images from one page only?",
-      answer:
-        "Extract the page first with Extract pages, then run image extraction on that single-page PDF.",
-    },
-    {
-      question: "Is my file uploaded?",
-      answer:
-        "No. Image extraction happens locally in your browser.",
-    },
-  ],
 
   "pdf-to-powerpoint": [
     {

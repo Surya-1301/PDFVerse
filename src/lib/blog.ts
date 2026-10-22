@@ -61,7 +61,7 @@ export const blogPosts: BlogPost[] = [
       "PDFVerse's JPG to PDF tool accepts JPG, PNG and WebP files. Drop in as many images as you like, and choose the page size (A4, Letter, or fit-to-image) and orientation.",
       "Each image becomes a full-size page in the PDF, in the order you arrange them. The conversion happens in the browser, so photos never leave your computer and nothing is uploaded.",
       "This is especially handy on mobile: snap photos of receipts or handwritten notes with your phone and convert them to a single PDF right in the browser.",
-      "Related workflows: if your images are scans of a paper document, consider Scan to PDF, and once you have a PDF you can Compress it or protect it with a password.",
+      "Related workflows: once you have a PDF you can Compress it or protect it with a password.",
     ],
   },
   {

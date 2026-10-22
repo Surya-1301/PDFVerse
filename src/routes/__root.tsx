@@ -122,7 +122,6 @@ function ErrorComponent({
 const TOOL_CATEGORY_BY_SLUG: Record<string, string> = {
   // Convert to PDF
   "jpg-to-pdf": "convertToPdf",
-  "scan-to-pdf": "convertToPdf",
   "word-to-pdf": "convertToPdf",
   "powerpoint-to-pdf": "convertToPdf",
   "excel-to-pdf": "convertToPdf",
@@ -132,7 +131,6 @@ const TOOL_CATEGORY_BY_SLUG: Record<string, string> = {
   "pdf-to-jpg": "convertFromPdf",
   "pdf-to-word": "convertFromPdf",
   "pdf-to-text": "convertFromPdf",
-  "extract-images": "convertFromPdf",
   "pdf-to-powerpoint": "convertFromPdf",
   "pdf-to-excel": "convertFromPdf",
 };

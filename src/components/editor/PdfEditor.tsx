@@ -30,6 +30,7 @@ import {
   isExistingTextEdited,
   linesToTextItems,
 } from "@/lib/pdf/textlayer";
+import { decodeImageUpright, sniffImageKind } from "@/lib/pdf/toolkit";
 
 import {
   LINE_HEIGHT,
@@ -383,31 +384,51 @@ export default function PdfEditor() {
     }
   };
 
-  const onPickImage = (file: File) => {
+  const onPickImage = async (file: File) => {
     const page = pendingImagePage.current ?? state.pages[0]?.index ?? 0;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const src = String(reader.result);
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 240;
-        const w = Math.min(maxW, img.width);
-        const h = (img.height / img.width) * w;
-        addItem({
-          id: uid(),
-          type: "image",
-          page,
-          x: 60,
-          y: 60,
-          w,
-          h,
-          src,
-        });
-        setTool("select");
-      };
-      img.src = src;
+    const addFromSrc = (src: string, natW: number, natH: number) => {
+      const maxW = 240;
+      const w = Math.min(maxW, natW);
+      const h = (natH / natW) * w;
+      addItem({
+        id: uid(),
+        type: "image",
+        page,
+        x: 60,
+        y: 60,
+        w,
+        h,
+        src,
+      });
+      setTool("select");
     };
-    reader.readAsDataURL(file);
+    const readAsDataUrl = (blob: Blob) =>
+      new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error("Could not read the image."));
+        r.readAsDataURL(blob);
+      });
+    try {
+      // Decode with the EXIF orientation applied and store the corrected
+      // pixels. Storing the raw file made the preview look upright while
+      // the exported PDF embedded the photo sideways (and squished,
+      // because the item size was measured on the upright preview).
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const upright = await decodeImageUpright(file, sniffImageKind(bytes));
+      const src = await readAsDataUrl(upright);
+      const img = new Image();
+      img.onload = () => addFromSrc(src, img.width, img.height);
+      img.onerror = () => addFromSrc(src, 240, 240);
+      img.src = src;
+    } catch {
+      // Undecodable format — fall back to storing the file as-is.
+      const src = await readAsDataUrl(file).catch(() => "");
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => addFromSrc(src, img.width, img.height);
+      img.src = src;
+    }
   };
 
   if (!doc) {
