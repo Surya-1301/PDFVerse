@@ -1313,80 +1313,82 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                   })}
                 </div>
 
-                {/* Tablet/Desktop result: keep the existing full preview and controls. */}
-                <ul className="hidden w-full grid-cols-1 gap-5 md:grid">
-                  {results.map((file) => {
-                    const dot = file.name.lastIndexOf(".");
-                    const base = dot > 0 ? file.name.slice(0, dot) : file.name;
-                    const ext = dot > 0 ? file.name.slice(dot) : "";
-                    const current = names[file.name] ?? base;
-                    const outputName = `${current || base}${ext}`;
+                {/* Tablet/Desktop result: only render full desktop preview on web */}
+                {!isNative() ? (
+                  <ul className="hidden w-full grid-cols-1 gap-5 md:grid">
+                    {results.map((file) => {
+                      const dot = file.name.lastIndexOf(".");
+                      const base = dot > 0 ? file.name.slice(0, dot) : file.name;
+                      const ext = dot > 0 ? file.name.slice(dot) : "";
+                      const current = names[file.name] ?? base;
+                      const outputName = `${current || base}${ext}`;
 
-                    return (
-                      <li key={file.name} className="w-full">
-                        <div className="mx-auto w-full max-w-[680px]">
-                          <ResultFilePreview
-                            blob={file.blob}
-                            name={outputName}
-                            url={file.url}
-                          />
+                      return (
+                        <li key={file.name} className="w-full">
+                          <div className="mx-auto w-full max-w-[680px]">
+                            <ResultFilePreview
+                              blob={file.blob}
+                              name={outputName}
+                              url={file.url}
+                            />
 
-                          <div className="mt-3">
-  <label className="mb-2 block text-xs font-medium text-slate-400">
-    File name
-  </label>
+                            <div className="mt-3">
+    <label className="mb-2 block text-xs font-medium text-slate-400">
+      File name
+    </label>
 
-  <div className="flex items-center gap-2">
-    <input
-      type="text"
-      value={current}
-      spellCheck={false}
-      aria-label={`File name for ${file.name}`}
-      onChange={(event) =>
-        setNames((prev) => ({
-          ...prev,
-          [file.name]: event.target.value,
-        }))
-      }
-      className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
-    />
+    <div className="flex items-center gap-2">
+      <input
+        type="text"
+        value={current}
+        spellCheck={false}
+        aria-label={`File name for ${file.name}`}
+        onChange={(event) =>
+          setNames((prev) => ({
+            ...prev,
+            [file.name]: event.target.value,
+          }))
+        }
+        className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-sm font-medium text-white outline-none transition focus:border-violet-500"
+      />
 
-    {file.blob.type.includes("pdf") ||
-    file.blob.type.startsWith("image/") ||
-    file.blob.type.startsWith("text/") ||
-    file.blob.type.includes("html") ||
-    OFFICE_EXTENSIONS.test(outputName) ||
-    /\.(pdf|png|jpe?g|webp|txt|csv|json|xml|html?|md|docx?|xlsx?|pptx?|zip)$/i.test(outputName) ? (
-      <button
-        type="button"
-        onClick={() => openResultPreview(file.blob, file.url, outputName)}
-        className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
-      >
-        <Eye className="h-4 w-4" />
-        Preview
-      </button>
-    ) : null}
+      {file.blob.type.includes("pdf") ||
+      file.blob.type.startsWith("image/") ||
+      file.blob.type.startsWith("text/") ||
+      file.blob.type.includes("html") ||
+      OFFICE_EXTENSIONS.test(outputName) ||
+      /\.(pdf|png|jpe?g|webp|txt|csv|json|xml|html?|md|docx?|xlsx?|pptx?|zip)$/i.test(outputName) ? (
+        <button
+          type="button"
+          onClick={() => openResultPreview(file.blob, file.url, outputName)}
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/80 px-4 text-sm font-semibold text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white"
+        >
+          <Eye className="h-4 w-4" />
+          Preview
+        </button>
+      ) : null}
+    </div>
+
+    <p className="mt-1.5 text-xs font-medium text-slate-500">
+      {formatFileSize(file.blob.size)}{ext}
+    </p>
+
+    <button
+      type="button"
+      disabled={downloading === outputName}
+      onClick={() => void handleDownload(file.blob, outputName)}
+      className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60" style={{ background: '#16a34a', boxShadow: '0 4px 14px 0 rgba(22,163,74,0.4)' }}
+    >
+      <Download className="h-4 w-4" />
+      {downloading === outputName ? "Saving…" : "Download"}
+    </button>
   </div>
-
-  <p className="mt-1.5 text-xs font-medium text-slate-500">
-    {formatFileSize(file.blob.size)}{ext}
-  </p>
-
-  <button
-    type="button"
-    disabled={downloading === outputName}
-    onClick={() => void handleDownload(file.blob, outputName)}
-    className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-60" style={{ background: '#16a34a', boxShadow: '0 4px 14px 0 rgba(22,163,74,0.4)' }}
-  >
-    <Download className="h-4 w-4" />
-    {downloading === outputName ? "Saving…" : "Download"}
-  </button>
-</div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
               </div>
             </>
           ) : (
