@@ -56,9 +56,6 @@ export default function Footer() {
               );
 
               return "external" in item && item.external ? (
-                // In the APK, "Download app" pointing at itself is useless —
-                // hide it; everywhere else open it in the system browser.
-                isNative() ? null : (
                 <a
                   key={item.href}
                   href={item.href}
@@ -72,7 +69,6 @@ export default function Footer() {
                 >
                   {content}
                 </a>
-                )
               ) : (
                 <Link
                   key={item.href}

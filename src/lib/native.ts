@@ -3,7 +3,7 @@ import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
-import { StatusBar } from "@capacitor/status-bar";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 export function isNative(): boolean {
   try {
@@ -107,9 +107,11 @@ function interceptExternalLinks() {
 export function initNative() {
   if (!isNative()) return;
 
-  // Fullscreen already enforced natively in MainActivity; keep the WebView
-  // edge-to-edge as well. Failures are non-fatal.
-  StatusBar.hide().catch(() => {});
+  // Show status bar in native and configure dark theme colors
+  StatusBar.show().catch(() => {});
+  StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+  StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  StatusBar.setBackgroundColor({ color: "#020617" }).catch(() => {});
 
   // Android hardware / gesture back button
   App.addListener("backButton", ({ canGoBack }) => {

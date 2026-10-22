@@ -13,9 +13,10 @@ const config: CapacitorConfig = {
     cleartext: false,
   },
   plugins: {
-    // Keep the WebView edge-to-edge; MainActivity hides the status bar natively.
     StatusBar: {
-      overlaysWebView: true,
+      overlaysWebView: false,
+      style: 'DARK',
+      backgroundColor: '#020617',
     },
   },
 };
