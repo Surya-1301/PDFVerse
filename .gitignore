@@ -31,5 +31,5 @@ data/*.json
 *.gif
 
 !public/logo.png
-.vscode/
+!public/resources/**
 .vscode/
