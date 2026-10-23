@@ -539,16 +539,73 @@ function TextPreview({ url }: { url: string }) {
   );
 }
 
+function ImagePreviewItem({
+  url,
+  name,
+  targetOrientation,
+  firstIsLandscape,
+}: {
+  url: string;
+  name: string;
+  targetOrientation?: string;
+  firstIsLandscape?: boolean;
+}) {
+  const [isImgLandscape, setIsImgLandscape] = useState<boolean | null>(null);
+
+  const shouldRotate = useMemo(() => {
+    if (isImgLandscape === null || !targetOrientation) return false;
+    if (targetOrientation === "portrait") {
+      return isImgLandscape; // Was landscape -> rotate 90deg to portrait!
+    }
+    if (targetOrientation === "landscape") {
+      return !isImgLandscape; // Was portrait -> rotate 90deg to landscape!
+    }
+    if (targetOrientation === "match-first" && firstIsLandscape !== undefined) {
+      return isImgLandscape !== firstIsLandscape;
+    }
+    return false;
+  }, [isImgLandscape, targetOrientation, firstIsLandscape]);
+
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center overflow-hidden bg-slate-950 p-3"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+      <img
+        src={url}
+        alt={`Preview of ${name}`}
+        onLoad={(e) => {
+          const img = e.currentTarget;
+          if (img.naturalWidth && img.naturalHeight) {
+            setIsImgLandscape(img.naturalWidth > img.naturalHeight);
+          }
+        }}
+        style={{
+          transform: shouldRotate ? "rotate(90deg)" : "none",
+          maxHeight: shouldRotate ? "85%" : "100%",
+          maxWidth: shouldRotate ? "85%" : "100%",
+          transition: "transform 0.25s ease-in-out",
+        }}
+        className="object-contain rounded shadow-lg"
+      />
+    </div>
+  );
+}
+
 function PreviewContent({
   name,
   type,
   url,
   kind,
+  targetOrientation,
+  firstIsLandscape,
 }: {
   name: string;
   type: string;
   url: string;
   kind: PreviewDescriptor["kind"];
+  targetOrientation?: string;
+  firstIsLandscape?: boolean;
 }) {
   if (kind === "pdf") {
     return <UniversalPdfPreview url={url} name={name} />;
@@ -556,16 +613,12 @@ function PreviewContent({
 
   if (kind === "image") {
     return (
-      <div
-        className="flex h-full w-full items-center justify-center overflow-auto bg-slate-950 p-4"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        <img
-          src={url}
-          alt={`Preview of ${name}`}
-          className="max-h-full max-w-full object-contain rounded shadow-lg"
-        />
-      </div>
+      <ImagePreviewItem
+        url={url}
+        name={name}
+        targetOrientation={targetOrientation}
+        firstIsLandscape={firstIsLandscape}
+      />
     );
   }
 
@@ -835,6 +888,29 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     kind: PreviewDescriptor["kind"];
   } | null>(null);
   const selectedPreviewUrlsRef = useRef<string[]>([]);
+  const [firstImageIsLandscape, setFirstImageIsLandscape] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    if (files.length === 0 || !files[0]) {
+      setFirstImageIsLandscape(undefined);
+      return;
+    }
+    const first = files[0];
+    if (!first.type.startsWith("image/") && !/\.(jpe?g|png|webp)$/i.test(first.name)) {
+      setFirstImageIsLandscape(undefined);
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(first);
+    img.onload = () => {
+      setFirstImageIsLandscape(img.naturalWidth > img.naturalHeight);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, [files]);
 
   useEffect(() => {
     return () => {
@@ -1375,6 +1451,8 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                             type={file.type}
                             url={previewUrl}
                             kind={previewKind}
+                            targetOrientation={slug === "jpg-to-pdf" ? String(values.orientation || "portrait") : undefined}
+                            firstIsLandscape={firstImageIsLandscape}
                           />
                         ) : (
                           <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950 px-5 text-center">
@@ -1812,6 +1890,8 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                 type={mobilePreview.type}
                 url={mobilePreview.url}
                 kind={mobilePreview.kind}
+                targetOrientation={slug === "jpg-to-pdf" ? String(values.orientation || "portrait") : undefined}
+                firstIsLandscape={firstImageIsLandscape}
               />
             </div>
           </div>
