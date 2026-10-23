@@ -491,10 +491,10 @@ async function imagesToPdf(
       } else {
         size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
       }
-    } else if (targetIsLandscape === true) {
+    } else if (opts.orientation === "landscape") {
       // Landscape pages (842 x 595 pt)
       size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : { w: a4.h, h: a4.w };
-    } else if (targetIsLandscape === false) {
+    } else if (opts.orientation === "portrait") {
       // Portrait pages (595 x 842 pt)
       size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : a4;
     } else {
