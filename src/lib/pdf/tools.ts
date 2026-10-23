@@ -30,7 +30,7 @@ import {
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file" | "rotate";
+  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file" | "rotate" | "orientation";
   default?: string | number | boolean;
   placeholder?: string;
   help?: string;
@@ -409,12 +409,16 @@ async function imagesToPdf(
   opts: {
     pageSize: string;
     margin: number;
+    orientation?: string;
+    matchFirst?: boolean;
     rotateAll?: number;
     progress: (m: string) => void;
   },
 ): Promise<PDFDocument> {
   const turns = ((opts.rotateAll ?? 0) % 4 + 4) % 4;
   const doc = await PDFDocument.create();
+  let firstDims: { width: number; height: number; isLandscape: boolean } | null = null;
+
   for (const [index, file] of files.entries()) {
     opts.progress(`Adding image ${index + 1} of ${files.length}…`);
     let source: File | Blob = file;
@@ -426,13 +430,54 @@ async function imagesToPdf(
       source = await rotateImageTurns(upright, kind, turns);
     }
     const image = await embedImage(doc, source);
+
+    if (index === 0) {
+      firstDims = {
+        width: image.width,
+        height: image.height,
+        isLandscape: image.width > image.height,
+      };
+    }
+
     const a4 = { w: 595.28, h: 841.89 };
-    const size =
-      opts.pageSize === "fit"
-        ? { w: image.width, h: image.height }
-        : image.width > image.height
-          ? { w: a4.h, h: a4.w }
-          : a4;
+    let size: { w: number; h: number };
+
+    const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
+
+    if (shouldMatchFirst && firstDims) {
+      if (opts.pageSize === "fit") {
+        size = { w: firstDims.width, h: firstDims.height };
+      } else {
+        size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
+      }
+    } else if (opts.orientation === "landscape") {
+      if (opts.pageSize === "fit") {
+        const isLandscape = image.width >= image.height;
+        size = isLandscape
+          ? { w: image.width, h: image.height }
+          : { w: image.height, h: image.width };
+      } else {
+        size = { w: a4.h, h: a4.w }; // A4 Landscape
+      }
+    } else if (opts.orientation === "portrait") {
+      if (opts.pageSize === "fit") {
+        const isPortrait = image.height >= image.width;
+        size = isPortrait
+          ? { w: image.width, h: image.height }
+          : { w: image.height, h: image.width };
+      } else {
+        size = a4; // A4 Portrait
+      }
+    } else {
+      // Auto
+      size =
+        opts.pageSize === "fit"
+          ? { w: image.width, h: image.height }
+          : image.width > image.height
+            ? { w: a4.h, h: a4.w }
+            : a4;
+    }
+
     const page = doc.addPage([size.w, size.h]);
     const maxW = size.w - opts.margin * 2;
     const maxH = size.h - opts.margin * 2;
@@ -1279,20 +1324,33 @@ export const toolImpls: Record<string, ToolImpl> = {
         ],
       },
       {
-        name: "rotate",
-        label: "Rotate all images",
-        type: "rotate",
-        default: 0,
-        help: "",
+        name: "orientation",
+        label: "Orientation",
+        type: "orientation",
+        default: "portrait",
+        options: [
+          { value: "portrait", label: "Portrait" },
+          { value: "landscape", label: "Landscape" },
+          { value: "match-first", label: "Match first photo" },
+        ],
+        help: "Set page orientation or match the first photo automatically.",
       },
-
+      {
+        name: "matchFirst",
+        label: "Match first photo with all other",
+        type: "checkbox",
+        default: false,
+        placeholder: "Apply first photo orientation & size to all pages",
+        help: "Makes all subsequent pages match the orientation and aspect of the first image.",
+      },
     ],
     run: async (ctx) => {
       if (ctx.files.length === 0) throw new Error("Choose at least one image.");
       const doc = await imagesToPdf(ctx.files, {
         pageSize: str(ctx, "pageSize", "a4"),
+        orientation: str(ctx, "orientation", "portrait"),
+        matchFirst: bool(ctx, "matchFirst"),
         margin: 24,
-        rotateAll: num(ctx, "rotate", 0),
         progress: ctx.progress,
       });
       return [await savePdf(doc, "images.pdf")];
