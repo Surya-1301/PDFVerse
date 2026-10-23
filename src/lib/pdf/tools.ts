@@ -421,53 +421,70 @@ async function imagesToPdf(
 
   for (const [index, file] of files.entries()) {
     opts.progress(`Adding image ${index + 1} of ${files.length}…`);
-    let source: File | Blob = file;
-    if (turns) {
-      // Rotate-all on top of the EXIF correction; the result is re-encoded,
-      // so embedImage below embeds it directly.
-      const kind = sniffImageKind(await bytesOf(file));
-      const upright = await decodeImageUpright(file, kind);
-      source = await rotateImageTurns(upright, kind, turns);
-    }
-    const image = await embedImage(doc, source);
+    const kind = sniffImageKind(await bytesOf(file));
+    let sourceBlob: Blob = await decodeImageUpright(file, kind);
+
+    // Measure decoded dimensions
+    const bitmap = await createImageBitmap(sourceBlob);
+    let imgW = bitmap.width;
+    let imgH = bitmap.height;
+    bitmap.close?.();
 
     if (index === 0) {
       firstDims = {
-        width: image.width,
-        height: image.height,
-        isLandscape: image.width > image.height,
+        width: imgW,
+        height: imgH,
+        isLandscape: imgW > imgH,
       };
     }
+
+    const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
+
+    let targetIsLandscape: boolean | null = null;
+    if (shouldMatchFirst && firstDims) {
+      targetIsLandscape = firstDims.isLandscape;
+    } else if (opts.orientation === "landscape") {
+      targetIsLandscape = true;
+    } else if (opts.orientation === "portrait") {
+      targetIsLandscape = false;
+    }
+
+    const currentIsLandscape = imgW > imgH;
+
+    // If orientation does not match target (e.g. photo 1 is portrait, this photo is landscape):
+    if (targetIsLandscape !== null && currentIsLandscape !== targetIsLandscape) {
+      sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
+      const temp = imgW;
+      imgW = imgH;
+      imgH = temp;
+    }
+
+    if (turns) {
+      sourceBlob = await rotateImageTurns(sourceBlob, kind, turns);
+      if (turns % 2 === 1) {
+        const temp = imgW;
+        imgW = imgH;
+        imgH = temp;
+      }
+    }
+
+    const image = kind === "png"
+      ? await doc.embedPng(await bytesOf(sourceBlob))
+      : await doc.embedJpg(await bytesOf(sourceBlob));
 
     const a4 = { w: 595.28, h: 841.89 };
     let size: { w: number; h: number };
 
-    const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
-
     if (shouldMatchFirst && firstDims) {
       if (opts.pageSize === "fit") {
-        size = { w: firstDims.width, h: firstDims.height };
+        size = { w: image.width, h: image.height };
       } else {
         size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
       }
-    } else if (opts.orientation === "landscape") {
-      if (opts.pageSize === "fit") {
-        const isLandscape = image.width >= image.height;
-        size = isLandscape
-          ? { w: image.width, h: image.height }
-          : { w: image.height, h: image.width };
-      } else {
-        size = { w: a4.h, h: a4.w }; // A4 Landscape
-      }
-    } else if (opts.orientation === "portrait") {
-      if (opts.pageSize === "fit") {
-        const isPortrait = image.height >= image.width;
-        size = isPortrait
-          ? { w: image.width, h: image.height }
-          : { w: image.height, h: image.width };
-      } else {
-        size = a4; // A4 Portrait
-      }
+    } else if (targetIsLandscape === true) {
+      size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : { w: a4.h, h: a4.w };
+    } else if (targetIsLandscape === false) {
+      size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : a4;
     } else {
       // Auto
       size =
