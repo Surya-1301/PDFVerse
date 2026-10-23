@@ -412,6 +412,11 @@ export const Route =
         // iOS home screen icon
         {
           rel: "apple-touch-icon",
+          href: "/resources/icon.png",
+          sizes: "512x512",
+        },
+        {
+          rel: "apple-touch-icon",
           href: "/apple-touch-icon.png?v=2",
           sizes: "180x180",
         },
