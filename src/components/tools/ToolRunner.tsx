@@ -192,15 +192,138 @@ async function buildPreview(
   };
 }
 
-function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
+function PdfPageItem({
+  doc,
+  pageNumber,
+  scale,
+  containerWidth,
+}: {
+  doc: pdfjs.PDFDocumentProxy;
+  pageNumber: number;
+  scale: number;
+  containerWidth: number;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [inView, setInView] = useState(false);
+  const [rendered, setRendered] = useState(false);
+  const [pageSize, setPageSize] = useState<{ width: number; height: number }>({
+    width: 280,
+    height: 380,
+  });
+  const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+        }
+      },
+      { rootMargin: "450px" }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || !doc) return;
+    let cancelled = false;
+
+    if (renderTaskRef.current) {
+      renderTaskRef.current.cancel();
+      renderTaskRef.current = null;
+    }
+
+    doc
+      .getPage(pageNumber)
+      .then((pdfPage) => {
+        if (cancelled) return;
+        const unscaled = pdfPage.getViewport({ scale: 1 });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const availableWidth = containerWidth > 64 ? containerWidth - 48 : 360;
+        const baseScale = availableWidth > 0 ? availableWidth / unscaled.width : 1;
+        const finalScale = Math.max(0.2, baseScale * scale);
+        const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
+        const viewport = pdfPage.getViewport({ scale: finalScale * dpr });
+
+        const displayWidth = Math.round(viewport.width / dpr);
+        const displayHeight = Math.round(viewport.height / dpr);
+        setPageSize({ width: displayWidth, height: displayHeight });
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const renderTask = pdfPage.render({ canvasContext: ctx, viewport } as never);
+        renderTaskRef.current = renderTask;
+
+        renderTask.promise
+          .then(() => {
+            if (!cancelled) setRendered(true);
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [doc, pageNumber, scale, containerWidth, inView]);
+
+  return (
+    <div
+      ref={containerRef}
+      id={`pdf-page-${pageNumber}`}
+      data-page-number={pageNumber}
+      className="pdf-page-item relative my-3 flex flex-col items-center shrink-0"
+    >
+      <div
+        className="relative overflow-hidden rounded-lg bg-white shadow-2xl transition-all"
+        style={{
+          width: pageSize.width,
+          minHeight: pageSize.height,
+        }}
+      >
+        <canvas ref={canvasRef} className="block" />
+        {!rendered && (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 p-4 text-center"
+            style={{ minHeight: pageSize.height }}
+          >
+            <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+            <span className="mt-2 text-[11px] font-medium text-slate-300">
+              Page {pageNumber}
+            </span>
+          </div>
+        )}
+      </div>
+      <span className="mt-2 rounded-full border border-white/10 bg-slate-900/90 px-2.5 py-0.5 text-[11px] font-semibold text-slate-300 shadow">
+        Page {pageNumber}
+      </span>
+    </div>
+  );
+}
+
+function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState(1.0);
-  const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
+  const [containerWidth, setContainerWidth] = useState(500);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,7 +343,7 @@ function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
         }
         setDoc(loadedDoc);
         setNumPages(loadedDoc.numPages);
-        setPage(1);
+        setCurrentPage(1);
         setLoading(false);
       })
       .catch((err) => {
@@ -236,54 +359,48 @@ function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
   }, [url]);
 
   useEffect(() => {
-    if (!doc || !canvasRef.current) return;
-    let cancelled = false;
-
-    if (renderTaskRef.current) {
-      renderTaskRef.current.cancel();
-      renderTaskRef.current = null;
-    }
-
-    doc
-      .getPage(page)
-      .then((pdfPage) => {
-        if (cancelled) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const container = canvas.parentElement;
-        const containerWidth = container ? container.clientWidth - 24 : 400;
-        const unscaledViewport = pdfPage.getViewport({ scale: 1 });
-        const baseScale = containerWidth > 0 ? containerWidth / unscaledViewport.width : 1;
-        const finalScale = baseScale * scale;
-
-        const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
-        const viewport = pdfPage.getViewport({ scale: finalScale * dpr });
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width / dpr}px`;
-        canvas.style.height = `${viewport.height / dpr}px`;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const renderTask = pdfPage.render({ canvasContext: ctx, viewport } as never);
-        renderTaskRef.current = renderTask;
-
-        renderTask.promise.catch(() => {
-          /* Render cancelled */
-        });
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
+    if (!scrollContainerRef.current) return;
+    const updateWidth = () => {
+      if (scrollContainerRef.current) {
+        setContainerWidth(scrollContainerRef.current.clientWidth);
       }
     };
-  }, [doc, page, scale]);
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(scrollContainerRef.current);
+    return () => ro.disconnect();
+  }, [loading]);
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const pageElements = container.querySelectorAll<HTMLElement>(".pdf-page-item");
+    const containerTop = container.scrollTop;
+    const containerCenter = containerTop + container.clientHeight / 3;
+
+    for (const el of pageElements) {
+      const top = el.offsetTop;
+      const height = el.clientHeight;
+      if (top <= containerCenter && top + height >= containerCenter) {
+        const pageNum = Number(el.dataset.pageNumber);
+        if (pageNum && pageNum !== currentPage) {
+          setCurrentPage(pageNum);
+        }
+        break;
+      }
+    }
+  };
+
+  const scrollToPage = (targetPage: number) => {
+    const pageClamped = Math.max(1, Math.min(numPages, targetPage));
+    const targetEl = scrollContainerRef.current?.querySelector<HTMLElement>(
+      `#pdf-page-${pageClamped}`
+    );
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      setCurrentPage(pageClamped);
+    }
+  };
 
   if (loading) {
     return (
@@ -305,26 +422,26 @@ function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center overflow-hidden bg-slate-950">
-      {/* Universal Page & Zoom Controls */}
-      <div className="flex w-full shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs text-slate-200">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-950">
+      {/* Sticky Page Navigation & Zoom Controls */}
+      <div className="flex w-full shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/95 px-3 py-2 text-xs text-slate-200 backdrop-blur z-20">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            onClick={() => scrollToPage(currentPage - 1)}
             className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 disabled:opacity-30"
             aria-label="Previous page"
           >
             ‹
           </button>
-          <span className="min-w-14 text-center text-[11px] font-semibold text-slate-200">
-            {page} / {numPages}
+          <span className="min-w-16 text-center text-[11px] font-semibold text-slate-200">
+            {currentPage} / {numPages}
           </span>
           <button
             type="button"
-            disabled={page >= numPages}
-            onClick={() => setPage((p) => Math.min(numPages, p + 1))}
+            disabled={currentPage >= numPages}
+            onClick={() => scrollToPage(currentPage + 1)}
             className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 disabled:opacity-30"
             aria-label="Next page"
           >
@@ -335,15 +452,20 @@ function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setScale((s) => Math.max(0.6, Math.round((s - 0.2) * 10) / 10))}
+            onClick={() => setScale((s) => Math.max(0.5, Math.round((s - 0.2) * 10) / 10))}
             className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-800 font-bold transition hover:bg-slate-700 text-xs"
             aria-label="Zoom out"
           >
             −
           </button>
-          <span className="min-w-10 text-center text-[11px] font-medium text-slate-400">
+          <button
+            type="button"
+            onClick={() => setScale(1.0)}
+            title="Reset zoom to 100%"
+            className="min-w-11 text-center text-[11px] font-medium text-slate-400 hover:text-white"
+          >
             {Math.round(scale * 100)}%
-          </span>
+          </button>
           <button
             type="button"
             onClick={() => setScale((s) => Math.min(2.5, Math.round((s + 0.2) * 10) / 10))}
@@ -355,9 +477,26 @@ function UniversalPdfPreview({ url, name }: { url: string; name: string }) {
         </div>
       </div>
 
-      {/* Canvas page render */}
-      <div className="flex flex-1 w-full items-center justify-center overflow-auto p-2">
-        <canvas ref={canvasRef} className="rounded shadow-lg max-w-full" />
+      {/* Fully Scrollable Pages Container */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 w-full overflow-y-auto overflow-x-auto p-3 sm:p-5 scroll-smooth overscroll-contain"
+        style={{
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <div className="flex flex-col items-center min-w-full pb-8">
+          {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+            <PdfPageItem
+              key={`page-${pageNum}`}
+              doc={doc}
+              pageNumber={pageNum}
+              scale={scale}
+              containerWidth={containerWidth}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -417,11 +556,14 @@ function PreviewContent({
 
   if (kind === "image") {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-slate-950 p-3">
+      <div
+        className="flex h-full w-full items-center justify-center overflow-auto bg-slate-950 p-4"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         <img
           src={url}
           alt={`Preview of ${name}`}
-          className="h-full w-full object-contain"
+          className="max-h-full max-w-full object-contain rounded shadow-lg"
         />
       </div>
     );
@@ -458,12 +600,17 @@ function PreviewContent({
 
   if (kind === "html") {
     return (
-      <iframe
-        title={`HTML preview of ${name}`}
-        src={url}
-        className="h-full w-full border-0 bg-white"
-        sandbox="allow-same-origin"
-      />
+      <div
+        className="h-full w-full overflow-auto bg-white"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <iframe
+          title={`HTML preview of ${name}`}
+          src={url}
+          className="h-full w-full min-h-[500px] border-0 bg-white"
+          sandbox="allow-same-origin"
+        />
+      </div>
     );
   }
 
@@ -498,7 +645,7 @@ function InlineFilePreview({
 
   return (
     <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-      <div className="flex h-[220px] w-full items-center justify-center overflow-hidden sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
+      <div className="flex h-[340px] sm:h-[420px] lg:h-[480px] w-full overflow-hidden" style={{ background: 'var(--surface-hover)' }}>
         <PreviewContent
           name={name}
           type={type}
@@ -636,7 +783,7 @@ function ResultFilePreview({
 
     return (
       <div className="mx-auto w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-[0_18px_45px_rgba(0,0,0,0.28)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <div className="flex h-[220px] w-full items-center justify-center overflow-hidden sm:h-[280px] lg:h-[320px]" style={{ background: 'var(--surface-hover)' }}>
+        <div className="flex h-[340px] sm:h-[420px] lg:h-[480px] w-full overflow-hidden" style={{ background: 'var(--surface-hover)' }}>
           <PreviewContent
             name={name}
             type="application/pdf"
@@ -1194,22 +1341,28 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                       </button>
                     </div>
 
-                    {/* Preview — on mobile, tapping it opens a full-screen PDF viewer. */}
-                    <div
-                      className="block w-full text-left"
+                    {/* Preview thumbnail — clicking opens full scrollable preview viewer */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!previewUrl) return;
+                        setMobilePreview({
+                          name: file.name,
+                          url: previewUrl,
+                          type: file.type,
+                          kind: previewKind,
+                        });
+                      }}
+                      className="group/preview block w-full text-left relative cursor-pointer"
+                      title="Click to open full scrollable preview"
                     >
                       <div
-                        className="h-[145px] w-full overflow-hidden bg-[#171a22] md:h-[155px] lg:h-[165px]"
-                        onDoubleClick={() => {
-                          if (!previewUrl) return;
-                          setMobilePreview({
-                            name: file.name,
-                            url: previewUrl,
-                            type: file.type,
-                            kind: previewKind,
-                          });
-                        }}
+                        className="h-[180px] w-full overflow-hidden bg-[#171a22] md:h-[200px] lg:h-[220px]"
                       >
+                        <span className="absolute bottom-2.5 right-2.5 z-10 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/90 px-2.5 py-1 text-[11px] font-semibold text-slate-200 shadow-md backdrop-blur transition group-hover/preview:border-violet-500/50 group-hover/preview:bg-violet-600 group-hover/preview:text-white">
+                          <Eye className="h-3.5 w-3.5" />
+                          Scroll preview
+                        </span>
                         {isLoadingPreview ? (
                           <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950 px-5 text-center">
                             <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
@@ -1239,7 +1392,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                           </div>
                         )}
                       </div>
-                    </div>
+                    </button>
                   </div>
                 );
               })}
@@ -1644,13 +1797,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
 
       {mobilePreview ? (
         <div
-          className="fixed inset-0 z-[100] h-[100dvh] p-0 md:p-6 md:pt-20"
+          className="fixed inset-0 z-[100] h-[100dvh] p-0 md:p-6 md:pt-16"
           style={{
             backgroundColor: 'var(--bg)',
           }}
         >
           <div
-            className="flex h-full flex-col md:mx-auto md:h-[calc(100dvh-6rem)] md:w-full md:max-w-5xl md:overflow-hidden md:rounded-2xl md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+            className="flex h-full flex-col md:mx-auto md:h-[calc(100dvh-5rem)] md:w-full md:max-w-5xl overflow-hidden rounded-none md:rounded-2xl md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
             style={{
               backgroundColor: 'var(--surface)',
               borderColor: 'var(--border)',
@@ -1658,27 +1811,13 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
             }}
           >
             <div
-              className="flex min-h-16 shrink-0 items-center gap-3 border-b px-3"
+              className="flex min-h-14 shrink-0 items-center justify-between border-b px-4"
               style={{
                 backgroundColor: 'var(--surface)',
                 borderColor: 'var(--border)',
               }}
             >
-              <button
-                type="button"
-                onClick={() => setMobilePreview(null)}
-                className="absolute right-5 top-3 z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
-                aria-label="Close PDF preview"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: 'var(--surface-hover)',
-                  color: 'var(--text-1)',
-                }}
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pr-4">
                 <p
                   className="truncate text-sm font-semibold"
                   style={{ color: 'var(--text-1)' }}
@@ -1689,13 +1828,27 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                   className="text-xs"
                   style={{ color: 'var(--text-3)' }}
                 >
-                  File preview
+                  Scrollable preview
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setMobilePreview(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition hover:opacity-80"
+                aria-label="Close preview"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--surface-hover)',
+                  color: 'var(--text-1)',
+                }}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             <div
-              className="min-h-0 flex-1 p-1 md:p-4"
+              className="min-h-0 flex-1 overflow-hidden"
               style={{
                 backgroundColor: 'var(--surface)',
               }}
