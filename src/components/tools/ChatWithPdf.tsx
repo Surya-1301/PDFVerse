@@ -19,7 +19,7 @@ const API_BASE =
     ? "https://pdf-verse-api-uu40.onrender.com"
     : "http://localhost:4000");
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 120_000;
 const WAKE_TIMEOUT_MS = 90_000;
 const WAKE_POLL_MS = 3_000;
@@ -137,7 +137,7 @@ export function ChatWithPdf() {
     }
 
     if (nextFile.size > MAX_FILE_SIZE) {
-      setError("PDF files must be 50 MB or smaller.");
+      setError("PDF files must be 100 MB or smaller.");
       return;
     }
 
@@ -295,7 +295,7 @@ export function ChatWithPdf() {
             Choose PDF
           </span>
           <span className="mt-4 text-xs text-slate-600">
-            PDF only • Maximum 50 MB
+            PDF only • Maximum 100 MB
           </span>
           <input
             ref={inputRef}

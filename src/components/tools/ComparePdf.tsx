@@ -37,7 +37,7 @@ type PageComparison = {
   secondPreviewUrl?: string;
 };
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 /* ==========================================================================
    TEXT DIFF
@@ -406,7 +406,7 @@ export function ComparePdf() {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return "PDF files must be 50 MB or smaller.";
+      return "PDF files must be 100 MB or smaller.";
     }
 
     const isPdf =
@@ -1400,7 +1400,7 @@ function UploadPanel({
         </span>
 
         <span className="mt-2 max-w-xs text-xs leading-5 text-slate-500">
-          PDF only, up to 50 MB.
+          PDF only, up to 100 MB.
           <br />
           Files stay in your browser.
         </span>

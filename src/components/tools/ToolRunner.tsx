@@ -132,7 +132,6 @@ async function convertOfficeToPdfPreview(
         message = payload.error;
       }
     } catch {
-      // Keep fallback message.
     }
 
     throw new Error(message);
@@ -796,6 +795,15 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     if (!list || list.length === 0) return;
 
     const picked = Array.from(list);
+
+    const MAX_TOOL_FILE_SIZE = 100 * 1024 * 1024;
+    const oversized = picked.find((f) => f.size > MAX_TOOL_FILE_SIZE);
+    if (oversized) {
+      setError(
+        `File too large: "${oversized.name}" (${formatFileSize(oversized.size)}). Maximum supported file size is 100MB per file.`
+      );
+      return;
+    }
 
     const nextFiles = impl.multiple
       ? [...files, ...picked]

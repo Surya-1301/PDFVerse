@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as pdfjs from "pdfjs-dist";
 
-const MAX_PDF_SIZE = 50 * 1024 * 1024;
+const MAX_PDF_SIZE = 100 * 1024 * 1024;
 const MAX_PAGES = 500;
 const CHUNK_SIZE = 3200;
 const CHUNK_OVERLAP = 450;
@@ -322,7 +322,7 @@ export const Route = createFileRoute("/api/chat-pdf/upload")({
             return jsonResponse(
               {
                 success: false,
-                error: "PDF files must be 50 MB or smaller.",
+                error: "PDF files must be 100 MB or smaller.",
               },
               400,
             );

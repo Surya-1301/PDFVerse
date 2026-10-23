@@ -68,7 +68,8 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "120mb" }));
+app.use(express.urlencoded({ extended: true, limit: "120mb" }));
 
 const pdfStorage = multer.diskStorage({
   destination: async function (_req, _file, callback) {
@@ -96,7 +97,7 @@ const pdfStorage = multer.diskStorage({
 const upload = multer({
   storage: pdfStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024,
+    fileSize: 100 * 1024 * 1024, // 100MB
     files: 1,
   },
   fileFilter: function (_req, file, callback) {
@@ -124,8 +125,8 @@ const upload = multer({
 const batchUpload = multer({
   storage: pdfStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024,
-    files: 10,
+    fileSize: 100 * 1024 * 1024, // 100MB per file
+    files: 20,
   },
   fileFilter: function (_req, file, callback) {
     const isPdf =
@@ -144,7 +145,7 @@ const batchUpload = multer({
 const compareUpload = multer({
   storage: pdfStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024,
+    fileSize: 100 * 1024 * 1024, // 100MB per file
     files: 2,
   },
   fileFilter: function (_req, file, callback) {
@@ -179,7 +180,7 @@ function runPythonScript(
         timeout,
 
         maxBuffer:
-          20 * 1024 * 1024,
+          100 * 1024 * 1024,
 
         encoding: "utf8",
       },
@@ -3802,7 +3803,7 @@ function runSofficeOnce(libreOffice, inputPath, outputDir, profileDir) {
       ],
       {
         timeout: 300000,
-        maxBuffer: 20 * 1024 * 1024,
+        maxBuffer: 100 * 1024 * 1024,
         // A hung soffice must not survive to block the next conversion.
         killSignal: "SIGKILL",
       },
@@ -4250,6 +4251,13 @@ app.use(
 
     if (res.headersSent) {
       return;
+    }
+
+    if (error?.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        success: false,
+        error: "File too large. Maximum supported file size is 100MB per file.",
+      });
     }
 
     const status =
