@@ -10,7 +10,6 @@ import {
   extractText,
   getPdfJsDoc,
   hexToRgb,
-  isImageSideways,
   jpegOrientation,
   loadPdf,
   parseRanges,
@@ -31,7 +30,7 @@ import {
 export type Field = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file" | "rotate" | "orientation";
+  type: "text" | "textarea" | "number" | "select" | "checkbox" | "password" | "color" | "file" | "rotate";
   default?: string | number | boolean;
   placeholder?: string;
   help?: string;
@@ -440,12 +439,12 @@ async function imagesToPdf(
     }
 
     const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
-    const shouldFixPortrait = (opts.orientation === "portrait") || (shouldMatchFirst && firstDims && !firstDims.isLandscape);
 
-    // If Portrait is target and image is wider than tall, rotate only if text is actually sideways:
-    if (shouldFixPortrait && imgW > imgH) {
-      const isSideways = await isImageSideways(sourceBlob);
-      if (isSideways) {
+    // Only if "Match first photo" is chosen, rotate subsequent mismatched images to match photo 1's orientation:
+    if (shouldMatchFirst && firstDims) {
+      const targetIsLandscape = firstDims.isLandscape;
+      const currentIsLandscape = imgW > imgH;
+      if (currentIsLandscape !== targetIsLandscape) {
         sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
         const temp = imgW;
         imgW = imgH;
@@ -469,16 +468,26 @@ async function imagesToPdf(
     const a4 = { w: 595.28, h: 841.89 };
     let size: { w: number; h: number };
 
-    if (opts.pageSize === "fit") {
-      size = { w: image.width, h: image.height };
-    } else if (shouldMatchFirst && firstDims) {
-      size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
+    if (shouldMatchFirst && firstDims) {
+      if (opts.pageSize === "fit") {
+        size = { w: image.width, h: image.height };
+      } else {
+        size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
+      }
     } else if (opts.orientation === "landscape") {
-      size = { w: a4.h, h: a4.w }; // A4 Landscape
+      // Landscape pages are always landscape (842 x 595 pt)
+      size = opts.pageSize === "fit" ? { w: Math.max(image.width, image.height), h: Math.min(image.width, image.height) } : { w: a4.h, h: a4.w };
     } else if (opts.orientation === "portrait") {
-      size = a4; // A4 Portrait
+      // Portrait pages are always portrait (595 x 842 pt)
+      size = opts.pageSize === "fit" ? { w: Math.min(image.width, image.height), h: Math.max(image.width, image.height) } : a4;
     } else {
-      size = image.width > image.height ? { w: a4.h, h: a4.w } : a4;
+      // Auto
+      size =
+        opts.pageSize === "fit"
+          ? { w: image.width, h: image.height }
+          : image.width > image.height
+            ? { w: a4.h, h: a4.w }
+            : a4;
     }
 
     const page = doc.addPage([size.w, size.h]);
@@ -1329,22 +1338,14 @@ export const toolImpls: Record<string, ToolImpl> = {
       {
         name: "orientation",
         label: "Orientation",
-        type: "orientation",
+        type: "select",
         default: "portrait",
         options: [
           { value: "portrait", label: "Portrait" },
           { value: "landscape", label: "Landscape" },
-          { value: "match-first", label: "Match first photo" },
+          { value: "match-first", label: "Match first photo with all other" },
         ],
-        help: "Set page orientation or match the first photo automatically.",
-      },
-      {
-        name: "matchFirst",
-        label: "Match first photo with all other",
-        type: "checkbox",
-        default: false,
-        placeholder: "Apply first photo orientation & size to all pages",
-        help: "Makes all subsequent pages match the orientation and aspect of the first image.",
+        help: "",
       },
     ],
     run: async (ctx) => {

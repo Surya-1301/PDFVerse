@@ -1434,48 +1434,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     />
                     <span>{field.placeholder || (values[field.name] ? "Enabled" : "Disabled")}</span>
                   </label>
-                ) : field.type === "orientation" ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label="Portrait orientation"
-                      onClick={() => setValue(field.name, "portrait")}
-                      className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
-                        (values[field.name] || "portrait") === "portrait"
-                          ? "border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                          : "border-white/10 bg-slate-950 text-slate-400 hover:border-white/20 hover:text-slate-200"
-                      }`}
-                    >
-                      <span className="inline-block h-4 w-3 rounded-sm border-2 border-current" />
-                      Portrait
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Landscape orientation"
-                      onClick={() => setValue(field.name, "landscape")}
-                      className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
-                        values[field.name] === "landscape"
-                          ? "border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                          : "border-white/10 bg-slate-950 text-slate-400 hover:border-white/20 hover:text-slate-200"
-                      }`}
-                    >
-                      <span className="inline-block h-3 w-4 rounded-sm border-2 border-current" />
-                      Landscape
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Match first photo orientation"
-                      title="Match first photo orientation with all other photos"
-                      onClick={() => setValue(field.name, "match-first")}
-                      className={`flex h-12 flex-1 items-center justify-center gap-1.5 rounded-xl border text-xs font-semibold transition ${
-                        values[field.name] === "match-first"
-                          ? "border-violet-500 bg-violet-600/20 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                          : "border-white/10 bg-slate-950 text-slate-400 hover:border-white/20 hover:text-slate-200"
-                      }`}
-                    >
-                      Match 1st
-                    </button>
-                  </div>
                 ) : field.type === "textarea" ? (
                   <textarea
                     id={`field-${field.name}`}
