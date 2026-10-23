@@ -29,6 +29,8 @@ import com.getcapacitor.BridgeActivity;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
 
@@ -171,6 +173,60 @@ public class MainActivity extends BridgeActivity {
                 runOnUiThread(() -> Toast.makeText(getApplicationContext(), "Failed to save file: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }
+
+        @JavascriptInterface
+        public void requestAppPermissions() {
+            runOnUiThread(() -> requestPermissionsOnFirstLaunch());
+        }
+    }
+
+    public void requestPermissionsOnFirstLaunch() {
+        List<String> permissions = new ArrayList<>();
+
+        // 1. Notification permission (Android 13+ / API 33+) for download completion & alerts
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        // 2. Photos & Media access (Android 13+ / API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_MEDIA_IMAGES);
+            }
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_MEDIA_VIDEO);
+            }
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_MEDIA_AUDIO);
+            }
+            if (Build.VERSION.SDK_INT >= 34) {
+                String visualSelected = "android.permission.READ_MEDIA_VISUAL_USER_SELECTED";
+                if (checkSelfPermission(visualSelected) != PackageManager.PERMISSION_GRANTED) {
+                    permissions.add(visualSelected);
+                }
+            }
+        } else {
+            // Android 12 and below (API <= 32)
+            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
+            }
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+                if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    permissions.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                }
+            }
+        }
+
+        if (!permissions.isEmpty()) {
+            requestPermissions(permissions.toArray(new String[0]), 101);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     @Override
@@ -178,12 +234,8 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         hideStatusBar(this);
 
-        // Request notification permission on Android 13+ for download progress
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
-            }
-        }
+        // Always ask for photos, files, and notification access on app launch
+        requestPermissionsOnFirstLaunch();
 
         // Native download listener and blob downloader for Android WebView
         if (bridge != null && bridge.getWebView() != null) {

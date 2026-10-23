@@ -31,6 +31,18 @@ export function assetUrl(path: string): string {
   }
 }
 
+export function requestNativePermissions(): void {
+  if (typeof window === "undefined") return;
+  const win = window as any;
+  if (win.PDFVerseBlobDownloader && typeof win.PDFVerseBlobDownloader.requestAppPermissions === "function") {
+    try {
+      win.PDFVerseBlobDownloader.requestAppPermissions();
+    } catch (err) {
+      console.warn("Failed to invoke requestAppPermissions:", err);
+    }
+  }
+}
+
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
