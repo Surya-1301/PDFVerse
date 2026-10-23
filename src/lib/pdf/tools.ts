@@ -440,19 +440,29 @@ async function imagesToPdf(
 
     const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
 
-    let targetIsLandscape: boolean | null = null;
+    // Check if the image is already portrait or landscape
+    const isAlreadyPortrait = imgH >= imgW;
+    const isAlreadyLandscape = imgW >= imgH;
+
+    let needsRotation = false;
+
     if (shouldMatchFirst && firstDims) {
-      targetIsLandscape = firstDims.isLandscape;
-    } else if (opts.orientation === "landscape") {
-      targetIsLandscape = true;
+      // Match first photo: if photo 1 is portrait, only rotate if not already portrait;
+      // if photo 1 is landscape, only rotate if not already landscape.
+      if (firstDims.isLandscape) {
+        needsRotation = !isAlreadyLandscape;
+      } else {
+        needsRotation = !isAlreadyPortrait;
+      }
     } else if (opts.orientation === "portrait") {
-      targetIsLandscape = false;
+      // If already portrait, do NOT change orientation! Only rotate if landscape.
+      needsRotation = !isAlreadyPortrait;
+    } else if (opts.orientation === "landscape") {
+      // If already landscape, do NOT change orientation! Only rotate if portrait.
+      needsRotation = !isAlreadyLandscape;
     }
 
-    const currentIsLandscape = imgW > imgH;
-
-    // Rotate if orientation does not match the target orientation (make all photos portrait or landscape):
-    if (targetIsLandscape !== null && currentIsLandscape !== targetIsLandscape) {
+    if (needsRotation) {
       sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
       const temp = imgW;
       imgW = imgH;

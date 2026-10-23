@@ -550,21 +550,26 @@ function ImagePreviewItem({
   targetOrientation?: string;
   firstIsLandscape?: boolean;
 }) {
-  const [isImgLandscape, setIsImgLandscape] = useState<boolean | null>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const shouldRotate = useMemo(() => {
-    if (isImgLandscape === null || !targetOrientation) return false;
+    if (!dimensions || !targetOrientation) return false;
+    const isAlreadyPortrait = dimensions.height >= dimensions.width;
+    const isAlreadyLandscape = dimensions.width >= dimensions.height;
+
     if (targetOrientation === "portrait") {
-      return isImgLandscape; // Was landscape -> rotate 90deg to portrait!
+      // If already portrait, do NOT change orientation! Only rotate if landscape.
+      return !isAlreadyPortrait;
     }
     if (targetOrientation === "landscape") {
-      return !isImgLandscape; // Was portrait -> rotate 90deg to landscape!
+      // If already landscape, do NOT change orientation! Only rotate if portrait.
+      return !isAlreadyLandscape;
     }
     if (targetOrientation === "match-first" && firstIsLandscape !== undefined) {
-      return isImgLandscape !== firstIsLandscape;
+      return firstIsLandscape ? !isAlreadyLandscape : !isAlreadyPortrait;
     }
     return false;
-  }, [isImgLandscape, targetOrientation, firstIsLandscape]);
+  }, [dimensions, targetOrientation, firstIsLandscape]);
 
   return (
     <div
@@ -577,7 +582,7 @@ function ImagePreviewItem({
         onLoad={(e) => {
           const img = e.currentTarget;
           if (img.naturalWidth && img.naturalHeight) {
-            setIsImgLandscape(img.naturalWidth > img.naturalHeight);
+            setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
           }
         }}
         style={{
