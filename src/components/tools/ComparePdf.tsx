@@ -17,6 +17,7 @@ import {
   extractText,
   getPdfJsDoc,
   renderPageToCanvas,
+  safelyReadFile,
 } from "@/lib/pdf/toolkit";
 import { downloadBlob } from "@/lib/native";
 
@@ -1409,11 +1410,17 @@ function UploadPanel({
           type="file"
           accept="application/pdf,.pdf"
           className="hidden"
-          onChange={(event) =>
-            onChange(
-              event.target.files?.[0] ?? null,
-            )
-          }
+          onClick={(e) => {
+            (e.target as HTMLInputElement).value = "";
+          }}
+          onChange={(event) => {
+            const raw = event.target.files?.[0] ?? null;
+            if (!raw) {
+              onChange(null);
+              return;
+            }
+            void safelyReadFile(raw).then(onChange);
+          }}
         />
       </label>
 

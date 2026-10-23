@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { getToolImpl, type Field, type ToolValues } from "@/lib/pdf/tools";
-import type { ToolFile } from "@/lib/pdf/toolkit";
+import { safelyReadFile, type ToolFile } from "@/lib/pdf/toolkit";
 import { formatFileSize } from "@/lib/formatFileSize";
 import { assetUrl, downloadBlob, isNative } from "@/lib/native";
 import * as pdfjs from "pdfjs-dist";
@@ -1016,17 +1016,32 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   };
 
   const onPick = async (
-    list: FileList | null,
+    list: FileList | File[] | null,
   ) => {
     if (!list || list.length === 0) return;
+    setError("");
 
-    const picked = Array.from(list);
+    const rawPicked = Array.from(list);
 
     const MAX_TOOL_FILE_SIZE = 100 * 1024 * 1024;
-    const oversized = picked.find((f) => f.size > MAX_TOOL_FILE_SIZE);
+    const oversized = rawPicked.find((f) => f.size > MAX_TOOL_FILE_SIZE);
     if (oversized) {
       setError(
         `File too large: "${oversized.name}" (${formatFileSize(oversized.size)}). Maximum supported file size is 100MB per file.`
+      );
+      return;
+    }
+
+    // Immediately capture file bytes into an in-memory File to prevent
+    // Android WebView NotReadableError caused by transient content:// URI expiration.
+    let picked: File[] = [];
+    try {
+      picked = await Promise.all(rawPicked.map((f) => safelyReadFile(f)));
+    } catch (readErr) {
+      setError(
+        readErr instanceof Error
+          ? readErr.message
+          : "Could not read the selected file. Please make sure it is downloaded on your device."
       );
       return;
     }
@@ -1222,9 +1237,14 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
           accept={impl.accept}
           multiple={impl.multiple}
           className="hidden"
+          onClick={(e) => {
+            (e.target as HTMLInputElement).value = "";
+          }}
           onChange={(event) => {
-            void onPick(event.target.files);
-            event.target.value = "";
+            const list = event.target.files;
+            if (list && list.length > 0) {
+              void onPick(list);
+            }
           }}
         />
 
@@ -1551,12 +1571,34 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                     type="file"
                     accept={field.accept}
                     className={`${inputClass} file:mr-3 file:rounded-lg file:border-0 file:bg-violet-600 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white`}
-                    onChange={(e) =>
-                      setExtraFiles((prev) => ({
-                        ...prev,
-                        [field.name]: e.target.files?.[0] ?? null,
-                      }))
-                    }
+                    onClick={(e) => {
+                      (e.target as HTMLInputElement).value = "";
+                    }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      if (!file) {
+                        setExtraFiles((prev) => ({
+                          ...prev,
+                          [field.name]: null,
+                        }));
+                        return;
+                      }
+                      void (async () => {
+                        try {
+                          const safe = await safelyReadFile(file);
+                          setExtraFiles((prev) => ({
+                            ...prev,
+                            [field.name]: safe,
+                          }));
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : `Could not read ${file.name}`
+                          );
+                        }
+                      })();
+                    }}
                   />
                 ) : (
                   <input

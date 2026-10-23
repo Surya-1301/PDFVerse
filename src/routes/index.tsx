@@ -126,15 +126,15 @@ function Home() {
     );
   }, [activeCategory]);
 
-  function onPick(file: File | undefined) {
+  async function onPick(file: File | undefined) {
     if (!file) return;
 
-    storePdfForEditor(file);
+    await storePdfForEditor(file);
     navigate({ to: "/pdf-editor" });
   }
 
   async function onBlank() {
-    storePdfForEditor(await createBlankPdfFile());
+    await storePdfForEditor(await createBlankPdfFile());
     navigate({ to: "/pdf-editor" });
   }
 
@@ -205,8 +205,11 @@ function Home() {
                 type="file"
                 accept="application/pdf"
                 className="hidden"
+                onClick={(e) => {
+                  (e.target as HTMLInputElement).value = "";
+                }}
                 onChange={(event) =>
-                  onPick(event.target.files?.[0])
+                  void onPick(event.target.files?.[0])
                 }
               />
 

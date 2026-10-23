@@ -1,8 +1,16 @@
 // Hands a picked PDF from the landing page to the editor route without a reload.
 let pending: File | null = null;
 
-export function storePdfForEditor(file: File) {
-  pending = file;
+export async function storePdfForEditor(file: File) {
+  try {
+    const buffer = await file.arrayBuffer();
+    pending = new File([buffer], file.name, {
+      type: file.type || "application/pdf",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    pending = file;
+  }
 }
 
 export function takePdfForEditor(): File | null {

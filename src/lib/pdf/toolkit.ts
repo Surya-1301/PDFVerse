@@ -7,8 +7,67 @@ pdfjs.GlobalWorkerOptions.workerSrc = assetUrl("/pdf.worker.min.mjs");
 
 export type ToolFile = { name: string; blob: Blob };
 
+/**
+ * In Android WebView (Capacitor), <input type="file"> returns lazy File handles
+ * backed by Android content:// URIs with temporary permissions.
+ * If the file is not read immediately, or if the input value is cleared,
+ * Android revokes the permission and subsequent reads fail with NotReadableError.
+ *
+ * safelyReadFile immediately captures the file's raw bytes into an in-memory File
+ * while the native content:// permission grant is fresh and active.
+ */
+export async function safelyReadFile(file: File): Promise<File> {
+  try {
+    const buffer = await file.arrayBuffer();
+    return new File([buffer], file.name, {
+      type: file.type || "application/octet-stream",
+      lastModified: file.lastModified,
+    });
+  } catch (err) {
+    return new Promise<File>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(
+            new File([reader.result], file.name, {
+              type: file.type || "application/octet-stream",
+              lastModified: file.lastModified,
+            })
+          );
+        } else {
+          reject(new Error(`Failed to read "${file.name}".`));
+        }
+      };
+      reader.onerror = () => {
+        reject(
+          reader.error ||
+            new Error(
+              `The file "${file.name}" could not be read from device storage.`
+            )
+        );
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+}
+
 export async function bytesOf(file: File | Blob): Promise<Uint8Array> {
-  return new Uint8Array(await file.arrayBuffer());
+  try {
+    return new Uint8Array(await file.arrayBuffer());
+  } catch (err) {
+    return new Promise<Uint8Array>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(new Uint8Array(reader.result));
+        } else {
+          reject(err || new Error("Failed to read file bytes."));
+        }
+      };
+      reader.onerror = () => reject(reader.error || err);
+      reader.readAsArrayBuffer(file);
+    });
+  }
 }
 
 export async function loadPdf(file: File | Blob, password?: string) {

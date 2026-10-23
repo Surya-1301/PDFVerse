@@ -30,7 +30,7 @@ import {
   isExistingTextEdited,
   linesToTextItems,
 } from "@/lib/pdf/textlayer";
-import { decodeImageUpright, sniffImageKind } from "@/lib/pdf/toolkit";
+import { decodeImageUpright, safelyReadFile, sniffImageKind } from "@/lib/pdf/toolkit";
 
 import {
   LINE_HEIGHT,
@@ -944,10 +944,14 @@ export default function PdfEditor() {
         type="file"
         accept="image/png,image/jpeg"
         className="hidden"
+        onClick={(e) => {
+          (e.target as HTMLInputElement).value = "";
+        }}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onPickImage(f);
-          e.target.value = "";
+          if (f) {
+            void safelyReadFile(f).then(onPickImage);
+          }
         }}
       />
 
@@ -1120,10 +1124,14 @@ function Dropzone({
         type="file"
         accept="application/pdf,.pdf"
         className="hidden"
+        onClick={(e) => {
+          (e.target as HTMLInputElement).value = "";
+        }}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          e.currentTarget.value = "";
-          if (f) onFile(f);
+          if (f) {
+            void safelyReadFile(f).then(onFile);
+          }
         }}
       />
     </section>

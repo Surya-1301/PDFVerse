@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { isNative } from "@/lib/native";
+import { safelyReadFile } from "@/lib/pdf/toolkit";
 
 const API_BASE =
   import.meta.env.VITE_PDF_API_BASE_URL ||
@@ -302,9 +303,14 @@ export function ChatWithPdf() {
             type="file"
             accept="application/pdf,.pdf"
             className="hidden"
+            onClick={(e) => {
+              (e.target as HTMLInputElement).value = "";
+            }}
             onChange={(event) => {
               const selected = event.target.files?.[0];
-              if (selected) void uploadPdf(selected);
+              if (selected) {
+                void safelyReadFile(selected).then(uploadPdf);
+              }
             }}
           />
         </label>
@@ -361,9 +367,14 @@ export function ChatWithPdf() {
               type="file"
               accept="application/pdf,.pdf"
               className="hidden"
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = "";
+              }}
               onChange={(event) => {
                 const selected = event.target.files?.[0];
-                if (selected) void uploadPdf(selected);
+                if (selected) {
+                  void safelyReadFile(selected).then(uploadPdf);
+                }
               }}
             />
           </div>

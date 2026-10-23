@@ -369,7 +369,10 @@ function PdfToolPage() {
                   type="file"
                   accept="application/pdf"
                   className="hidden"
-                  onChange={(event) => {
+                  onClick={(e) => {
+                    (e.target as HTMLInputElement).value = "";
+                  }}
+                  onChange={async (event) => {
                     const file =
                       event.target.files?.[0];
 
@@ -377,7 +380,7 @@ function PdfToolPage() {
                       return;
                     }
 
-                    storePdfForEditor(file);
+                    await storePdfForEditor(file);
 
                     navigate({
                       to: "/pdf-editor",
