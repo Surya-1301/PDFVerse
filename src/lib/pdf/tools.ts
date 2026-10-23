@@ -440,23 +440,16 @@ async function imagesToPdf(
 
     const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
 
-    let targetIsLandscape: boolean | null = null;
+    // Only if "Match first photo" is chosen, rotate subsequent mismatched images to match photo 1's orientation:
     if (shouldMatchFirst && firstDims) {
-      targetIsLandscape = firstDims.isLandscape;
-    } else if (opts.orientation === "landscape") {
-      targetIsLandscape = true;
-    } else if (opts.orientation === "portrait") {
-      targetIsLandscape = false;
-    }
-
-    const currentIsLandscape = imgW > imgH;
-
-    // If orientation does not match target (e.g. photo 1 is portrait, this photo is landscape):
-    if (targetIsLandscape !== null && currentIsLandscape !== targetIsLandscape) {
-      sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
-      const temp = imgW;
-      imgW = imgH;
-      imgH = temp;
+      const targetIsLandscape = firstDims.isLandscape;
+      const currentIsLandscape = imgW > imgH;
+      if (currentIsLandscape !== targetIsLandscape) {
+        sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
+        const temp = imgW;
+        imgW = imgH;
+        imgH = temp;
+      }
     }
 
     if (turns) {
@@ -481,10 +474,12 @@ async function imagesToPdf(
       } else {
         size = firstDims.isLandscape ? { w: a4.h, h: a4.w } : a4;
       }
-    } else if (targetIsLandscape === true) {
-      size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : { w: a4.h, h: a4.w };
-    } else if (targetIsLandscape === false) {
-      size = opts.pageSize === "fit" ? { w: image.width, h: image.height } : a4;
+    } else if (opts.orientation === "landscape") {
+      // Landscape pages are always landscape (842 x 595 pt)
+      size = opts.pageSize === "fit" ? { w: Math.max(image.width, image.height), h: Math.min(image.width, image.height) } : { w: a4.h, h: a4.w };
+    } else if (opts.orientation === "portrait") {
+      // Portrait pages are always portrait (595 x 842 pt)
+      size = opts.pageSize === "fit" ? { w: Math.min(image.width, image.height), h: Math.max(image.width, image.height) } : a4;
     } else {
       // Auto
       size =

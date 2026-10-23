@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { getToolImpl, type Field, type ToolValues } from "@/lib/pdf/tools";
-import { bytesOf, sniffImageKind, decodeImageUpright, rotateImageTurns, type ToolFile } from "@/lib/pdf/toolkit";
+import type { ToolFile } from "@/lib/pdf/toolkit";
 import { formatFileSize } from "@/lib/formatFileSize";
 import { assetUrl, downloadBlob, isNative } from "@/lib/native";
 import * as pdfjs from "pdfjs-dist";
@@ -853,53 +853,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     setPreviewLoading(loading);
   };
 
-  const rotateFile = async (index: number) => {
-    const file = files[index];
-    if (!file) return;
-    const isImg = file.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(file.name);
-    if (!isImg) return;
-
-    setPreviewLoading((prev) => {
-      const next = [...prev];
-      next[index] = true;
-      return next;
-    });
-
-    try {
-      const kind = sniffImageKind(await bytesOf(file));
-      const upright = await decodeImageUpright(file, kind);
-      const rotatedBlob = await rotateImageTurns(upright, kind, 1);
-      const newFile = new File([rotatedBlob], file.name, {
-        type: rotatedBlob.type || file.type,
-        lastModified: Date.now(),
-      });
-
-      const oldUrl = selectedPreviewUrlsRef.current[index];
-      if (oldUrl) URL.revokeObjectURL(oldUrl);
-      const newUrl = URL.createObjectURL(rotatedBlob);
-
-      setFiles((prev) => {
-        const next = [...prev];
-        next[index] = newFile;
-        return next;
-      });
-      setSelectedPreviewUrls((prev) => {
-        const next = [...prev];
-        next[index] = newUrl;
-        selectedPreviewUrlsRef.current = next;
-        return next;
-      });
-    } catch (err) {
-      console.warn("Could not rotate image:", err);
-    } finally {
-      setPreviewLoading((prev) => {
-        const next = [...prev];
-        next[index] = false;
-        return next;
-      });
-    }
-  };
-
   const openResultPreview = async (
     blob: Blob,
     url: string,
@@ -1293,18 +1246,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                         </span>
                       )}
 
-                      {file.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(file.name) ? (
-                        <button
-                          type="button"
-                          aria-label={`Rotate ${file.name} 90 degrees`}
-                          title={`Rotate ${file.name} 90 degrees`}
-                          onClick={() => void rotateFile(index)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-slate-900 text-slate-300 transition hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-white"
-                        >
-                          <RotateCw className="h-3.5 w-3.5" />
-                        </button>
-                      ) : null}
-
                       <button
                         type="button"
                         aria-label={`Remove ${file.name}`}
@@ -1365,18 +1306,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                       >
                         {file.name}
                       </p>
-
-                      {file.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(file.name) ? (
-                        <button
-                          type="button"
-                          aria-label={`Rotate ${file.name} 90 degrees`}
-                          title={`Rotate ${file.name} 90 degrees`}
-                          onClick={() => void rotateFile(index)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-slate-900 text-slate-300 transition hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-white"
-                        >
-                          <RotateCw className="h-3.5 w-3.5" />
-                        </button>
-                      ) : null}
 
                       <button
                         type="button"
