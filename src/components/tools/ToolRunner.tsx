@@ -876,7 +876,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
   const [extraFiles, setExtraFiles] = useState<Record<string, File | null>>({});
   const [values, setValues] = useState<ToolValues>(() => defaultValues(fields));
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [results, setResults] = useState<Array<ToolFile & { url: string }>>([]);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -1006,7 +1005,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     setResults([]);
     setNames({});
     setError("");
-    setStatus("");
   };
 
   const clearSelectedPreviews = () => {
@@ -1152,7 +1150,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
         files,
         values,
         extraFiles,
-        progress: (message) => setStatus(message),
+        progress: () => {},
       });
 
       const processed = out.map((file) => ({
@@ -1161,12 +1159,10 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
       }));
 
       setResults(processed);
-      setStatus("");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong processing that file.",
       );
-      setStatus("");
     } finally {
       setBusy(false);
     }
@@ -1183,12 +1179,7 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
     if (downloading) return;
     setDownloading(outputName);
     try {
-      const mode = await downloadBlob(blob, outputName);
-      if (mode === "saved" && isNative()) {
-        setStatus(`Downloaded ${outputName} to your device's Downloads folder.`);
-      } else if (mode === "shared" && isNative()) {
-        setStatus(`Saved — pick a location in the share sheet to keep ${outputName}.`);
-      }
+      await downloadBlob(blob, outputName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save that file.");
     } finally {
@@ -1637,8 +1628,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
         {!canProcess && disabledReason ? (
           <p className="mt-2 text-xs text-amber-300">{disabledReason}</p>
         ) : null}
-
-        {status ? <p className="mt-2 text-xs text-slate-400">{status}</p> : null}
 
         {error ? (
           <p className="mt-3 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
