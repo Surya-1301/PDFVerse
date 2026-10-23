@@ -10,6 +10,7 @@ import {
   extractText,
   getPdfJsDoc,
   hexToRgb,
+  isImageSideways,
   jpegOrientation,
   loadPdf,
   parseRanges,
@@ -439,6 +440,18 @@ async function imagesToPdf(
     }
 
     const shouldMatchFirst = Boolean(opts.matchFirst || opts.orientation === "match-first");
+    const shouldFixPortrait = (opts.orientation === "portrait") || (shouldMatchFirst && firstDims && !firstDims.isLandscape);
+
+    // If Portrait is target and image is wider than tall, rotate only if text is actually sideways:
+    if (shouldFixPortrait && imgW > imgH) {
+      const isSideways = await isImageSideways(sourceBlob);
+      if (isSideways) {
+        sourceBlob = await rotateImageTurns(sourceBlob, kind, 1);
+        const temp = imgW;
+        imgW = imgH;
+        imgH = temp;
+      }
+    }
 
     if (turns) {
       sourceBlob = await rotateImageTurns(sourceBlob, kind, turns);

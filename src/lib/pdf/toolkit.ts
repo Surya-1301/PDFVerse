@@ -275,6 +275,60 @@ export async function rotateImageTurns(
   return kind === "png" ? canvasToPng(canvas) : canvasToJpeg(canvas, 0.92);
 }
 
+/**
+ * Detects if a document/notebook photo is sideways (e.g. text lines running vertically)
+ * using edge gradient analysis on downsampled image data.
+ * When text is horizontal (upright), vertical gradient >> horizontal gradient (ratio > 1.0).
+ * When text is sideways (rotated 90 deg), horizontal gradient >> vertical gradient (ratio < 0.75).
+ */
+export async function isImageSideways(blob: Blob): Promise<boolean> {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    if (bitmap.height >= bitmap.width) {
+      bitmap.close?.();
+      return false;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 120;
+    canvas.height = 120;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      bitmap.close?.();
+      return false;
+    }
+
+    ctx.drawImage(bitmap, 0, 0, 120, 120);
+    bitmap.close?.();
+
+    const imgData = ctx.getImageData(0, 0, 120, 120).data;
+    let sumDx = 0;
+    let sumDy = 0;
+
+    for (let y = 24; y < 96; y += 2) {
+      for (let x = 24; x < 96; x += 2) {
+        const idxR = (y * 120 + (x + 1)) * 4;
+        const idxL = (y * 120 + (x - 1)) * 4;
+        const idxD = ((y + 1) * 120 + x) * 4;
+        const idxU = ((y - 1) * 120 + x) * 4;
+
+        const lumR = 0.299 * imgData[idxR] + 0.587 * imgData[idxR + 1] + 0.114 * imgData[idxR + 2];
+        const lumL = 0.299 * imgData[idxL] + 0.587 * imgData[idxL + 1] + 0.114 * imgData[idxL + 2];
+        const lumD = 0.299 * imgData[idxD] + 0.587 * imgData[idxD + 1] + 0.114 * imgData[idxD + 2];
+        const lumU = 0.299 * imgData[idxU] + 0.587 * imgData[idxU + 1] + 0.114 * imgData[idxU + 2];
+
+        sumDx += Math.abs(lumR - lumL);
+        sumDy += Math.abs(lumD - lumU);
+      }
+    }
+
+    const ratio = sumDy / (sumDx + 1e-5);
+    return ratio < 0.75;
+  } catch {
+    return false;
+  }
+}
+
 export function hexToRgb(hex: string) {
   const clean = (hex || "#000000").replace("#", "");
   const full =
