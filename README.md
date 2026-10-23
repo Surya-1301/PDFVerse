@@ -5,7 +5,7 @@
 [![Android app](https://img.shields.io/badge/Android-APK_download-3DDC84?logo=android&logoColor=white)](https://downloadpdfverse.dpdns.org)
 [![License](https://img.shields.io/github/license/Surya-1301/PDFVerse)](LICENSE)
  
- ![PDFVerse Home](public/home.png)
+ ![PDFVerse Home](docs/screenshots/home.png)
 
 **Free online PDF tools — edit, organize, convert, compress, protect, and repair PDFs right in your browser.**
 
@@ -22,7 +22,7 @@ No sign-up. No watermarks on output. Most tools run entirely on your device, so 
 ---
 
 ## Android app
-![PDFVerse Download](public/docs/screenshots/app.png)
+![PDFVerse Download](docs/screenshots/app.png)
 PDFVerse is also available as a native Android app — all 42 tools, wrapped with Capacitor.
 
 📥 **Download:** https://downloadpdfverse.dpdns.org
@@ -89,15 +89,15 @@ Protect PDF (password encryption) · Unlock PDF · Redact PDF (permanent) · Bat
 
 ### Home
 
-![PDFVerse home page](public/docs/screenshots/home.png)
+![PDFVerse home page](docs/screenshots/home.png)
 
 ### Tool page
 
-![Merge PDF tool page](public/docs/screenshots/tool-page.png)
+![Merge PDF tool page](docs/screenshots/tool-page.png)
 
 ### PDF Editor
 
-![PDF Editor](public/docs/screenshots/pdf-editor.png)
+![PDF Editor](docs/screenshots/pdf-editor.png)
 
 ---
 
