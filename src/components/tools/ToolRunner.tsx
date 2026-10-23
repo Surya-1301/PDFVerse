@@ -1359,10 +1359,6 @@ export function ToolRunner({ slug, title, description, icon }: ToolRunnerProps) 
                       <div
                         className="h-[180px] w-full overflow-hidden bg-[#171a22] md:h-[200px] lg:h-[220px]"
                       >
-                        <span className="absolute bottom-2.5 right-2.5 z-10 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/90 px-2.5 py-1 text-[11px] font-semibold text-slate-200 shadow-md backdrop-blur transition group-hover/preview:border-violet-500/50 group-hover/preview:bg-violet-600 group-hover/preview:text-white">
-                          <Eye className="h-3.5 w-3.5" />
-                          Scroll preview
-                        </span>
                         {isLoadingPreview ? (
                           <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-950 px-5 text-center">
                             <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
